@@ -79,7 +79,7 @@ const MainLayout = ({ children }) => {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
       <AppBar position="static" color="primary">
         <Toolbar>
           {isMobile && (
@@ -127,21 +127,7 @@ const MainLayout = ({ children }) => {
         </Toolbar>
       </AppBar>
 
-      <nav>
-        <Drawer
-          anchor="left"
-          open={mobileOpen}
-          onClose={toggleDrawer}
-          ModalProps={{ keepMounted: true }}
-        >
-          {drawer}
-        </Drawer>
-      </nav>
-
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        {children}
-      </Box>
-    </Box>
+        </Box>
   );
 };
 

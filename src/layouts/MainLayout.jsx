@@ -10,21 +10,10 @@ const MainLayout = ({ children }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Topbar fixe en haut */}
-      <header style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 60,
-        zIndex: 1000,
-        backgroundColor: '#fff',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-      }}>
+      
 
 <MainMenu />
-      </header>
-
+      
       {/* Contenu principal + sidebar */}
       <div style={{
         display: 'flex',
@@ -39,7 +28,7 @@ const MainLayout = ({ children }) => {
             backgroundColor: '#fff',
             borderRight: '1px solid #ddd',
             position: 'fixed',
-            top: 60,
+            top: 10,
             bottom: 0,
             overflowY: 'auto',
           }}>
