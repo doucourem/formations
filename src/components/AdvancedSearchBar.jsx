@@ -7,10 +7,15 @@ import {
   Button,
   Grid,
   Paper,
+  IconButton,
+  Menu,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import SortIcon from '@mui/icons-material/Sort';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 const categories = [
   { label: 'Tous', value: '' },
@@ -26,6 +31,9 @@ const AdvancedSearchBar = ({ onSearch }) => {
   const [location, setLocation] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const open = Boolean(anchorEl);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -34,13 +42,24 @@ const AdvancedSearchBar = ({ onSearch }) => {
     }
   };
 
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = (value) => {
+    if (onSearch && value) {
+      onSearch({ search, category, location, startDate, endDate, sortBy: value });
+    }
+    setAnchorEl(null);
+  };
+
   return (
     <Paper
       component="form"
       onSubmit={handleSubmit}
       elevation={2}
       sx={{
-        p: 2,
+        p: { xs: 2, md: 3 },
         mt: 2,
         mx: 'auto',
         maxWidth: 1200,
@@ -51,15 +70,13 @@ const AdvancedSearchBar = ({ onSearch }) => {
       aria-label="Barre de recherche de formation"
     >
       <Grid container spacing={2}>
-        {/* Rechercher */}
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <TextField
             fullWidth
             label="Rechercher une formation"
             variant="outlined"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Champ de recherche"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -70,15 +87,13 @@ const AdvancedSearchBar = ({ onSearch }) => {
           />
         </Grid>
 
-        {/* Localisation */}
-        <Grid item xs={12} md={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <TextField
             fullWidth
             label="Localisation"
             variant="outlined"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            aria-label="Champ de localisation"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -89,8 +104,7 @@ const AdvancedSearchBar = ({ onSearch }) => {
           />
         </Grid>
 
-        {/* Catégorie */}
-        <Grid item xs={12} md={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <TextField
             select
             fullWidth
@@ -98,7 +112,6 @@ const AdvancedSearchBar = ({ onSearch }) => {
             variant="outlined"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            aria-label="Filtrer par catégorie"
           >
             {categories.map((option) => (
               <MenuItem key={option.value} value={option.value}>
@@ -108,8 +121,7 @@ const AdvancedSearchBar = ({ onSearch }) => {
           </TextField>
         </Grid>
 
-        {/* Date de début */}
-        <Grid item xs={12} md={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <TextField
             fullWidth
             label="Date de début"
@@ -117,12 +129,10 @@ const AdvancedSearchBar = ({ onSearch }) => {
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
-            aria-label="Date de début"
           />
         </Grid>
 
-        {/* Date de fin */}
-        <Grid item xs={12} md={2}>
+        <Grid item xs={12} sm={6} md={2}>
           <TextField
             fullWidth
             label="Date de fin"
@@ -130,21 +140,48 @@ const AdvancedSearchBar = ({ onSearch }) => {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
-            aria-label="Date de fin"
           />
         </Grid>
 
-        {/* Bouton */}
-        <Grid item xs={12} md={1} sx={{ display: 'flex', alignItems: 'center' }}>
+        <Grid item xs={6} sm={6} md={1}>
           <Button
             fullWidth
             type="submit"
             variant="contained"
             color="primary"
-            aria-label="Rechercher"
+            sx={{ height: '100%' }}
           >
             Rechercher
           </Button>
+        </Grid>
+
+        <Grid item xs={6} sm={6} md={'auto'}>
+          <IconButton
+            onClick={handleMenuClick}
+            aria-label="Ouvrir les options de tri"
+            aria-controls={open ? 'filter-menu' : undefined}
+            aria-haspopup="true"
+            aria-expanded={open ? 'true' : undefined}
+          >
+            <SortIcon />
+          </IconButton>
+
+          <Menu
+            id="filter-menu"
+            anchorEl={anchorEl}
+            open={open}
+            onClose={() => handleMenuClose(null)}
+          >
+            <MenuItem onClick={() => handleMenuClose('recent')}>
+              <AccessTimeIcon fontSize="small" sx={{ mr: 1 }} /> Les plus récents
+            </MenuItem>
+            <MenuItem onClick={() => handleMenuClose('popular')}>
+              <SortIcon fontSize="small" sx={{ mr: 1 }} /> Les plus populaires
+            </MenuItem>
+            <MenuItem onClick={() => handleMenuClose('favorites')}>
+              <FavoriteIcon fontSize="small" sx={{ mr: 1 }} /> Mes favoris
+            </MenuItem>
+          </Menu>
         </Grid>
       </Grid>
     </Paper>

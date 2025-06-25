@@ -20,6 +20,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import AdvancedSearchBar from '../components/AdvancedSearchBar';
+import FeaturedCourses from '../components/FeaturedCourses';
 
 
 const featuredCourses = [
@@ -126,9 +127,21 @@ const HomePage = () => {
       {/* Hero Section */}
     
 <AdvancedSearchBar onSearch={(filters) => console.log('Recherche avec :', filters)} />
+<Box sx={{ py: 8, textAlign: 'center', backgroundColor: 'primary.main', color: '#fff' }}>
+  <Typography variant="h2" gutterBottom>
+    Révèle ta marque personnelle
+  </Typography>
+  <Typography variant="h5" sx={{ maxWidth: 700, mx: 'auto' }}>
+    Formations, outils IA, et accompagnement pour construire une marque qui inspire et vend.
+  </Typography>
+  <Button variant="contained" color="secondary" sx={{ mt: 4 }}>
+    Découvrir les formations
+  </Button>
+</Box>
 
       
 <AdBanner />
+<FeaturedCourses />
       {/* Cours en vedette */}
       <Container sx={{ py: 6 }}>
         <Typography variant="h4" gutterBottom>
@@ -199,7 +212,6 @@ const HomePage = () => {
 <Testimonials />
 <FeaturesSection />
 <HowItWorks />
-<FeaturesSection />
 <LearningProgress value={72} title="Formation Django API" />
       {/* Call to Action */}
       <Box sx={{ py: 6, textAlign: 'center' }}>

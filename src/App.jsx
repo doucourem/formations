@@ -17,6 +17,8 @@ import WebinaireList from './pages/WebinaireList'
 
 import theme from './theme';  // chemin vers ton thème
 import CourseDetail from './pages/CourseDetail';
+import DashboardUser from './pages/DashboardUser'; // Si besoin
+import UserProfile from './pages/UserProfile';
 
 
 
@@ -37,6 +39,10 @@ function App() {
             <Route path="/influencers" element={<InfluencerList />} />
             <Route path="/influencers/:id" element={<InfluencerDetail />} />
             <Route path="/cours/:id" element={<CourseDetail />} />
+            <Route path="/dashboarduser" element={<DashboardUser />} />
+            <Route path="/profil" element={<UserProfile />} />
+
+            DashboardUser
           </Routes>
         </MainLayout>
       </Router>
