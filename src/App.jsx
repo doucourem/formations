@@ -41,8 +41,6 @@ function App() {
             <Route path="/cours/:id" element={<CourseDetail />} />
             <Route path="/dashboarduser" element={<DashboardUser />} />
             <Route path="/profil" element={<UserProfile />} />
-
-            DashboardUser
           </Routes>
         </MainLayout>
       </Router>

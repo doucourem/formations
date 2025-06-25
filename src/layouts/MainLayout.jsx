@@ -3,6 +3,7 @@ import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
+import MainMenu from './MainMenu';
 
 const MainLayout = ({ children }) => {
   const { user } = useAuth();
@@ -20,7 +21,8 @@ const MainLayout = ({ children }) => {
         backgroundColor: '#fff',
         boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
       }}>
-        <Topbar />
+
+<MainMenu />
       </header>
 
       {/* Contenu principal + sidebar */}
