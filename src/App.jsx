@@ -21,6 +21,14 @@ import DashboardUser from './pages/DashboardUser'; // Si besoin
 import UserProfile from './pages/UserProfile';
 
 
+import About from './pages/About';
+import Mission from './pages/Mission';
+import Contact from './pages/Contact';
+import Support from './pages/Support';
+import FAQ from './pages/FAQ';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+
 
 function App() {
   return (
@@ -41,6 +49,14 @@ function App() {
             <Route path="/cours/:id" element={<CourseDetail />} />
             <Route path="/dashboarduser" element={<DashboardUser />} />
             <Route path="/profil" element={<UserProfile />} />
+            <Route path="/about" element={<About />} />
+<Route path="/mission" element={<Mission />} />
+<Route path="/contact" element={<Contact />} />
+<Route path="/support" element={<Support />} />
+<Route path="/faq" element={<FAQ />} />
+<Route path="/terms" element={<Terms />} />
+<Route path="/privacy" element={<Privacy />} />
+
           </Routes>
         </MainLayout>
       </Router>

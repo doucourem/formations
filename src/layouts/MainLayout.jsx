@@ -18,7 +18,7 @@ const MainLayout = ({ children }) => {
       <div style={{
         display: 'flex',
         flex: 1,
-        marginTop: 60, // espace sous topbar
+        marginTop: -0, // espace sous topbar
         backgroundColor: '#f5f5f5',
         minHeight: 0,
       }}>
@@ -38,11 +38,11 @@ const MainLayout = ({ children }) => {
 
         <main style={{
           marginLeft: user ? 220 : 0,
-          padding: 40,
+          padding: 0,
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
-          minHeight: 'calc(100vh - 60px)', // hauteur dispo après topbar
+          minHeight: 'calc(100vh - 90px)', // hauteur dispo après topbar
           overflowY: 'auto',
         }}>
           {/* contenu qui scroll */}

@@ -27,7 +27,7 @@ const navItems = [
 
 const MainLayout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState(null); // null = pas connecté, sinon objet utilisateur simple
+  const [user, setUser] = useState(null); // simulate login
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
@@ -38,31 +38,34 @@ const MainLayout = ({ children }) => {
 
   const handleLoginLogout = () => {
     if (user) {
-      // logout
       setUser(null);
       navigate('/');
     } else {
-      // login (ici simulation)
       setUser({ name: 'Mariam Diarra' });
       navigate('/dashboard');
     }
   };
 
   const drawer = (
-    <Box onClick={toggleDrawer} sx={{ width: 250 }}>
+    <Box sx={{ width: 250 }} onClick={toggleDrawer}>
       <Typography variant="h6" sx={{ m: 2, color: theme.palette.primary.main }}>
         Menu
       </Typography>
       <Divider />
       <List>
         {navItems.map((item) => (
-          <ListItem button component={Link} to={item.path} key={item.label}>
+          <ListItem
+            button
+            key={item.label}
+            component={Link}
+            to={item.path}
+          >
             <ListItemText primary={item.label} />
           </ListItem>
         ))}
       </List>
       <Divider />
-      <Box sx={{ m: 2 }}>
+      <Box sx={{ p: 2 }}>
         <Button
           variant="contained"
           color="secondary"
@@ -79,7 +82,8 @@ const MainLayout = ({ children }) => {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '0vh' }}>
+      {/* AppBar */}
       <AppBar position="static" color="primary">
         <Toolbar>
           {isMobile && (
@@ -101,13 +105,12 @@ const MainLayout = ({ children }) => {
           >
             Ma Marque
           </Typography>
-
           {!isMobile && (
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {navItems.map((item) => (
                 <Button
                   key={item.label}
-                  color="secondary"
+                  color="inherit"
                   component={Link}
                   to={item.path}
                 >
@@ -118,7 +121,6 @@ const MainLayout = ({ children }) => {
                 variant="contained"
                 color="secondary"
                 onClick={handleLoginLogout}
-                sx={{ ml: 2 }}
               >
                 {user ? 'Logout' : 'Login'}
               </Button>
@@ -127,7 +129,23 @@ const MainLayout = ({ children }) => {
         </Toolbar>
       </AppBar>
 
-        </Box>
+      {/* Drawer mobile */}
+      <Drawer
+        anchor="left"
+        open={mobileOpen}
+        onClose={toggleDrawer}
+        ModalProps={{
+          keepMounted: true,
+        }}
+      >
+        {drawer}
+      </Drawer>
+
+      {/* Contenu principal */}
+      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        {children}
+      </Box>
+    </Box>
   );
 };
 
