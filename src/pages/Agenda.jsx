@@ -3,13 +3,14 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import axios from 'axios';
+// import axios from 'axios'; // à décommenter si tu récupères les events via API
 
 export default function Agenda() {
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
-   /* axios.get("http://localhost:8000/api/events/")
+    /*
+    axios.get("http://localhost:8000/api/events/")
       .then((res) => {
         const formatted = res.data.map(ev => ({
           id: ev.id,
@@ -19,9 +20,9 @@ export default function Agenda() {
           allDay: ev.all_day
         }));
     
-       // setEvents(formatted);
+        setEvents(formatted);
       });
-      */
+    */
   }, []);
 
   return (
@@ -35,8 +36,16 @@ export default function Agenda() {
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
+        buttonText={{
+          today: "Aujourd'hui",
+          month: 'Mois',
+          week: 'Semaine',
+          day: 'Jour',
+          list: 'Liste'
+        }}
         events={events}
         height="auto"
+        locale="fr"
       />
     </div>
   );
