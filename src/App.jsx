@@ -37,34 +37,9 @@ import {
 
 import theme from './theme'; // ton thème MUI
 
-function App() {
+function PublicRoutes() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-
-      <Router>
-        <Routes>
-          {/* Partie admin dédiée */}
-          <Route
-            path="/admin/*"
-            element={
-              <Admin dataProvider={dataProvider}>
-                <Resource
-                  name="influencers"
-                  list={InfluencerListAdmin}
-                  edit={InfluencerEdit}
-                  create={InfluencerCreate}
-                  show={InfluencerShow}
-                />
-              </Admin>
-            }
-          />
-
-          {/* Partie publique avec layout */}
-          <Route
-            path="*"
-            element={
-              <MainLayout>
+    <MainLayout>
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/login" element={<LoginForm />} />
@@ -87,8 +62,29 @@ function App() {
                   <Route path="/privacy" element={<Privacy />} />
                 </Routes>
               </MainLayout>
+  );
+}
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Routes>
+          <Route
+            path="/admin/*"
+            element={
+              <Admin dataProvider={dataProvider}>
+                <Resource
+                  name="influencers"
+                  list={InfluencerListAdmin}
+                  edit={InfluencerEdit}
+                  create={InfluencerCreate}
+                  show={InfluencerShow}
+                />
+              </Admin>
             }
           />
+          <Route path="/*" element={<PublicRoutes />} />
         </Routes>
       </Router>
     </ThemeProvider>
@@ -96,3 +92,4 @@ function App() {
 }
 
 export default App;
+
