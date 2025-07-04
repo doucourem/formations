@@ -21,7 +21,7 @@ const staticInfluencers = [
   { id: 5, name: "Eva Smith", niche: "Tech", followers: 130000 },
 ];
 
-export default function InfluencerList() {
+export default function InfluencerListFrontend() {
   const [influencers, setInfluencers] = useState(staticInfluencers);
   const [filtered, setFiltered] = useState(staticInfluencers);
   const [filterNiche, setFilterNiche] = useState("");

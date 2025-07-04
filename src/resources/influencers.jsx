@@ -4,7 +4,7 @@ import {
   SimpleFormIterator, DateField, Show, SimpleShowLayout
 } from 'react-admin';
 
-export const InfluencerListAdmin = () => (
+export const InfluencerList = () => (
   <List>
     <Datagrid rowClick="edit">
       <TextField source="id" />

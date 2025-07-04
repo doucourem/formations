@@ -8,7 +8,7 @@ import RegisterForm from './components/RegisterForm';
 import Dashboard from './pages/Dashboard';
 import CourseCard2 from './pages/CourseCard';
 import MainLayout from './layouts/MainLayout';
-import InfluencerList from './pages/InfluencerList';
+import InfluencerListFrontend from './pages/InfluencerList';
 import InfluencerDetail from './pages/InfluencerDetail';
 import CreateIAProject from './pages/CreateIAProject';
 import Agenda from './pages/Agenda';
@@ -29,7 +29,7 @@ import Privacy from './pages/Privacy';
 import { Admin, Resource } from 'react-admin';
 import dataProvider from './utils/dataProvider'; // ton dataProvider personnalisé
 import {
-  InfluencerListAdmin,
+  InfluencerList,
   InfluencerEdit,
   InfluencerCreate,
   InfluencerShow
@@ -48,8 +48,8 @@ function PublicRoutes() {
                   <Route path="/createproject" element={<CreateIAProject />} />
                   <Route path="/agenda" element={<Agenda />} />
                   <Route path="/webinairelist" element={<WebinaireList />} />
-                  <Route path="/influencers" element={<InfluencerList />} />
-                  <Route path="/influencers/:id" element={<InfluencerDetail />} />
+                  <Route path="/influencer" element={<InfluencerListFrontend />} />
+                  <Route path="/influencer/:id" element={<InfluencerDetail />} />
                   <Route path="/cours/:id" element={<CourseDetail />} />
                   <Route path="/dashboarduser" element={<DashboardUser />} />
                   <Route path="/profil" element={<UserProfile />} />
@@ -76,7 +76,7 @@ function App() {
               <Admin dataProvider={dataProvider}>
                 <Resource
                   name="influencers"
-                  list={InfluencerListAdmin}
+                  list={InfluencerList}
                   edit={InfluencerEdit}
                   create={InfluencerCreate}
                   show={InfluencerShow}
