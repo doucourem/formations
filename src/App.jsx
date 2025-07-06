@@ -35,6 +35,19 @@ import {
   InfluencerShow
 } from './resources/influencers';
 
+import {
+  ProjectList,
+  ProjectEdit,
+  ProjectCreate,
+  ProjectShow,
+} from './resources/projects';
+
+import {
+  CourseList,
+  CourseEdit,
+  CourseCreate,
+  CourseShow
+} from './resources/courses';
 import theme from './theme'; // ton thème MUI
 
 function PublicRoutes() {
@@ -87,6 +100,13 @@ function App() {
     edit={CourseEdit}
     create={CourseCreate}
     show={CourseShow}
+  />
+    <Resource
+    name="projects"
+    list={ProjectList}
+    edit={ProjectEdit}
+    create={ProjectCreate}
+    show={ProjectShow}
   />
               </Admin>
             }
