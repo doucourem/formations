@@ -81,6 +81,13 @@ function App() {
                   create={InfluencerCreate}
                   show={InfluencerShow}
                 />
+                  <Resource
+    name="courses"
+    list={CourseList}
+    edit={CourseEdit}
+    create={CourseCreate}
+    show={CourseShow}
+  />
               </Admin>
             }
           />
