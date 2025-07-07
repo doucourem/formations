@@ -1,47 +1,40 @@
-// src/utils/authProvider.js
 import { supabase } from './supabaseClient';
 
 const authProvider = {
   login: async ({ email, password }) => {
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw new Error("Email ou mot de passe incorrect");
-    return true;
-  },
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
 
-  logout: async () => {
-    await supabase.auth.signOut();
-    return true;
-  },
+    // 🔐 Fetch role depuis la table users
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', data.user.id)
+      .single();
 
-  checkAuth: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) throw new Error("Non authentifié");
-    return true;
-  },
-
-  checkError: (error) => {
-    if (error.status === 401 || error.status === 403) {
-      return Promise.reject();
-    }
+    if (profileError) throw new Error('Profil non trouvé');
+    localStorage.setItem('role', userProfile.role);
     return Promise.resolve();
   },
 
-  getPermissions: async () => {
-    const { data } = await supabase.auth.getUser();
-    const role = data?.user?.user_metadata?.role;
-    return role ? Promise.resolve(role) : Promise.reject();
+  logout: () => {
+    localStorage.removeItem('role');
+    return supabase.auth.signOut();
   },
 
-  getIdentity: async () => {
-    const { data } = await supabase.auth.getUser();
-    return {
-      id: data.user.id,
-      fullName: data.user.email,
-    };
+  getPermissions: () => {
+    const role = localStorage.getItem('role');
+    return Promise.resolve(role);
   },
+
+  checkAuth: () => {
+    return supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) throw new Error('Non connecté');
+      return;
+    });
+  },
+
+  checkError: () => Promise.resolve(),
 };
 
 export default authProvider;

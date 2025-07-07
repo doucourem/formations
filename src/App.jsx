@@ -51,6 +51,8 @@ import {
 } from './resources/courses';
 import theme from './theme'; // ton thème MUI
 import AdminMenu from './components/AdminMenu';
+import DashboardAdmin from './pages/DashboardAdmin'; // 👈
+
 function PublicRoutes() {
   return (
     <MainLayout>
@@ -88,6 +90,7 @@ function App() {
             path="/admin/*"
             element={
                   <Admin
+                   dashboard={DashboardAdmin}
       dataProvider={dataProvider}
       authProvider={authProvider} 
         menu={AdminMenu}// 👈 Protection activée
