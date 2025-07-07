@@ -52,6 +52,27 @@ import {
 import theme from './theme'; // ton thème MUI
 import AdminMenu from './components/AdminMenu';
 import DashboardAdmin from './pages/DashboardAdmin'; // 👈
+import frenchMessages from 'ra-language-french';
+import polyglotI18nProvider from 'ra-i18n-polyglot';
+
+const customFrenchMessages = {
+  ...frenchMessages,
+  resources: {
+    influencers: {
+      name: 'Influenceur |||| Influenceurs',
+    },
+    courses: {
+      name: 'Cours |||| Cours',
+    },
+    projects: {
+      name: 'Projet IA |||| Projets IA',
+    },
+  },
+};
+
+// Création du i18nProvider
+const i18nProvider = polyglotI18nProvider(() => customFrenchMessages, 'fr');
+
 
 function PublicRoutes() {
   return (
@@ -93,8 +114,8 @@ function App() {
                    basename="/admin"
                    dashboard={DashboardAdmin}
       dataProvider={dataProvider}
-      authProvider={authProvider} 
         menu={AdminMenu}// 👈 Protection activée
+        i18nProvider={i18nProvider}
     >
                 <Resource
                   name="influencers"

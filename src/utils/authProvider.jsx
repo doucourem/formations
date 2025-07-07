@@ -1,40 +1,23 @@
 import { supabase } from './supabaseClient';
 
 const authProvider = {
-  login: async ({ email, password }) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
-
-    // 🔐 Fetch role depuis la table users
-    const { data: userProfile, error: profileError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', data.user.id)
-      .single();
-
-    if (profileError) throw new Error('Profil non trouvé');
-    localStorage.setItem('role', userProfile.role);
-    return Promise.resolve();
+  login: ({ username }) => {
+    if (username === 'admin') {
+      localStorage.setItem('role', 'admin');
+      return Promise.resolve(); // ✅ pas d'objet, pas de redirectTo ici
+    }
+    return Promise.reject('Identifiants invalides');
   },
-
   logout: () => {
     localStorage.removeItem('role');
-    return supabase.auth.signOut();
+    return Promise.resolve('/login'); // ✅ redirect vers cette route
   },
-
-  getPermissions: () => {
-    const role = localStorage.getItem('role');
-    return Promise.resolve(role);
-  },
-
   checkAuth: () => {
-    return supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) throw new Error('Non connecté');
-      return;
-    });
+    return localStorage.getItem('role') ? Promise.resolve() : Promise.reject();
   },
-
   checkError: () => Promise.resolve(),
+  getPermissions: () => Promise.resolve(localStorage.getItem('role')),
 };
+
 
 export default authProvider;
