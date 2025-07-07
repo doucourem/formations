@@ -90,6 +90,7 @@ function App() {
             path="/admin/*"
             element={
                   <Admin
+                   basename="/admin"
                    dashboard={DashboardAdmin}
       dataProvider={dataProvider}
       authProvider={authProvider} 
