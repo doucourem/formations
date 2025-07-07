@@ -28,6 +28,7 @@ import Privacy from './pages/Privacy';
 
 import { Admin, Resource } from 'react-admin';
 import dataProvider from './utils/dataProvider'; // ton dataProvider personnalisé
+import authProvider from './utils/authProvider'; // 👈
 import {
   InfluencerList,
   InfluencerEdit,
@@ -49,7 +50,7 @@ import {
   CourseShow
 } from './resources/courses';
 import theme from './theme'; // ton thème MUI
-
+import AdminMenu from './components/AdminMenu';
 function PublicRoutes() {
   return (
     <MainLayout>
@@ -86,7 +87,11 @@ function App() {
           <Route
             path="/admin/*"
             element={
-              <Admin dataProvider={dataProvider}>
+                  <Admin
+      dataProvider={dataProvider}
+      authProvider={authProvider} 
+        menu={AdminMenu}// 👈 Protection activée
+    >
                 <Resource
                   name="influencers"
                   list={InfluencerList}
