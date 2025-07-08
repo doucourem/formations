@@ -21,7 +21,7 @@ const navItems = [
   { label: 'Accueil', path: '/' },
   { label: 'Formations', path: '/dashboard' },
   { label: 'Agenda', path: '/agenda' },
-  { label: 'Influenceurs', path: '/influencers' },
+  { label: 'Influenceurs', path: '/influencer' },
   { label: 'Profil', path: '/profil' },
 ];
 

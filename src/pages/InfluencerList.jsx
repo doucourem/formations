@@ -88,7 +88,7 @@ export default function InfluencerListFrontend() {
             <ListItem
               button
               component={Link}
-              to={`/influencers/${inf.id}`}
+              to={`/influencer/${inf.id}`}
               divider
             >
               <ListItemText
