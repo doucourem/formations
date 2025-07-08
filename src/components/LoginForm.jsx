@@ -1,22 +1,29 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import {
-  Box,
-  Button,
-  Container,
-  IconButton,
-  InputAdornment,
-  TextField,
-  Typography
+  Box, Button, Container, IconButton, InputAdornment,
+  TextField, Typography
 } from "@mui/material";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { supabase } from "../utils/supabaseClient"; // ✅ Import supabase
 
 export default function LoginForm() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [showPassword, setShowPassword] = useState(false);
 
-  const onSubmit = async (data) => {
-    console.log(data);
+  const onSubmit = async ({ email, password }) => {
+    const { error, data } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      alert("Erreur : " + error.message);
+    } else {
+      alert("Connexion réussie !");
+      console.log(data);
+      // Redirect / store token if needed
+    }
   };
 
   return (
@@ -29,11 +36,11 @@ export default function LoginForm() {
         <Typography variant="h5" align="center">Connexion</Typography>
 
         <TextField
-          label="Nom d'utilisateur"
+          label="Email"
           fullWidth
-          {...register("username", { required: "Nom requis" })}
-          error={!!errors.username}
-          helperText={errors.username?.message}
+          {...register("email", { required: "Email requis" })}
+          error={!!errors.email}
+          helperText={errors.email?.message}
         />
 
         <TextField

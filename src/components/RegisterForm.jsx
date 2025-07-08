@@ -1,88 +1,68 @@
-import { useForm } from "react-hook-form";
-import { useState } from "react";
-import axios from "axios";
-import {
-  Box,
-  Button,
-  Container,
-  IconButton,
-  InputAdornment,
-  TextField,
-  Typography,
-} from "@mui/material";
-import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+// src/components/RegisterForm.jsx
+import React, { useState } from 'react';
+import { TextField, Button, Typography, Box, Alert } from '@mui/material';
+ import { supabase } from '../utils/supabaseClient';
+const RegisterForm = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [msg, setMsg] = useState(null);
+  const [error, setError] = useState(false);
 
-export default function RegisterForm() {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
-  const [showPassword, setShowPassword] = useState(false);
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setMsg(null);
+    setError(false);
 
-  const onSubmit = async (data) => {
-    try {
-      await axios.post("http://127.0.0.1:8000/api/register/", data);
-      alert("Inscription réussie !");
-    } catch (error) {
-      alert("Erreur d'inscription");
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      setMsg(error.message);
+      setError(true);
+    } else {
+      setMsg('Compte créé ! Vérifie ton e-mail pour valider ton compte.');
     }
   };
 
   return (
-    <Container maxWidth="xs" sx={{ mt: 8 }}>
-      <Box
-        component="form"
-        onSubmit={handleSubmit(onSubmit)}
-        sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-      >
-        <Typography variant="h5" align="center">
-          Inscription
-        </Typography>
+    <Box maxWidth="400px" mx="auto" mt={6}>
+      <Typography variant="h5" gutterBottom>Créer un compte</Typography>
 
-        <TextField
-          label="Nom d'utilisateur"
-          fullWidth
-          {...register("username", { required: "Nom requis" })}
-          error={!!errors.username}
-          helperText={errors.username?.message}
-        />
-
+      <form onSubmit={handleRegister}>
         <TextField
           label="Email"
           type="email"
           fullWidth
-          {...register("email", { required: "Email requis" })}
-          error={!!errors.email}
-          helperText={errors.email?.message}
+          margin="normal"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
 
         <TextField
           label="Mot de passe"
-          type={showPassword ? "text" : "password"}
+          type="password"
           fullWidth
-          {...register("password", { required: "Mot de passe requis" })}
-          error={!!errors.password}
-          helperText={errors.password?.message}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  onClick={() => setShowPassword(!showPassword)}
-                  edge="end"
-                  aria-label="toggle password visibility"
-                >
-                  {showPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
+          margin="normal"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
 
-        <Button variant="contained" type="submit" fullWidth color="primary">
-          S'inscrire
+        <Button variant="contained" type="submit" color="primary" fullWidth sx={{ mt: 2 }}>
+          S’inscrire
         </Button>
-      </Box>
-    </Container>
+      </form>
+
+      {msg && (
+        <Alert severity={error ? 'error' : 'success'} sx={{ mt: 3 }}>
+          {msg}
+        </Alert>
+      )}
+    </Box>
   );
-}
+};
+
+export default RegisterForm;

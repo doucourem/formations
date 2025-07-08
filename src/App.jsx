@@ -54,7 +54,7 @@ import AdminMenu from './components/AdminMenu';
 import DashboardAdmin from './pages/DashboardAdmin'; // 👈
 import frenchMessages from 'ra-language-french';
 import polyglotI18nProvider from 'ra-i18n-polyglot';
-
+import CustomLoginPage from './components/CustomLoginPage';
 const customFrenchMessages = {
   ...frenchMessages,
   resources: {
@@ -116,6 +116,7 @@ function App() {
       dataProvider={dataProvider}
         menu={AdminMenu}// 👈 Protection activée
         i18nProvider={i18nProvider}
+        loginPage={CustomLoginPage} 
     >
                 <Resource
                   name="influencers"
