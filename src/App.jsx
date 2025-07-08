@@ -55,6 +55,8 @@ import DashboardAdmin from './pages/DashboardAdmin'; // 👈
 import frenchMessages from 'ra-language-french';
 import polyglotI18nProvider from 'ra-i18n-polyglot';
 import CustomLoginPage from './components/CustomLoginPage';
+import MyLayout from './components/MyLayout'; // 🔁 ton chemin réel
+
 const customFrenchMessages = {
   ...frenchMessages,
   resources: {
@@ -115,8 +117,10 @@ function App() {
                    dashboard={DashboardAdmin}
       dataProvider={dataProvider}
         menu={AdminMenu}// 👈 Protection activée
+        authProvider={authProvider} // 👈
         i18nProvider={i18nProvider}
         loginPage={CustomLoginPage} 
+        layout={MyLayout}
     >
                 <Resource
                   name="influencers"

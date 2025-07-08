@@ -8,15 +8,28 @@ import {
   Typography,
   Link,
 } from '@mui/material';
-import { useLogin, useNotify, useRedirect } from 'react-admin';
-import bgImage from '../assets/bg-login.jpg'; // image de fond
-import logo from '../assets/logo.png'; // logo personnalisé
+import { useNotify, useRedirect } from 'react-admin';
+import { supabase } from '../utils/supabaseClient'; // 👈 ton client supabase
+import bgImage from '../assets/bg-login.jpg';
+import logo from '../assets/logo.png';
+import { useEffect } from 'react';
+
+
 
 const CustomLoginPage = () => {
-  const login = useLogin();
+
+  useEffect(() => {
+  const checkSession = async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      redirect('/admin'); // 👈 Redirection si connecté
+    }
+  };
+  checkSession();
+}, []);
   const notify = useNotify();
   const redirect = useRedirect();
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
 
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -24,11 +37,14 @@ const CustomLoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      await login(credentials);
-      redirect('/');
-    } catch {
-      notify('Identifiants incorrects', { type: 'error' });
+    const { email, password } = credentials;
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      notify("Erreur d'authentification : " + error.message, { type: 'error' });
+    } else {
+      redirect('/admin'); // 👈 redirection vers le dashboard
     }
   };
 
@@ -55,9 +71,9 @@ const CustomLoginPage = () => {
           <form onSubmit={handleSubmit}>
             <TextField
               label="Email"
-              name="username"
+              name="email"
               type="email"
-              value={credentials.username}
+              value={credentials.email}
               onChange={handleChange}
               fullWidth
               margin="normal"
