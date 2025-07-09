@@ -6,11 +6,9 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Grid,
-  Card,
-  CardContent,
-  Avatar,
-  CardActionArea,
+  List,
+  ListItem,
+  ListItemText,
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
@@ -21,14 +19,16 @@ export default function InfluencerListFrontend() {
   const [filterNiche, setFilterNiche] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
 
+  // Charger depuis Supabase
   useEffect(() => {
     const fetchInfluencers = async () => {
       const { data, error } = await supabase
         .from("influencers")
-        .select("id, name, bio, image, niche, followers");
+        .select("id, name, bio, followers");
 
-      if (error) console.error("Erreur Supabase:", error);
-      else {
+      if (error) {
+        console.error("Erreur Supabase:", error);
+      } else {
         setInfluencers(data);
         setFiltered(data);
       }
@@ -37,6 +37,7 @@ export default function InfluencerListFrontend() {
     fetchInfluencers();
   }, []);
 
+  // Appliquer filtres et tri
   useEffect(() => {
     let result = [...influencers];
 
@@ -51,16 +52,17 @@ export default function InfluencerListFrontend() {
     setFiltered(result);
   }, [filterNiche, sortOrder, influencers]);
 
+  // Liste dynamique des niches
   const nicheList = [...new Set(influencers.map((inf) => inf.niche))];
 
   return (
-    <Box sx={{ maxWidth: "1000px", mx: "auto", mt: 5, px: 2 }}>
-      <Typography variant="h4" gutterBottom textAlign="center">
-        🌟 Influenceurs en vedette
+    <Box sx={{ maxWidth: 600, mx: "auto", mt: 4, px: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        Liste des influenceurs
       </Typography>
 
-      <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: "wrap" }}>
-        <FormControl fullWidth sx={{ flex: 1 }}>
+      <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+        <FormControl fullWidth>
           <InputLabel id="filter-niche-label">Filtrer par niche</InputLabel>
           <Select
             labelId="filter-niche-label"
@@ -77,7 +79,7 @@ export default function InfluencerListFrontend() {
           </Select>
         </FormControl>
 
-        <FormControl fullWidth sx={{ flex: 1 }}>
+        <FormControl fullWidth>
           <InputLabel id="sort-order-label">Trier par followers</InputLabel>
           <Select
             labelId="sort-order-label"
@@ -91,36 +93,22 @@ export default function InfluencerListFrontend() {
         </FormControl>
       </Box>
 
-      <Grid container spacing={3}>
+      <List>
         {filtered.map((inf) => (
-          <Grid item xs={12} sm={6} md={4} key={inf.id}>
-            <Card sx={{ height: "100%", boxShadow: 4 }}>
-              <CardActionArea component={Link} to={`/influencer/${inf.id}`}>
-                <Box sx={{ display: "flex", alignItems: "center", p: 2 }}>
-                  <Avatar
-                    src={inf.image}
-                    alt={inf.name}
-                    sx={{ width: 64, height: 64, mr: 2 }}
-                  />
-                  <Box>
-                    <Typography variant="h6">{inf.name}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {inf.niche} — {inf.followers.toLocaleString()} abonnés
-                    </Typography>
-                  </Box>
-                </Box>
-                <CardContent sx={{ pt: 0 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {inf.bio?.length > 120
-                      ? inf.bio.slice(0, 120) + "…"
-                      : inf.bio}
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </Grid>
+          <ListItem
+            key={inf.id}
+            button
+            component={Link}
+            to={`/influencer/${inf.id}`}
+            divider
+          >
+            <ListItemText
+              primary={inf.name}
+              secondary={`${inf.bio} — ${inf.followers.toLocaleString()} followers`}
+            />
+          </ListItem>
         ))}
-      </Grid>
+      </List>
     </Box>
   );
 }
