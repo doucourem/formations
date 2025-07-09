@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // ✅ Import requis
 import {
   Box,
   Typography,
@@ -21,82 +22,11 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import AdvancedSearchBar from '../components/AdvancedSearchBar';
 import FeaturedCourses from '../components/FeaturedCourses';
+import { supabase } from "../utils/supabaseClient"; // ✅ Import supabase
 
 
-const featuredCourses = [
-  {
-    id: 1,
-    title: "Créer sa marque personnelle",
-    description: "Apprenez à définir votre positionnement et construire une image authentique.",
-    image: "https://images.unsplash.com/photo-1612831661442-7d4b3e38b1e7?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 2,
-    title: "Identité visuelle & logo",
-    description: "Créez une identité visuelle forte et un logo qui parle à votre audience.",
-    image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 3,
-    title: "Booster sa visibilité sur Instagram",
-    description: "Stratégies de contenu, visuels, hashtags et stories impactantes.",
-    image: "https://images.unsplash.com/photo-1611262588024-d12430b9897f?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 4,
-    title: "Pitch & storytelling",
-    description: "Apprenez à raconter votre histoire pour convaincre partenaires et clients.",
-    image: "https://images.unsplash.com/photo-1628581561946-350aafafab0b?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 5,
-    title: "Lancer sa marque en ligne",
-    description: "Les étapes pour créer et vendre un produit ou service sous votre nom.",
-    image: "https://images.unsplash.com/photo-1631815537448-e6fc4c730541?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 6,
-    title: "Construire son site vitrine",
-    description: "Utilisez WordPress ou Webflow pour présenter votre activité.",
-    image: "https://images.unsplash.com/photo-1559027615-cd4d4c43f3b3?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 7,
-    title: "Créer son média personnel",
-    description: "Podcast, newsletter, chaîne YouTube : par quoi commencer ?",
-    image: "https://images.unsplash.com/photo-1603190287605-9b7b6b58ab2b?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 8,
-    title: "SEO & stratégie de contenu",
-    description: "Attirez des visiteurs naturellement grâce à Google.",
-    image: "https://images.unsplash.com/photo-1620222151621-26df15cfa01a?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 9,
-    title: "Construire une communauté engagée",
-    description: "Fidélisez votre audience grâce aux réseaux et aux emails.",
-    image: "https://images.unsplash.com/photo-1607082350927-7b85f945d6c8?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 10,
-    title: "Monétiser sa marque",
-    description: "Formations, coaching, produits digitaux : générez des revenus.",
-    image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 11,
-    title: "Utiliser LinkedIn pour se positionner",
-    description: "Optimisez votre profil, publiez efficacement et développez votre réseau.",
-    image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=60"
-  },
-  {
-    id: 12,
-    title: "Gérer son image & sa réputation en ligne",
-    description: "Maîtrisez votre empreinte numérique et réagissez aux avis négatifs.",
-    image: "https://images.unsplash.com/photo-1603481544475-447d2d014f57?auto=format&fit=crop&w=800&q=60"
-  },
-];
+
+
 
 
 const advantages = [
@@ -122,6 +52,27 @@ const advantages = [
   },
 ];
 const HomePage = () => {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (error) {
+        console.error('Erreur de récupération des cours :', error.message);
+      } else {
+        setCourses(data);
+      }
+      setLoading(false);
+    };
+
+    fetchCourses();
+  }, []);
+
   return (
     <Box>
       {/* Hero Section */}
@@ -154,22 +105,37 @@ const HomePage = () => {
     gap: 4
   }}
 >
-  {featuredCourses.map((course) => (
-    <Card key={course.id}>
-      <CardMedia
-        component="img"
-        height="140"
-        image={course.image}
-        alt={course.title}
-      />
-      <CardContent>
-        <Typography variant="h6">{course.title}</Typography>
-        <Typography variant="body2" color="text.secondary">
-          {course.description}
-        </Typography>
-      </CardContent>
-    </Card>
-  ))}
+{courses.map((course) => (
+  <Link
+  to={`/cours/${course.id}`}
+  style={{ textDecoration: 'none' }}
+  key={course.id}
+>
+  <Card
+    sx={{
+      color: 'inherit',
+      cursor: 'pointer',
+      transition: 'transform 0.2s',
+      '&:hover': { transform: 'scale(1.03)', boxShadow: 6 },
+    }}
+  >
+    <CardMedia
+      component="img"
+      height="140"
+      image={course.image}
+      alt={course.title}
+    />
+    <CardContent>
+      <Typography variant="h6">{course.title}</Typography>
+      <Typography variant="body2" color="text.secondary">
+        {course.description}
+      </Typography>
+    </CardContent>
+  </Card>
+</Link>
+
+))}
+
 </Box>
       </Container>
 

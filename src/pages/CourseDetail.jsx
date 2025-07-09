@@ -24,21 +24,43 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import StarIcon from '@mui/icons-material/Star';
 import RatingStars from '../components/RatingStars';
 import CommentsForm from '../components/CommentsForm';
+import { useEffect, useState } from 'react';
+import { supabase } from "../utils/supabaseClient"; // ✅ Import supabase
+
 
 const CourseDetail = () => {
-  const { id } = useParams();
-  // L'ID peut être string, donc on cast pour comparaison stricte
-  const course = coursesdetail.find((c) => String(c.id) === id);
+  const [course, setCourse] = useState(null);
+const [loading, setLoading] = useState(true);
+const { id } = useParams();
 
-  if (!course) {
-    return (
-      <Container sx={{ py: 5 }}>
-        <Typography variant="h5" color="error" align="center">
-          ❌ Cours introuvable
-        </Typography>
-      </Container>
-    );
-  }
+useEffect(() => {
+  if (!id) return;
+
+  const fetchCourse = async () => {
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error(error);
+    } else {
+      setCourse(data);
+    }
+  };
+
+  fetchCourse();
+}, [id]);
+
+  
+  // L'ID peut être string, donc on cast pour comparaison stricte
+  
+
+if (!course) {
+  return <Typography color="error" align="center">❌ Cours introuvable</Typography>;
+}
+
 
   return (
     <Container maxWidth="md" sx={{ py: 5 }}>
