@@ -9,27 +9,35 @@ import {
   List,
   ListItem,
   ListItemText,
-  Divider,
 } from "@mui/material";
 import { Link } from "react-router-dom";
-
-const staticInfluencers = [
-  { id: 1, name: "Alice Dupont", niche: "Beauté", followers: 120000 },
-  { id: 2, name: "Bob Martin", niche: "Tech", followers: 45000 },
-  { id: 3, name: "Clara Ben", niche: "Fitness", followers: 98000 },
-  { id: 4, name: "David Lee", niche: "Beauté", followers: 75000 },
-  { id: 5, name: "Eva Smith", niche: "Tech", followers: 130000 },
-];
+import { supabase } from "../utils/supabaseClient";
 
 export default function InfluencerListFrontend() {
-  const [influencers, setInfluencers] = useState(staticInfluencers);
-  const [filtered, setFiltered] = useState(staticInfluencers);
+  const [influencers, setInfluencers] = useState([]);
+  const [filtered, setFiltered] = useState([]);
   const [filterNiche, setFilterNiche] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
 
-  // Extraire les niches uniques
-  const nicheList = [...new Set(staticInfluencers.map((inf) => inf.niche))];
+  // Charger depuis Supabase
+  useEffect(() => {
+    const fetchInfluencers = async () => {
+      const { data, error } = await supabase
+        .from("influencers")
+        .select("id, name, bio, followers");
 
+      if (error) {
+        console.error("Erreur Supabase:", error);
+      } else {
+        setInfluencers(data);
+        setFiltered(data);
+      }
+    };
+
+    fetchInfluencers();
+  }, []);
+
+  // Appliquer filtres et tri
   useEffect(() => {
     let result = [...influencers];
 
@@ -43,6 +51,9 @@ export default function InfluencerListFrontend() {
 
     setFiltered(result);
   }, [filterNiche, sortOrder, influencers]);
+
+  // Liste dynamique des niches
+  const nicheList = [...new Set(influencers.map((inf) => inf.niche))];
 
   return (
     <Box sx={{ maxWidth: 600, mx: "auto", mt: 4, px: 2 }}>
@@ -84,19 +95,18 @@ export default function InfluencerListFrontend() {
 
       <List>
         {filtered.map((inf) => (
-          <React.Fragment key={inf.id}>
-            <ListItem
-              button
-              component={Link}
-              to={`/influencer/${inf.id}`}
-              divider
-            >
-              <ListItemText
-                primary={inf.name}
-                secondary={`${inf.niche} — ${inf.followers.toLocaleString()} followers`}
-              />
-            </ListItem>
-          </React.Fragment>
+          <ListItem
+            key={inf.id}
+            button
+            component={Link}
+            to={`/influencer/${inf.id}`}
+            divider
+          >
+            <ListItemText
+              primary={inf.name}
+              secondary={`${inf.bio} — ${inf.followers.toLocaleString()} followers`}
+            />
+          </ListItem>
         ))}
       </List>
     </Box>
