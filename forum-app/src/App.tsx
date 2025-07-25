@@ -1,31 +1,24 @@
-import Login from './components/Login';
-import Register from './components/Register';
+// ✅ App.tsx
+import { Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
 import ThreadList from './components/ThreadList';
-import  NewThreadForm  from './components/NewThreadForm';
-import { useAuth } from './components/AuthContext';
+// import Profile from './components/Profile';
+import Login from './pages/Login';
 
-function App() {
-  const { token, logout } = useAuth();
+export default function App() {
+  const isAuthenticated = localStorage.getItem('token');
 
-  if (!token) return (
-    <>
-      <Login />
-      <Register />
-    </>
-  );
-
-  return (
-    <div style={{ padding: 20 }}>
-      <h1>🎯 Forum connecté</h1>
-      <button onClick={logout}>Se déconnecter</button>
-      <NewThreadForm onSubmit={(title, content) => {
-  console.log("Titre :", title);
-  console.log("Contenu :", content);
-  // Tu peux ici appeler une API ou mettre à jour un state global
-}} />
-      <ThreadList />
-    </div>
+  return isAuthenticated ? (
+    <Layout>
+      <Routes>
+        <Route path="/threads" element={<ThreadList />} />
+      </Routes>
+    </Layout>
+  ) : (
+     <Layout>
+    <Routes>
+      <Route path="*" element={<Login />} />
+    </Routes>
+    </Layout>
   );
 }
-
-export default App;
