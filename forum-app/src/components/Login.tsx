@@ -7,17 +7,24 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const submit = async () => {
-    try {
-      const res = await api.post('/auth/login', { username, password });
-      const { token, user } = res.data; // 👈 Récupère aussi l'user (avec .id)
-      login(token);
-      localStorage.setItem('user', JSON.stringify(user));
-      alert('Connexion réussie');
-    } catch (err) {
-      alert("Erreur d'authentification");
-    }
-  };
+ const submit = async () => {
+  try {
+    const res = await api.post('/auth/login', {
+      username,
+      password,
+    });
+
+    const { token, user } = res.data;
+
+    login(token); // ⬅️ probablement une fonction de AuthContext
+    localStorage.setItem('user', JSON.stringify(user));
+    alert('Connexion réussie');
+  } catch (err: any) {
+    console.error("Erreur d'authentification", err?.response?.data);
+    alert("Erreur d'authentification");
+  }
+};
+
 
   return (
     <div>

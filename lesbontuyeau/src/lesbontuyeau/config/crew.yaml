@@ -1,0 +1,33 @@
+# crew.yaml
+name: "pipeline_annonces_automobiles"
+description: "Workflow complet : analyse → rédaction → SEO → publication → suivi des annonces automobiles"
+version: "1.0.0"
+
+imports:
+  agents: "agents.yaml"
+  tasks: "tasks.yaml"
+
+workflow:
+  - id: analyse_vehicule
+    use: task_analyse_vehicule
+    next: redaction_annonce
+
+  - id: redaction_annonce
+    use: task_redaction_annonce
+    input_from: analyse_vehicule
+    next: optimisation_seo
+
+  - id: optimisation_seo
+    use: task_optimisation_seo
+    input_from: redaction_annonce
+    next: publication_api
+
+  - id: publication_api
+    use: task_publication_api
+    input_from: optimisation_seo
+    next: suivi_statistiques
+
+  - id: suivi_statistiques
+    use: task_suivi_statistiques
+    input_from: publication_api
+    end: true

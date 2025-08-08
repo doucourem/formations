@@ -1,25 +1,32 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import React from "react";
 
-export default function PasswordInput() {
-  const [show, setShow] = useState(false);
+const PasswordInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  ({ className, ...props }, ref) => {
+    const [show, setShow] = useState(false);
 
-  return (
-    <div className="relative w-full max-w-sm">
-      <input
-        type={show ? "text" : "password"}
-        placeholder="Mot de passe"
-        className="w-full pr-10 h-12 border border-gray-300 rounded-md px-3 text-base"
-        aria-describedby="passwordHelp"
-      />
-      <button
-        type="button"
-        onClick={() => setShow((s) => !s)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-        aria-label={show ? "Cacher le mot de passe" : "Afficher le mot de passe"}
-      >
-        {show ? <EyeOff size={20} /> : <Eye size={20} />}
-      </button>
-    </div>
-  );
-}
+    return (
+      <div className="relative">
+        <input
+          {...props}
+          ref={ref}
+          type={show ? "text" : "password"}
+          className={className}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((s) => !s)}
+          className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500"
+          tabIndex={-1}
+        >
+          {show ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+    );
+  }
+);
+
+PasswordInput.displayName = "PasswordInput";
+
+export default PasswordInput;

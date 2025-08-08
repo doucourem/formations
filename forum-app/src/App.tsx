@@ -1,24 +1,42 @@
-// ✅ App.tsx
-import { Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
+import {
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom';
+
+import Login from './components/Login';
+import Register from './components/Register';
 import ThreadList from './components/ThreadList';
-// import Profile from './components/Profile';
-import Login from './pages/Login';
+import NewThreadForm from './components/NewThreadForm';
+import ThreadDetailPage from './components/ThreadDetailPage';
+import { useAuth } from './components/AuthContext';
 
-export default function App() {
-  const isAuthenticated = localStorage.getItem('token');
+function App() {
+  const { token, logout } = useAuth();
 
-  return isAuthenticated ? (
-    <Layout>
+  return (
+    <div style={{ padding: 20 }}>
+      <h1>🎯 Forum connecté</h1>
+      {token && <button onClick={logout}>Se déconnecter</button>}
+
       <Routes>
-        <Route path="/threads" element={<ThreadList />} />
+        {!token ? (
+          <>
+            <Route path="*" element={<Navigate to="/login" />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<ThreadList />} />
+            <Route path="/threads/new" element={<NewThreadForm />} />
+            <Route path="/threads/:id" element={<ThreadDetailPage />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </>
+        )}
       </Routes>
-    </Layout>
-  ) : (
-     <Layout>
-    <Routes>
-      <Route path="*" element={<Login />} />
-    </Routes>
-    </Layout>
+    </div>
   );
 }
+
+export default App;

@@ -1,0 +1,50 @@
+task_analyse_vehicule:
+  description: >
+    Analyser les caractéristiques techniques du véhicule pour identifier les points forts et points faibles.
+    Données fournies : marque, modèle, année, kilométrage, état général, historique d’entretien, options.
+  expected_output: >
+    Liste claire et structurée des atouts et faiblesses du véhicule, formatée en bullet points.
+  agent: analyse_vehicule
+  output_file: analyse_vehicule.md
+
+task_redaction_annonce:
+  description: >
+    Créer une annonce attractive et claire à partir de l’analyse du véhicule (résultat de task_analyse_vehicule).
+  expected_output: >
+    Texte d’annonce professionnel et engageant prêt à être publié, avec mise en avant des points forts.
+  agent: redaction_annonce
+  output_file: annonce_brute.md
+  dependencies:
+    - task_analyse_vehicule
+
+task_optimisation_seo:
+  description: >
+    Optimiser l’annonce (résultat de task_redaction_annonce) avec des mots-clés pour maximiser la visibilité
+    sur les plateformes (Leboncoin, Facebook Marketplace, Google).
+  expected_output: >
+    Version optimisée de l’annonce avec mots-clés intégrés naturellement.
+  agent: optimisation_seo
+  output_file: annonce_seo.md
+  dependencies:
+    - task_redaction_annonce
+
+task_publication_api:
+  description: >
+    Publier automatiquement l’annonce optimisée (résultat de task_optimisation_seo) sur Leboncoin,
+    Facebook Marketplace et autres via API.
+  expected_output: >
+    Confirmation de publication sur toutes les plateformes ou rapport d’erreurs éventuelles.
+  agent: publication_api
+  dependencies:
+    - task_optimisation_seo
+
+task_suivi_statistiques:
+  description: >
+    Récupérer les statistiques des annonces publiées et générer un rapport détaillé avec recommandations
+    d’amélioration (CTR, taux de contact, etc.).
+  expected_output: >
+    Rapport clair avec graphiques et recommandations d’amélioration.
+  agent: suivi_statistiques
+  output_file: rapport_performance.md
+  dependencies:
+    - task_publication_api

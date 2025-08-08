@@ -5,34 +5,36 @@
 
 /* src/index.css ou src/globals.css */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --background: 220 25% 98%; /* Gris bleuté clair - apaisant */
+  --foreground: 222 47% 12%; /* Presque noir pour bon contraste */
 
-  --primary: 221 83% 53%; /* Indigo/bleu forum */
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 12%;
+
+  --primary: 221 90% 60%; /* Bleu forum plus vibrant */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 210 38% 95%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary: 210 40% 96%; /* Fond secondaire plus marqué */
+  --secondary-foreground: 222 47% 15%;
 
-  --accent: 174 62% 45%; /* Menthe légère pour les tags */
+  --accent: 174 70% 45%; /* Menthe saturée pour les tags, badges */
   --accent-foreground: 0 0% 100%;
 
-  --muted: 210 16% 93%;
-  --muted-foreground: 222 15% 45%;
+  --muted: 210 15% 92%;
+  --muted-foreground: 222 15% 50%;
 
-  --border: 210 16% 85%;
-  --input: 210 16% 85%;
-  --ring: 221 83% 53%;
+  --border: 215 18% 84%;
+  --input: 215 18% 84%;
+  --ring: 221 90% 60%;
 
-  --destructive: 0 84% 60%;
+  --destructive: 0 70% 55%;
   --destructive-foreground: 0 0% 100%;
 
-  --sidebar-background: 220 16% 98%;
-  --sidebar-foreground: 222 15% 20%;
-  --sidebar-border: 210 16% 85%;
+  --sidebar-background: 218 23% 96%;
+  --sidebar-foreground: 222 15% 25%;
+  --sidebar-border: 210 14% 82%;
 }
+
 
 /* RESPONSIVE DESIGN PRODUCTION - GesFinance */
 /* Ultra-optimized mobile-first approach for all device sizes */
@@ -168,6 +170,14 @@ table {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
+
+  html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
   
   /* Tables become card-like on mobile */
   table {
@@ -360,36 +370,7 @@ table {
   }
 }
 
-:root {
-  --background: 210 11% 98%;
-  --foreground: 240 10% 3.9%;
-  --muted: 210 40% 95%;
-  --muted-foreground: 215 16% 47%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --primary: 217 91% 60%;
-  --primary-foreground: 210 20% 98%;
-  --secondary: 210 40% 95%;
-  --secondary-foreground: 222 84% 5%;
-  --accent: 210 40% 95%;
-  --accent-foreground: 222 84% 5%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 20% 98%;
-  --ring: 217 91% 60%;
-  --radius: 0.5rem;
-  
-  /* Custom colors for the financial app */
-  --success: 142 76% 36%;
-  --success-foreground: 355 20% 98%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 48 96% 89%;
-  --error: 0 84% 60%;
-  --error-foreground: 0 0% 98%;
-}
+
 
 .dark {
   --background: 240 10% 3.9%;
