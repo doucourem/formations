@@ -15,7 +15,6 @@ import {
   Text,
   Provider as PaperProvider,
   Card,
-  List,
 } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -34,35 +33,28 @@ export default function TransactionsList() {
   }, []);
 
   useEffect(() => {
-    if (cashes.length > 0) {
-      fetchTransactions();
-    }
+    if (cashes.length > 0) fetchTransactions();
   }, [cashes, operators]);
 
   const fetchTransactions = async () => {
     const { data, error } = await supabase.from("transactions").select("*");
-    if (error) {
-      console.error(error);
-    } else {
-      const enriched = (data || []).map(t => ({
+    if (error) console.error(error);
+    else {
+      const enriched = (data || []).map((t) => ({
         ...t,
         cash_name: getCashName(t.cash_id),
-        operator_name: getOperatorName(t.operator_id)
+        operator_name: getOperatorName(t.operator_id),
       }));
       setTransactions(enriched);
     }
   };
 
   const fetchCashesAndOperators = async () => {
-    const { data: cashesData, error: cashesError } = await supabase
-      .from("cashes")
-      .select("id, name");
-    if (!cashesError) setCashes(cashesData);
+    const { data: cashesData } = await supabase.from("cashes").select("id, name");
+    if (cashesData) setCashes(cashesData);
 
-    const { data: operatorsData, error: operatorsError } = await supabase
-      .from("operators")
-      .select("id, name");
-    if (!operatorsError) setOperators(operatorsData);
+    const { data: operatorsData } = await supabase.from("operators").select("id, name");
+    if (operatorsData) setOperators(operatorsData);
   };
 
   const deleteTransaction = async (id) => {
@@ -75,11 +67,8 @@ export default function TransactionsList() {
           text: "Supprimer",
           onPress: async () => {
             const { error } = await supabase.from("transactions").delete().eq("id", id);
-            if (error) {
-              Alert.alert("Erreur", "Erreur lors de la suppression");
-            } else {
-              fetchTransactions();
-            }
+            if (error) Alert.alert("Erreur", "Erreur lors de la suppression");
+            else fetchTransactions();
           },
         },
       ]
@@ -92,16 +81,10 @@ export default function TransactionsList() {
       return;
     }
     const { error } = await supabase.from("transactions").insert([
-      {
-        cash_id: cashId,
-        amount: parseFloat(amount),
-        type,
-      },
+      { cash_id: cashId, amount: parseFloat(amount), type },
     ]);
-    if (error) {
-      console.error(error);
-      Alert.alert("Erreur", "Erreur lors de la création");
-    } else {
+    if (error) Alert.alert("Erreur", "Erreur lors de la création");
+    else {
       setCashId(null);
       setAmount("");
       setType("CREDIT");
@@ -110,28 +93,47 @@ export default function TransactionsList() {
     }
   };
 
-  const getCashName = (id) =>
-    cashes.find((c) => c.id === id)?.name || `Caisse #${id}`;
+  const getCashName = (id) => cashes.find((c) => c.id === id)?.name || `Caisse #${id}`;
+  const getOperatorName = (id) => operators.find((o) => o.id === id)?.name || `Opérateur #${id}`;
 
-  const getOperatorName = (id) =>
-    operators.find((o) => o.id === id)?.name || `Opérateur #${id}`;
+  const formatCFA = (amount) =>
+    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", minimumFractionDigits: 0 }).format(amount);
 
-  const renderItem = ({ item }) => (
-    <Card style={styles.card}>
-      <Card.Content>
-        <List.Item
-          title={`Montant: ${item.amount} € (${item.type})`}
-          description={`Caisse: ${item.cash_name || '-'}\nOpérateur: ${item.operator_name || '-'}\nDate: ${new Date(item.created_at).toLocaleString()}`}
-          left={() => <List.Icon icon="cash-multiple" />}
-          right={() => (
-            <TouchableOpacity onPress={() => deleteTransaction(item.id)} style={styles.deleteButton}>
-              <MaterialCommunityIcons name="delete" size={24} color="white" />
-            </TouchableOpacity>
-          )}
-        />
-      </Card.Content>
-    </Card>
-  );
+  const renderItem = ({ item }) => {
+    const isCredit = item.type === "CREDIT";
+    return (
+      <Card style={styles.card}>
+        <Card.Content style={styles.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.amount, { color: isCredit ? "green" : "red" }]}>
+              {formatCFA(item.amount)}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text>{isCredit ? "Crédit" : "Débit"}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text>{item.cash_name}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text>{item.operator_name}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text>{new Date(item.created_at).toLocaleDateString("fr-FR", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}</Text>
+          </View>
+          <TouchableOpacity onPress={() => deleteTransaction(item.id)} style={styles.deleteButton}>
+            <MaterialCommunityIcons name="delete" size={20} color="white" />
+          </TouchableOpacity>
+        </Card.Content>
+      </Card>
+    );
+  };
 
   return (
     <PaperProvider>
@@ -140,14 +142,18 @@ export default function TransactionsList() {
           Transactions
         </Text>
 
-        <Button
-          mode="contained"
-          onPress={() => setOpen(true)}
-          style={styles.addButton}
-          icon="plus"
-        >
+        <Button mode="contained" onPress={() => setOpen(true)} style={styles.addButton} icon="plus">
           Nouvelle transaction
         </Button>
+
+        <View style={styles.headerRow}>
+          <Text style={{ flex: 1, fontWeight: "bold" }}>Montant</Text>
+          <Text style={{ flex: 1, fontWeight: "bold" }}>Type</Text>
+          <Text style={{ flex: 1, fontWeight: "bold" }}>Caisse</Text>
+          <Text style={{ flex: 1, fontWeight: "bold" }}>Opérateur</Text>
+          <Text style={{ flex: 1, fontWeight: "bold" }}>Date</Text>
+          <Text style={{ width: 40 }}></Text>
+        </View>
 
         <FlatList
           data={transactions}
@@ -163,11 +169,8 @@ export default function TransactionsList() {
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Caisse</Text>
                 <RNPickerSelect
-                  onValueChange={(value) => setCashId(value)}
-                  items={cashes.map((c) => ({
-                    label: `${c.name} (ID: ${c.id})`,
-                    value: c.id,
-                  }))}
+                  onValueChange={setCashId}
+                  items={cashes.map((c) => ({ label: `${c.name} (ID: ${c.id})`, value: c.id }))}
                   value={cashId}
                   style={pickerSelectStyles}
                   placeholder={{ label: "Sélectionner une caisse...", value: null }}
@@ -175,17 +178,17 @@ export default function TransactionsList() {
               </View>
 
               <TextInput
-                label="Montant"
+                label="Montant en CFA"
                 keyboardType="numeric"
                 value={amount}
-                onChangeText={(text) => setAmount(text)}
+                onChangeText={setAmount}
                 style={styles.input}
               />
 
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Type</Text>
                 <RNPickerSelect
-                  onValueChange={(value) => setType(value)}
+                  onValueChange={setType}
                   items={[
                     { label: "Crédit", value: "CREDIT" },
                     { label: "Débit", value: "DEBIT" },
@@ -209,66 +212,21 @@ export default function TransactionsList() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#f5f5f5",
-  },
-  title: {
-    textAlign: "center",
-    marginBottom: 20,
-    fontWeight: "bold",
-  },
-  addButton: {
-    marginBottom: 20,
-  },
-  list: {
-    paddingBottom: 20,
-  },
-  card: {
-    marginBottom: 12,
-    elevation: 4,
-  },
-  deleteButton: {
-    backgroundColor: "red",
-    padding: 8,
-    borderRadius: 5,
-    alignSelf: 'center',
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 16,
-    color: "#555",
-    marginBottom: 8,
-  },
+  container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
+  title: { textAlign: "center", marginBottom: 12, fontWeight: "bold" },
+  addButton: { marginBottom: 12 },
+  list: { paddingBottom: 20 },
+  card: { marginBottom: 8, borderRadius: 10, elevation: 2 },
+  deleteButton: { backgroundColor: "red", padding: 6, borderRadius: 6 },
+  row: { flexDirection: "row", alignItems: "center" },
+  amount: { fontSize: 16, fontWeight: "bold" },
+  headerRow: { flexDirection: "row", marginBottom: 4, paddingHorizontal: 4 },
+  inputContainer: { marginBottom: 12 },
+  input: { marginBottom: 12 },
+  label: { fontSize: 14, color: "#555", marginBottom: 4 },
 });
 
 const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: 'gray',
-    borderRadius: 4,
-    color: 'black',
-    paddingRight: 30,
-    backgroundColor: 'white',
-  },
-  inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 0.5,
-    borderColor: 'purple',
-    borderRadius: 8,
-    color: 'black',
-    paddingRight: 30,
-    backgroundColor: 'white',
-  },
+  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: "gray", borderRadius: 4, color: "black", paddingRight: 30, backgroundColor: "white" },
+  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: "gray", borderRadius: 8, color: "black", paddingRight: 30, backgroundColor: "white" },
 });

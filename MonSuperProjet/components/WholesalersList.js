@@ -19,8 +19,10 @@ import {
   List,
 } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
+import { useNavigation } from "@react-navigation/native";
 
 export default function WholesalersList() {
+  const navigation = useNavigation(); // ✅ ajout navigation
   const [wholesalers, setWholesalers] = useState([]);
   const [operators, setOperators] = useState([]);
   const [managers, setManagers] = useState([]);
@@ -169,6 +171,15 @@ export default function WholesalersList() {
               <TouchableOpacity onPress={() => handleOpen(item)} style={styles.actionButton}>
                 <Text style={styles.actionText}>Modifier</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("WholesalerTransactions", {
+                  wholesalerId: item.id,
+                  wholesalerName: item.name,
+                })}
+                style={[styles.actionButton, styles.transactionsButton]}
+              >
+                <Text style={styles.actionText}>Voir transactions</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => deleteWholesaler(item.id)} style={[styles.actionButton, styles.deleteButton]}>
                 <Text style={styles.actionText}>Supprimer</Text>
               </TouchableOpacity>
@@ -247,78 +258,29 @@ export default function WholesalersList() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#f5f5f5",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  card: {
-    marginBottom: 12,
-    elevation: 4,
-  },
-  actions: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  actionButton: {
-    padding: 8,
-    borderRadius: 5,
-    marginBottom: 4,
-    backgroundColor: 'blue',
-  },
-  deleteButton: {
-    backgroundColor: 'red',
-  },
-  actionText: {
-    color: 'white',
-    fontSize: 12,
-  },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  pickerContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 16,
-    color: "#555",
-    marginBottom: 8,
-  },
+  container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
+  card: { marginBottom: 12, elevation: 4 },
+  actions: { flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' },
+  actionButton: { padding: 8, borderRadius: 5, marginBottom: 4, backgroundColor: 'blue' },
+  transactionsButton: { backgroundColor: 'orange' },
+  deleteButton: { backgroundColor: 'red' },
+  actionText: { color: 'white', fontSize: 12 },
+  errorText: { color: 'red', textAlign: 'center', marginBottom: 20 },
+  input: { marginBottom: 16 },
+  pickerContainer: { marginBottom: 16 },
+  label: { fontSize: 16, color: "#555", marginBottom: 8 },
 });
 
 const pickerSelectStyles = StyleSheet.create({
   inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: 'gray',
-    borderRadius: 4,
-    color: 'black',
-    paddingRight: 30,
-    backgroundColor: 'white',
+    fontSize: 16, paddingVertical: 12, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: 'gray', borderRadius: 4, color: 'black',
+    paddingRight: 30, backgroundColor: 'white',
   },
   inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 0.5,
-    borderColor: 'purple',
-    borderRadius: 8,
-    color: 'black',
-    paddingRight: 30,
-    backgroundColor: 'white',
+    fontSize: 16, paddingHorizontal: 10, paddingVertical: 8,
+    borderWidth: 0.5, borderColor: 'purple', borderRadius: 8, color: 'black',
+    paddingRight: 30, backgroundColor: 'white',
   },
 });

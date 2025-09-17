@@ -4,7 +4,7 @@ import { Button, Text } from "react-native-paper";
 
 const { width, height } = Dimensions.get("window");
 
-export default function DashboardMenu({ navigation }) {
+export default function DashboardMenu({ navigation, user }) {
   // largeur responsive avec min/max
   const buttonWidth = Math.min(Math.max(width * 0.45, 120), 160);
   const topPadding = height * 0.1; // 10% de la hauteur de l'écran
@@ -24,16 +24,28 @@ export default function DashboardMenu({ navigation }) {
         📌 Menu principal
       </Text>
 
-      {menuItems.map((item) => (
+      {/* Bouton Login si pas connecté */}
+      {!user ? (
         <Button
-          key={item.route}
-          mode="contained"
+          mode="outlined"
           style={[styles.menuButton, { width: buttonWidth }]}
-          onPress={() => navigation.navigate(item.route)}
+          onPress={() => navigation.navigate("Auth")}
         >
-          {item.label}
+          Se connecter
         </Button>
-      ))}
+      ) : (
+        // Boutons du menu (seulement si user connecté)
+        menuItems.map((item) => (
+          <Button
+            key={item.route}
+            mode="contained"
+            style={[styles.menuButton, { width: buttonWidth }]}
+            onPress={() => navigation.navigate(item.route)}
+          >
+            {item.label}
+          </Button>
+        ))
+      )}
     </View>
   );
 }
