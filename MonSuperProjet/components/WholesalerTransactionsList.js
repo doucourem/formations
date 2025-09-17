@@ -1,13 +1,22 @@
-// WholesalerTransactionsList.js
 import React, { useState, useEffect } from "react";
 import { View, FlatList, StyleSheet } from "react-native";
-import { Card, Text, List, Provider as PaperProvider, Button, Dialog, Portal, TextInput } from "react-native-paper";
+import {
+  Card,
+  Text,
+  List,
+  Provider as PaperProvider,
+  Button,
+  Dialog,
+  Portal,
+  TextInput,
+} from "react-native-paper";
 import supabase from "../supabaseClient";
 
 const formatCFA = (amount) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", minimumFractionDigits: 0 }).format(amount);
 
-export default function WholesalerTransactionsList({ wholesalerId }) {
+export default function WholesalerTransactionsList({ route }) {
+  const { wholesalerId, wholesalerName } = route.params || {};
   const [transactions, setTransactions] = useState([]);
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -68,7 +77,7 @@ export default function WholesalerTransactionsList({ wholesalerId }) {
     <PaperProvider>
       <View style={styles.container}>
         <Text variant="headlineMedium" style={styles.title}>
-          Transactions du vendeur
+          Transactions du vendeur: {wholesalerName || ""}
         </Text>
 
         <Button
