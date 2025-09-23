@@ -73,7 +73,7 @@ export default function KiosksList() {
   const deleteKiosk = async (id) => {
     Alert.alert(
       "Confirmation",
-      "Êtes-vous sûr de vouloir supprimer ce kiosque ?",
+      "Êtes-vous sûr de vouloir supprimer ce agent ?",
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -173,7 +173,7 @@ export default function KiosksList() {
     <PaperProvider>
       <View style={styles.container}>
         <Text variant="headlineMedium" style={styles.title}>
-          Kiosques
+          agents
         </Text>
         <Button
           mode="contained"
@@ -181,7 +181,7 @@ export default function KiosksList() {
           style={styles.addButton}
           icon="plus"
         >
-          Ajouter un kiosque
+          Ajouter un agent
         </Button>
 
         <FlatList
@@ -194,7 +194,7 @@ export default function KiosksList() {
         <Portal>
           <Dialog visible={openPopup} onDismiss={handleClosePopup}>
             <Dialog.Title>
-              {currentKiosk.id ? "Modifier Kiosque" : "Ajouter Kiosque"}
+              {currentKiosk.id ? "Modifier agent" : "Ajouter agent"}
             </Dialog.Title>
             <Dialog.Content>
               <TextInput

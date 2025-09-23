@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"; 
+import React, { useEffect, useState } from "react";
 import supabase from "../supabaseClient";
 import {
   StyleSheet,
@@ -23,15 +23,19 @@ import RNPickerSelect from "react-native-picker-select";
 const CashesList = () => {
   const [cashes, setCashes] = useState([]);
   const [kiosks, setKiosks] = useState([]);
-  const [open, setOpen] = useState(false);
+  const [openCashDialog, setOpenCashDialog] = useState(false);
   const [editingCash, setEditingCash] = useState(null);
-
   const [formData, setFormData] = useState({
     kioskId: null,
     name: "",
     balance: 0,
     closed: false,
   });
+
+  // Transactions
+  const [transactions, setTransactions] = useState([]);
+  const [selectedCash, setSelectedCash] = useState(null);
+  const [openTransactionDialog, setOpenTransactionDialog] = useState(false);
 
   useEffect(() => {
     fetchKiosks();
@@ -60,11 +64,21 @@ const CashesList = () => {
     }
   };
 
+  const fetchTransactions = async (cashId) => {
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("cash_id", cashId)
+      .order("created_at", { ascending: false });
+    if (error) console.error(error);
+    else setTransactions(data || []);
+  };
+
   const formatCFA = (value: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'XOF',
-      minimumFractionDigits: 0
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "XOF",
+      minimumFractionDigits: 0,
     }).format(value);
   };
 
@@ -76,14 +90,17 @@ const CashesList = () => {
       balance: cash.balance ?? 0,
       closed: cash.closed || false,
     });
-    setOpen(true);
+    setOpenCashDialog(true);
   };
 
   const saveCash = async () => {
     const { kioskId, name, balance, closed } = formData;
 
     if (!kioskId || !name) {
-      Alert.alert("Avertissement", "Veuillez remplir tous les champs obligatoires");
+      Alert.alert(
+        "Avertissement",
+        "Veuillez remplir tous les champs obligatoires"
+      );
       return;
     }
 
@@ -106,7 +123,7 @@ const CashesList = () => {
     } else {
       setFormData({ kioskId: null, name: "", balance: 0, closed: false });
       setEditingCash(null);
-      setOpen(false);
+      setOpenCashDialog(false);
       fetchCashes();
     }
   };
@@ -130,6 +147,12 @@ const CashesList = () => {
     );
   };
 
+  const openTransactionsDialog = (cash) => {
+    setSelectedCash(cash);
+    fetchTransactions(cash.id);
+    setOpenTransactionDialog(true);
+  };
+
   const renderItem = ({ item }) => (
     <Card style={styles.card}>
       <Card.Content>
@@ -145,12 +168,13 @@ const CashesList = () => {
               <TouchableOpacity onPress={() => deleteCash(item.id)} style={[styles.button, styles.deleteButton]}>
                 <Text style={styles.buttonText}>Supprimer</Text>
               </TouchableOpacity>
+              <TouchableOpacity onPress={() => openTransactionsDialog(item)} style={[styles.button, styles.transactionsButton]}>
+                <Text style={styles.buttonText}>Transactions</Text>
+              </TouchableOpacity>
             </View>
           )}
         />
-        <Text style={styles.closedStatus}>
-          Clôturée : {item.closed ? "Oui" : "Non"}
-        </Text>
+        <Text style={styles.closedStatus}>Clôturée : {item.closed ? "Oui" : "Non"}</Text>
       </Card.Content>
     </Card>
   );
@@ -165,7 +189,7 @@ const CashesList = () => {
             onPress={() => {
               setEditingCash(null);
               setFormData({ kioskId: null, name: "", balance: 0, closed: false });
-              setOpen(true);
+              setOpenCashDialog(true);
             }}
           >
             Créer une caisse
@@ -179,8 +203,9 @@ const CashesList = () => {
           contentContainerStyle={styles.list}
         />
 
+        {/* Cash Form Dialog */}
         <Portal>
-          <Dialog visible={open} onDismiss={() => setOpen(false)}>
+          <Dialog visible={openCashDialog} onDismiss={() => setOpenCashDialog(false)}>
             <Dialog.Title>{editingCash ? "Modifier / Clore la caisse" : "Nouvelle Caisse"}</Dialog.Title>
             <Dialog.Content>
               <View style={styles.inputContainer}>
@@ -215,10 +240,33 @@ const CashesList = () => {
               </View>
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => setOpen(false)}>Annuler</Button>
+              <Button onPress={() => setOpenCashDialog(false)}>Annuler</Button>
               <Button mode="contained" onPress={saveCash}>
                 {editingCash ? "Enregistrer" : "Créer"}
               </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
+
+        {/* Transactions Dialog */}
+        <Portal>
+          <Dialog visible={openTransactionDialog} onDismiss={() => setOpenTransactionDialog(false)}>
+            <Dialog.Title>Transactions - {selectedCash?.name}</Dialog.Title>
+            <Dialog.Content>
+              <FlatList
+                data={transactions}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <List.Item
+                    title={`Montant: ${formatCFA(item.amount)}`}
+                    description={`Type: ${item.type}\nDate: ${new Date(item.created_at).toLocaleString()}`}
+                    left={() => <List.Icon icon="currency-usd" />}
+                  />
+                )}
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setOpenTransactionDialog(false)}>Fermer</Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
@@ -237,6 +285,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: "column", alignItems: "flex-end", justifyContent: "center" },
   button: { backgroundColor: "blue", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 5, marginBottom: 4 },
   deleteButton: { backgroundColor: "red" },
+  transactionsButton: { backgroundColor: "green" },
   buttonText: { color: "white", fontSize: 12 },
   closedStatus: { marginTop: 8, marginLeft: 64, fontSize: 14, color: "#555" },
   inputContainer: { marginBottom: 16 },
