@@ -36,6 +36,8 @@ const CashesList = () => {
   const [transactions, setTransactions] = useState([]);
   const [selectedCash, setSelectedCash] = useState(null);
   const [openTransactionDialog, setOpenTransactionDialog] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [type, setType] = useState("CREDIT");
 
   useEffect(() => {
     fetchKiosks();
@@ -69,12 +71,20 @@ const CashesList = () => {
       .from("transactions")
       .select("*")
       .eq("cash_id", cashId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
+
     if (error) console.error(error);
-    else setTransactions(data || []);
+    else {
+      let currentBalance = cashes.find(c => c.id === cashId)?.balance || 0;
+      const enriched = data.map(t => ({
+        ...t,
+        balance_after: t.type === "CREDIT" ? currentBalance : currentBalance - t.amount,
+      }));
+      setTransactions(enriched);
+    }
   };
 
-  const formatCFA = (value: number) => {
+  const formatCFA = (value) => {
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
       currency: "XOF",
@@ -97,10 +107,7 @@ const CashesList = () => {
     const { kioskId, name, balance, closed } = formData;
 
     if (!kioskId || !name) {
-      Alert.alert(
-        "Avertissement",
-        "Veuillez remplir tous les champs obligatoires"
-      );
+      Alert.alert("Avertissement", "Veuillez remplir tous les champs obligatoires");
       return;
     }
 
@@ -151,6 +158,42 @@ const CashesList = () => {
     setSelectedCash(cash);
     fetchTransactions(cash.id);
     setOpenTransactionDialog(true);
+  };
+
+  const createTransaction = async () => {
+    if (!selectedCash || !amount) {
+      Alert.alert("Avertissement", "Veuillez remplir le montant !");
+      return;
+    }
+
+    const cash = cashes.find(c => c.id === selectedCash.id);
+    if (!cash) return;
+
+    const newAmount = parseFloat(amount);
+    const newBalance = type === "CREDIT" ? cash.balance + newAmount : cash.balance - newAmount;
+
+    try {
+      // Ajouter transaction
+      const { error: insertError } = await supabase.from("transactions").insert([{
+        cash_id: cash.id,
+        amount: newAmount,
+        type,
+        balance_after: newBalance,
+      }]);
+      if (insertError) throw insertError;
+
+      // Mettre à jour le solde de la caisse
+      const { error: updateError } = await supabase.from("cashes").update({ balance: newBalance }).eq("id", cash.id);
+      if (updateError) throw updateError;
+
+      fetchCashes();
+      fetchTransactions(cash.id);
+      setAmount("");
+      setType("CREDIT");
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Erreur", "Impossible de créer la transaction");
+    }
   };
 
   const renderItem = ({ item }) => (
@@ -253,13 +296,32 @@ const CashesList = () => {
           <Dialog visible={openTransactionDialog} onDismiss={() => setOpenTransactionDialog(false)}>
             <Dialog.Title>Transactions - {selectedCash?.name}</Dialog.Title>
             <Dialog.Content>
+              <TextInput
+                label="Montant"
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={setAmount}
+                style={{ marginBottom: 12 }}
+              />
+              <RNPickerSelect
+                onValueChange={setType}
+                items={[
+                  { label: "Crédit", value: "CREDIT" },
+                  { label: "Débit", value: "DEBIT" },
+                ]}
+                value={type}
+                style={pickerSelectStyles}
+              />
+              <Button mode="contained" onPress={createTransaction} style={{ marginVertical: 12 }}>
+                Ajouter Transaction
+              </Button>
               <FlatList
                 data={transactions}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                   <List.Item
                     title={`Montant: ${formatCFA(item.amount)}`}
-                    description={`Type: ${item.type}\nDate: ${new Date(item.created_at).toLocaleString()}`}
+                    description={`Type: ${item.type}\nSolde après: ${formatCFA(item.balance_after)}\nDate: ${new Date(item.created_at).toLocaleString()}`}
                     left={() => <List.Icon icon="currency-usd" />}
                   />
                 )}

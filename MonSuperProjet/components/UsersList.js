@@ -17,10 +17,12 @@ import {
   Provider as PaperProvider,
   Card,
   List,
+  useTheme,
 } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
 
 export default function UsersList() {
+  const theme = useTheme();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,14 +53,9 @@ export default function UsersList() {
         .select("id, email, full_name, role, created_at")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error(error);
-        setError(error.message);
-      } else {
-        setUsers(data || []);
-      }
+      if (error) setError(error.message);
+      else setUsers(data || []);
     } catch (err) {
-      console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -71,12 +68,8 @@ export default function UsersList() {
       .from("users")
       .update({ role: newRole })
       .eq("id", id);
-
-    if (error) {
-      Alert.alert("Erreur", "Erreur lors du changement de rôle : " + error.message);
-    } else {
-      fetchUsers();
-    }
+    if (error) Alert.alert("Erreur", error.message);
+    else fetchUsers();
   };
 
   const openForm = (user = null) => {
@@ -98,70 +91,53 @@ export default function UsersList() {
     }
 
     if (editingUser) {
-      // Modification utilisateur
       const { error } = await supabase
         .from("users")
-        .update({
-          email: formData.email,
-          full_name: formData.full_name,
-          role: formData.role,
-        })
+        .update({ email: formData.email, full_name: formData.full_name, role: formData.role })
         .eq("id", editingUser.id);
-
-      if (error) {
-        Alert.alert("Erreur de mise à jour", error.message);
-      } else {
+      if (error) Alert.alert("Erreur", error.message);
+      else {
         Alert.alert("Succès", "Utilisateur mis à jour.");
         setOpenDialog(false);
         fetchUsers();
       }
     } else {
-      // Création utilisateur via Supabase Auth (frontend safe)
-      try {
-        const { data, error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: { data: { full_name: formData.full_name, role: formData.role } },
-        });
-
-        if (error) {
-          console.log("Signup error:", error);
-          Alert.alert("Erreur", error.message);
-        } else {
-          console.log("Signup success:", data);
-          Alert.alert(
-            "Succès",
-            "Utilisateur créé ! Vérifiez votre email pour confirmation."
-          );
-          setOpenDialog(false);
-          fetchUsers();
-        }
-      } catch (err) {
-        console.log(err);
-        Alert.alert("Erreur", "Erreur de création : " + err.message);
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: { data: { full_name: formData.full_name, role: formData.role } },
+      });
+      if (error) Alert.alert("Erreur", error.message);
+      else {
+        Alert.alert("Succès", "Utilisateur créé ! Vérifiez votre email pour confirmation.");
+        setOpenDialog(false);
+        fetchUsers();
       }
     }
   };
 
   const renderItem = ({ item }) => (
-    <Card style={styles.card}>
+    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
       <Card.Content>
         <List.Item
-          title={item.email}
+          title={<Text style={{ color: theme.colors.onSurface }}>{item.email}</Text>}
           description={`Nom: ${item.full_name || "-"}\nInscrit le: ${
             item.created_at ? new Date(item.created_at).toLocaleString("fr-FR") : "-"
           }`}
           right={() => (
             <View style={styles.actions}>
               <TouchableOpacity onPress={() => openForm(item)}>
-                <Text style={styles.actionText}>Modifier</Text>
+                <Text style={[styles.actionText, { color: theme.colors.primary }]}>Modifier</Text>
               </TouchableOpacity>
               <View style={styles.rolePicker}>
                 <RNPickerSelect
                   onValueChange={(value) => handleRoleChange(item.id, value)}
                   items={roles}
                   value={item.role || roles[0].value}
-                  style={pickerSelectStyles}
+                  style={{
+                    inputIOS: { ...pickerSelectStyles.inputIOS, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                    inputAndroid: { ...pickerSelectStyles.inputAndroid, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                  }}
                 />
               </View>
             </View>
@@ -172,22 +148,27 @@ export default function UsersList() {
   );
 
   return (
-    <PaperProvider>
-      <View style={styles.container}>
-        <Text variant="headlineMedium" style={styles.title}>
+    <PaperProvider theme={theme}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
           Gestion des utilisateurs
         </Text>
-        <Button mode="contained" onPress={() => openForm()} style={styles.addButton}>
+        <Button
+          mode="contained"
+          onPress={() => openForm()}
+          style={styles.addButton}
+          buttonColor={theme.colors.primary}
+        >
           Ajouter un utilisateur
         </Button>
 
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" />
-            <Text>Chargement...</Text>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={{ color: theme.colors.onSurface }}>Chargement...</Text>
           </View>
         )}
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && <Text style={{ color: theme.colors.error, textAlign: "center", marginBottom: 20 }}>{error}</Text>}
 
         {!loading && !error && (
           <FlatList
@@ -207,6 +188,7 @@ export default function UsersList() {
                 value={formData.email}
                 onChangeText={(text) => setFormData({ ...formData, email: text })}
                 style={styles.input}
+                textColor={theme.colors.onSurface}
               />
               {!editingUser && (
                 <TextInput
@@ -215,6 +197,7 @@ export default function UsersList() {
                   value={formData.password}
                   onChangeText={(text) => setFormData({ ...formData, password: text })}
                   style={styles.input}
+                  textColor={theme.colors.onSurface}
                 />
               )}
               <TextInput
@@ -222,20 +205,24 @@ export default function UsersList() {
                 value={formData.full_name}
                 onChangeText={(text) => setFormData({ ...formData, full_name: text })}
                 style={styles.input}
+                textColor={theme.colors.onSurface}
               />
               <View style={styles.pickerContainer}>
-                <Text>Rôle</Text>
+                <Text style={{ color: theme.colors.onSurface }}>Rôle</Text>
                 <RNPickerSelect
                   onValueChange={(value) => setFormData({ ...formData, role: value })}
                   items={roles}
                   value={formData.role || roles[0].value}
-                  style={pickerSelectStyles}
+                  style={{
+                    inputIOS: { ...pickerSelectStyles.inputIOS, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                    inputAndroid: { ...pickerSelectStyles.inputAndroid, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                  }}
                 />
               </View>
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setOpenDialog(false)}>Annuler</Button>
-              <Button onPress={handleSubmit} mode="contained">
+              <Button onPress={handleSubmit} mode="contained" buttonColor={theme.colors.primary}>
                 {editingUser ? "Modifier" : "Créer"}
               </Button>
             </Dialog.Actions>
@@ -247,20 +234,19 @@ export default function UsersList() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, padding: 16 },
   title: { textAlign: "center", marginBottom: 20, fontWeight: "bold" },
   addButton: { marginBottom: 20 },
   loadingContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 20 },
-  errorText: { color: "red", textAlign: "center", marginBottom: 20 },
   card: { marginBottom: 12, elevation: 4 },
   actions: { flexDirection: "column", alignItems: "flex-end" },
-  actionText: { color: "blue", marginBottom: 5 },
+  actionText: { marginBottom: 5 },
   rolePicker: { width: 120 },
   input: { marginBottom: 16 },
   pickerContainer: { marginBottom: 16 },
 });
 
 const pickerSelectStyles = StyleSheet.create({
-  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: "gray", borderRadius: 4, color: "black", paddingRight: 30, backgroundColor: "white" },
-  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: "purple", borderRadius: 8, color: "black", paddingRight: 30, backgroundColor: "white" },
+  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: "gray", borderRadius: 4, paddingRight: 30 },
+  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: "gray", borderRadius: 8, paddingRight: 30 },
 });

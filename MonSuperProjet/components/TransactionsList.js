@@ -15,11 +15,13 @@ import {
   Text,
   Provider as PaperProvider,
   Card,
+  useTheme,
 } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function TransactionsList() {
+  const theme = useTheme();
   const [transactions, setTransactions] = useState([]);
   const [cashes, setCashes] = useState([]);
   const [operators, setOperators] = useState([]);
@@ -37,14 +39,27 @@ export default function TransactionsList() {
   }, [cashes, operators]);
 
   const fetchTransactions = async () => {
-    const { data, error } = await supabase.from("transactions").select("*");
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .order("created_at", { ascending: true });
+
     if (error) console.error(error);
     else {
-      const enriched = (data || []).map((t) => ({
-        ...t,
-        cash_name: getCashName(t.cash_id),
-        operator_name: getOperatorName(t.operator_id),
-      }));
+      const cashBalances = {};
+      const enriched = (data || []).map((t) => {
+        const isCredit = t.type === "CREDIT";
+        const prevBalance = cashBalances[t.cash_id] || 0;
+        const newBalance = isCredit ? prevBalance + t.amount : prevBalance - t.amount;
+        cashBalances[t.cash_id] = newBalance;
+
+        return {
+          ...t,
+          cash_name: getCashName(t.cash_id),
+          operator_name: getOperatorName(t.operator_id),
+          balance_after: newBalance,
+        };
+      });
       setTransactions(enriched);
     }
   };
@@ -102,30 +117,37 @@ export default function TransactionsList() {
   const renderItem = ({ item }) => {
     const isCredit = item.type === "CREDIT";
     return (
-      <Card style={styles.card}>
+      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
         <Card.Content style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.amount, { color: isCredit ? "green" : "red" }]}>
+            <Text style={{ color: theme.colors.onSurface }}>{isCredit ? "Crédit" : "Débit"}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.colors.onSurface }}>{item.cash_name}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: isCredit ? "green" : "red", fontWeight: "bold" }}>
               {formatCFA(item.amount)}
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text>{isCredit ? "Crédit" : "Débit"}</Text>
+            <Text style={{ color: theme.colors.onSurface }}>{item.operator_name}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text>{item.cash_name}</Text>
+            <Text style={{ color: theme.colors.onSurface }}>
+              {new Date(item.created_at).toLocaleDateString("fr-FR", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text>{item.operator_name}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text>{new Date(item.created_at).toLocaleDateString("fr-FR", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}</Text>
+            <Text style={{ fontWeight: "bold", color: theme.colors.onSurface }}>
+              {formatCFA(item.balance_after)}
+            </Text>
           </View>
           <TouchableOpacity onPress={() => deleteTransaction(item.id)} style={styles.deleteButton}>
             <MaterialCommunityIcons name="delete" size={20} color="white" />
@@ -136,22 +158,28 @@ export default function TransactionsList() {
   };
 
   return (
-    <PaperProvider>
-      <View style={styles.container}>
-        <Text variant="headlineMedium" style={styles.title}>
+    <PaperProvider theme={theme}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
           Transactions
         </Text>
 
-        <Button mode="contained" onPress={() => setOpen(true)} style={styles.addButton} icon="plus">
+        <Button
+          mode="contained"
+          onPress={() => setOpen(true)}
+          style={styles.addButton}
+          buttonColor={theme.colors.primary}
+          icon="plus"
+        >
           Nouvelle transaction
         </Button>
 
         <View style={styles.headerRow}>
-          <Text style={{ flex: 1, fontWeight: "bold" }}>Montant</Text>
-          <Text style={{ flex: 1, fontWeight: "bold" }}>Type</Text>
-          <Text style={{ flex: 1, fontWeight: "bold" }}>Caisse</Text>
-          <Text style={{ flex: 1, fontWeight: "bold" }}>Opérateur</Text>
-          <Text style={{ flex: 1, fontWeight: "bold" }}>Date</Text>
+          {["Type", "Caisse", "Montant", "Opérateur", "Date", "Solde après"].map((h, i) => (
+            <Text key={i} style={{ flex: 1, fontWeight: "bold", color: theme.colors.onSurface }}>
+              {h}
+            </Text>
+          ))}
           <Text style={{ width: 40 }}></Text>
         </View>
 
@@ -164,16 +192,19 @@ export default function TransactionsList() {
 
         <Portal>
           <Dialog visible={open} onDismiss={() => setOpen(false)}>
-            <Dialog.Title>Créer une transaction</Dialog.Title>
+            <Dialog.Title style={{ color: theme.colors.onSurface }}>Créer une transaction</Dialog.Title>
             <Dialog.Content>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Caisse</Text>
+                <Text style={{ color: theme.colors.onSurface, marginBottom: 4 }}>Caisse</Text>
                 <RNPickerSelect
                   onValueChange={setCashId}
                   items={cashes.map((c) => ({ label: `${c.name} (ID: ${c.id})`, value: c.id }))}
                   value={cashId}
-                  style={pickerSelectStyles}
                   placeholder={{ label: "Sélectionner une caisse...", value: null }}
+                  style={{
+                    inputIOS: { ...pickerSelectStyles.inputIOS, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                    inputAndroid: { ...pickerSelectStyles.inputAndroid, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                  }}
                 />
               </View>
 
@@ -183,10 +214,11 @@ export default function TransactionsList() {
                 value={amount}
                 onChangeText={setAmount}
                 style={styles.input}
+                textColor={theme.colors.onSurface}
               />
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Type</Text>
+                <Text style={{ color: theme.colors.onSurface, marginBottom: 4 }}>Type</Text>
                 <RNPickerSelect
                   onValueChange={setType}
                   items={[
@@ -194,13 +226,16 @@ export default function TransactionsList() {
                     { label: "Débit", value: "DEBIT" },
                   ]}
                   value={type}
-                  style={pickerSelectStyles}
+                  style={{
+                    inputIOS: { ...pickerSelectStyles.inputIOS, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                    inputAndroid: { ...pickerSelectStyles.inputAndroid, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                  }}
                 />
               </View>
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setOpen(false)}>Annuler</Button>
-              <Button onPress={createTransaction} mode="contained">
+              <Button onPress={createTransaction} mode="contained" buttonColor={theme.colors.primary}>
                 Créer
               </Button>
             </Dialog.Actions>
@@ -212,7 +247,7 @@ export default function TransactionsList() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, padding: 16 },
   title: { textAlign: "center", marginBottom: 12, fontWeight: "bold" },
   addButton: { marginBottom: 12 },
   list: { paddingBottom: 20 },
@@ -223,10 +258,9 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: "row", marginBottom: 4, paddingHorizontal: 4 },
   inputContainer: { marginBottom: 12 },
   input: { marginBottom: 12 },
-  label: { fontSize: 14, color: "#555", marginBottom: 4 },
 });
 
 const pickerSelectStyles = StyleSheet.create({
-  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: "gray", borderRadius: 4, color: "black", paddingRight: 30, backgroundColor: "white" },
-  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: "gray", borderRadius: 8, color: "black", paddingRight: 30, backgroundColor: "white" },
+  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: "gray", borderRadius: 4, paddingRight: 30 },
+  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: "gray", borderRadius: 8, paddingRight: 30 },
 });

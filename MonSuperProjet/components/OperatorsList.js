@@ -16,10 +16,11 @@ import {
   Provider as PaperProvider,
   Card,
   List,
+  useTheme,
 } from "react-native-paper";
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function OperatorsList() {
+  const theme = useTheme();
   const [operators, setOperators] = useState([]);
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -66,10 +67,8 @@ export default function OperatorsList() {
     setError(null);
     const { data, error } = await supabase.from("operators").select("*");
     setLoading(false);
-    if (error) {
-      console.error("Erreur lors du chargement :", error.message);
-      setError("Erreur lors du chargement : " + error.message);
-    } else setOperators(data);
+    if (error) setError("Erreur lors du chargement : " + error.message);
+    else setOperators(data);
   };
 
   const deleteOperator = (id) => {
@@ -77,10 +76,7 @@ export default function OperatorsList() {
       "Confirmation",
       "Voulez-vous vraiment supprimer cet opérateur ?",
       [
-        {
-          text: "Annuler",
-          style: "cancel",
-        },
+        { text: "Annuler", style: "cancel" },
         {
           text: "Supprimer",
           onPress: async () => {
@@ -155,12 +151,16 @@ export default function OperatorsList() {
   };
 
   const renderItem = ({ item }) => (
-    <Card style={styles.card}>
+    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
       <Card.Content>
         <List.Item
-          title={item.name}
-          description={`Code: ${item.code}\nCréé le: ${formatDateFr(item.created_at)}`}
-          left={() => <List.Icon icon="account-tie" />}
+          title={<Text style={{ color: theme.colors.onSurface }}>{item.name}</Text>}
+          description={
+            <Text style={{ color: theme.colors.onSurface }}>
+              Code: {item.code}{"\n"}Créé le: {formatDateFr(item.created_at)}
+            </Text>
+          }
+          left={() => <List.Icon icon="account-tie" color={theme.colors.primary} />}
           right={() => (
             <View style={styles.actions}>
               <Button
@@ -168,6 +168,7 @@ export default function OperatorsList() {
                 onPress={() => handleOpen(item)}
                 icon="pencil"
                 compact
+                textColor={theme.colors.primary}
               >
                 Modifier
               </Button>
@@ -176,7 +177,7 @@ export default function OperatorsList() {
                 onPress={() => deleteOperator(item.id)}
                 icon="delete"
                 compact
-                color="red"
+                textColor={theme.colors.error}
               >
                 Supprimer
               </Button>
@@ -188,14 +189,17 @@ export default function OperatorsList() {
   );
 
   return (
-    <PaperProvider>
-      <View style={styles.container}>
+    <PaperProvider theme={theme}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.header}>
-          <Text variant="headlineMedium">Gestion des Fournisseurs</Text>
+          <Text variant="headlineMedium" style={{ color: theme.colors.onSurface }}>
+            Gestion des Fournisseurs
+          </Text>
           <Button
             mode="contained"
             onPress={() => handleOpen()}
             icon="plus"
+            buttonColor={theme.colors.primary}
           >
             Ajouter
           </Button>
@@ -203,13 +207,15 @@ export default function OperatorsList() {
 
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" />
-            <Text style={styles.loadingText}>Chargement...</Text>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={[styles.loadingText, { color: theme.colors.onSurface }]}>
+              Chargement...
+            </Text>
           </View>
         )}
         {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={[styles.errorContainer, { backgroundColor: theme.colors.errorContainer }]}>
+            <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
           </View>
         )}
 
@@ -222,22 +228,26 @@ export default function OperatorsList() {
         />
 
         <Portal>
-          <Dialog visible={open} onDismiss={() => setOpen(false)}>
-            <Dialog.Title>{editId ? "Modifier l'opérateur" : "Ajouter un opérateur"}</Dialog.Title>
+          <Dialog visible={open} onDismiss={() => setOpen(false)} style={{ backgroundColor: theme.colors.surface }}>
+            <Dialog.Title style={{ color: theme.colors.onSurface }}>
+              {editId ? "Modifier l'opérateur" : "Ajouter un opérateur"}
+            </Dialog.Title>
             <Dialog.Content>
               <TextInput
                 label="Nom"
                 value={name}
                 onChangeText={setName}
                 style={styles.input}
+                textColor={theme.colors.onSurface}
               />
               <TextInput
                 label="Code"
                 value={code}
                 onChangeText={setCode}
                 style={styles.input}
+                textColor={theme.colors.onSurface}
               />
-              {error && <Text style={styles.dialogErrorText}>{error}</Text>}
+              {error && <Text style={[styles.dialogErrorText, { color: theme.colors.error }]}>{error}</Text>}
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setOpen(false)}>Annuler</Button>
@@ -246,6 +256,7 @@ export default function OperatorsList() {
                 onPress={handleSave}
                 loading={saving}
                 disabled={saving}
+                buttonColor={theme.colors.primary}
               >
                 {editId ? "Enregistrer" : "Créer"}
               </Button>
@@ -261,7 +272,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#f5f5f5",
   },
   header: {
     flexDirection: "row",
@@ -292,20 +302,16 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 10,
     fontSize: 16,
-    color: '#555',
   },
   errorContainer: {
     padding: 10,
-    backgroundColor: '#ffdddd',
     borderRadius: 5,
     marginBottom: 20,
   },
   errorText: {
-    color: '#d8000c',
     textAlign: 'center',
   },
   dialogErrorText: {
-    color: '#d8000c',
     marginTop: 10,
     textAlign: 'center',
   },

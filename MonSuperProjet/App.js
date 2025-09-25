@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, FlatList, Alert, TouchableOpacity } from "react-native";
 import {
   Provider as PaperProvider,
   MD3DarkTheme,
   Button,
   Text,
+  Card,
+  List,
+  Dialog,
+  Portal,
+  TextInput,
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
 import {
@@ -15,6 +20,8 @@ import {
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import supabase from "./supabaseClient";
+
+// Composants internes
 import Auth from "./components/Auth";
 import Register from "./components/Register";
 import CashesList from "./components/CashesList";
@@ -29,23 +36,60 @@ import DashboardMenu from "./components/DashboardMenu";
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 
+// === THÈME GLOBAL ===
 const theme = {
   ...MD3DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: "#2563eb",
-    secondary: "#10b981",
+    primary: "#2563EB",
+    secondary: "#10B981",
+    accent: "#FACC15",
+    error: "#EF4444",
+    success: "#22C55E",
     background: "#0A0F1A",
     surface: "#1E293B",
     onSurface: "#F8FAFC",
     onBackground: "#F8FAFC",
+    disabled: "#64748B",
+    placeholder: "#94A3B8",
   },
 };
 
+// === STYLES GLOBAUX ===
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16, backgroundColor: theme.colors.background },
+  drawerContainer: { flex: 1 },
+  drawerHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: "#334155" },
+  drawerFooter: { marginTop: "auto", padding: 16, borderTopWidth: 1, borderTopColor: "#334155" },
+  logoutButton: { marginTop: 10, borderColor: theme.colors.onSurface },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+  },
+  card: { marginBottom: 12, backgroundColor: theme.colors.surface, elevation: 4 },
+  actions: { flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' },
+  actionButton: { padding: 8, borderRadius: 5, marginBottom: 4, backgroundColor: theme.colors.primary },
+  transactionsButton: { backgroundColor: theme.colors.accent },
+  deleteButton: { backgroundColor: theme.colors.error },
+  actionText: { color: 'white', fontSize: 12 },
+  errorText: { color: theme.colors.error, textAlign: 'center', marginVertical: 8 },
+  successText: { color: theme.colors.success, textAlign: 'center', marginVertical: 8 },
+  input: { marginBottom: 16, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+  title: { textAlign: "center", marginBottom: 20, fontWeight: "bold", color: theme.colors.onBackground },
+  addButton: { marginBottom: 20 },
+  label: { color: theme.colors.onSurface, marginBottom: 8, fontSize: 16 },
+  typeButtons: { flexDirection: "row", justifyContent: "space-around", marginTop: 8 },
+  typeButton: { flex: 1, marginHorizontal: 4 },
+  noDataText: { textAlign: "center", color: "#CBD5E1", marginTop: 40, fontSize: 16 },
+});
+
+// === DRAWER CUSTOM ===
 const CustomDrawerContent = ({ user, ...props }) => (
   <View style={styles.drawerContainer}>
     <View style={styles.drawerHeader}>
-      <Text variant="headlineSmall" style={{ color: "#F8FAFC" }}>
+      <Text variant="headlineSmall" style={{ color: theme.colors.onSurface }}>
         Dashboard
       </Text>
       <Text style={{ color: "#CBD5E1" }}>{user?.email}</Text>
@@ -68,7 +112,7 @@ const CustomDrawerContent = ({ user, ...props }) => (
   </View>
 );
 
-// Drawer principal
+// === NAVIGATIONS ===
 function DrawerNavigator({ user }) {
   return (
     <Drawer.Navigator
@@ -94,14 +138,15 @@ function DrawerNavigator({ user }) {
   );
 }
 
-// Stack principal avec Drawer + écrans détails
 function AppContent({ user }) {
   return (
-    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.onSurface }}>
-      <Stack.Screen
-        name="DrawerStack"
-        options={{ headerShown: false }}
-      >
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTintColor: theme.colors.onSurface,
+      }}
+    >
+      <Stack.Screen name="DrawerStack" options={{ headerShown: false }}>
         {() => <DrawerNavigator user={user} />}
       </Stack.Screen>
       <Stack.Screen
@@ -113,6 +158,7 @@ function AppContent({ user }) {
   );
 }
 
+// === APP PRINCIPALE ===
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -123,16 +169,19 @@ export default function App() {
       setLoading(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) return <View style={styles.loadingContainer}><Text>Chargement...</Text></View>;
+  if (loading)
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ color: theme.colors.onBackground }}>Chargement...</Text>
+      </View>
+    );
 
   return (
     <PaperProvider theme={theme}>
@@ -149,11 +198,3 @@ export default function App() {
     </PaperProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  drawerContainer: { flex: 1 },
-  drawerHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: "#334155" },
-  logoutButton: { marginTop: 10, borderColor: "#F8FAFC" },
-  drawerFooter: { marginTop: "auto", padding: 16, borderTopWidth: 1, borderTopColor: "#334155" },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.colors.background },
-});

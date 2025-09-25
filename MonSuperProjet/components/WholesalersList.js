@@ -17,12 +17,15 @@ import {
   Provider as PaperProvider,
   Card,
   List,
+  useTheme,
 } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
 import { useNavigation } from "@react-navigation/native";
 
 export default function WholesalersList() {
-  const navigation = useNavigation(); // ✅ ajout navigation
+  const navigation = useNavigation();
+  const theme = useTheme();
+
   const [wholesalers, setWholesalers] = useState([]);
   const [operators, setOperators] = useState([]);
   const [managers, setManagers] = useState([]);
@@ -62,10 +65,10 @@ export default function WholesalersList() {
         .eq("role", "grossiste");
       if (mgError) throw mgError;
 
-      const enrichedWholesalers = (whData || []).map(wh => ({
+      const enrichedWholesalers = (whData || []).map((wh) => ({
         ...wh,
-        operator_name: (opData || []).find(op => op.id === wh.operator_id)?.name || "-",
-        manager_name: (mgData || []).find(mg => mg.id === wh.user_id)?.full_name || "-",
+        operator_name: (opData || []).find((op) => op.id === wh.operator_id)?.name || "-",
+        manager_name: (mgData || []).find((mg) => mg.id === wh.user_id)?.full_name || "-",
       }));
 
       setWholesalers(enrichedWholesalers);
@@ -160,27 +163,41 @@ export default function WholesalersList() {
   };
 
   const renderItem = ({ item }) => (
-    <Card style={styles.card}>
+    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
       <Card.Content>
         <List.Item
-          title={item.name}
-          description={`Opérateur: ${item.operator_name || "-"}\nManager: ${item.manager_name || "-"}\nCréé le: ${new Date(item.created_at).toLocaleString()}`}
-          left={() => <List.Icon icon="truck" />}
+          title={<Text style={{ color: theme.colors.onSurface }}>{item.name}</Text>}
+          description={
+            <Text style={{ color: theme.colors.onSurface }}>
+              Opérateur: {item.operator_name || "-"}{"\n"}
+              Manager: {item.manager_name || "-"}{"\n"}
+              Créé le: {new Date(item.created_at).toLocaleString()}
+            </Text>
+          }
+          left={() => <List.Icon icon="truck" color={theme.colors.primary} />}
           right={() => (
             <View style={styles.actions}>
-              <TouchableOpacity onPress={() => handleOpen(item)} style={styles.actionButton}>
+              <TouchableOpacity
+                onPress={() => handleOpen(item)}
+                style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+              >
                 <Text style={styles.actionText}>Modifier</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => navigation.navigate("WholesalerTransactions", {
-                  wholesalerId: item.id,
-                  wholesalerName: item.name,
-                })}
-                style={[styles.actionButton, styles.transactionsButton]}
+                onPress={() =>
+                  navigation.navigate("WholesalerTransactions", {
+                    wholesalerId: item.id,
+                    wholesalerName: item.name,
+                  })
+                }
+                style={[styles.actionButton, { backgroundColor: theme.colors.secondary }]}
               >
                 <Text style={styles.actionText}>Voir transactions</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => deleteWholesaler(item.id)} style={[styles.actionButton, styles.deleteButton]}>
+              <TouchableOpacity
+                onPress={() => deleteWholesaler(item.id)}
+                style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
+              >
                 <Text style={styles.actionText}>Supprimer</Text>
               </TouchableOpacity>
             </View>
@@ -191,18 +208,26 @@ export default function WholesalersList() {
   );
 
   return (
-    <PaperProvider>
-      <View style={styles.container}>
+    <PaperProvider theme={theme}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.header}>
-          <Text variant="headlineMedium">Grossistes</Text>
-          <Button mode="contained" icon="plus" onPress={() => handleOpen()}>
+          <Text variant="headlineMedium" style={{ color: theme.colors.onSurface }}>
+            Grossistes
+          </Text>
+          <Button
+            mode="contained"
+            icon="plus"
+            onPress={() => handleOpen()}
+            buttonColor={theme.colors.primary}
+          >
             Ajouter
           </Button>
         </View>
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>}
+
         {loading ? (
-          <ActivityIndicator size="large" style={{ marginTop: 20 }} />
+          <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 20 }} />
         ) : (
           <FlatList
             data={wholesalers}
@@ -213,40 +238,49 @@ export default function WholesalersList() {
         )}
 
         <Portal>
-          <Dialog visible={open} onDismiss={handleClose}>
-            <Dialog.Title>{formData.id ? "Modifier un grossiste" : "Ajouter un grossiste"}</Dialog.Title>
+          <Dialog visible={open} onDismiss={handleClose} style={{ backgroundColor: theme.colors.surface }}>
+            <Dialog.Title style={{ color: theme.colors.onSurface }}>
+              {formData.id ? "Modifier un grossiste" : "Ajouter un grossiste"}
+            </Dialog.Title>
             <Dialog.Content>
-              {error && <Text style={styles.errorText}>{error}</Text>}
+              {error && <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>}
               <TextInput
                 label="Nom"
                 value={formData.name}
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
                 style={styles.input}
+                textColor={theme.colors.onSurface}
               />
               <View style={styles.pickerContainer}>
-                <Text style={styles.label}>Opérateur</Text>
+                <Text style={[styles.label, { color: theme.colors.onSurface }]}>Opérateur</Text>
                 <RNPickerSelect
                   onValueChange={(value) => setFormData({ ...formData, operator_id: value })}
                   items={operators.map((o) => ({ label: o.name, value: o.id }))}
                   value={formData.operator_id}
-                  style={pickerSelectStyles}
+                  style={{
+                    inputIOS: { ...pickerSelectStyles.inputIOS, color: theme.colors.onSurface, backgroundColor: theme.colors.background },
+                    inputAndroid: { ...pickerSelectStyles.inputAndroid, color: theme.colors.onSurface, backgroundColor: theme.colors.background },
+                  }}
                   placeholder={{ label: "Sélectionner un opérateur...", value: null }}
                 />
               </View>
               <View style={styles.pickerContainer}>
-                <Text style={styles.label}>Manager</Text>
+                <Text style={[styles.label, { color: theme.colors.onSurface }]}>Manager</Text>
                 <RNPickerSelect
                   onValueChange={(value) => setFormData({ ...formData, manager_id: value })}
                   items={managers.map((m) => ({ label: m.full_name, value: m.id }))}
                   value={formData.manager_id}
-                  style={pickerSelectStyles}
+                  style={{
+                    inputIOS: { ...pickerSelectStyles.inputIOS, color: theme.colors.onSurface, backgroundColor: theme.colors.background },
+                    inputAndroid: { ...pickerSelectStyles.inputAndroid, color: theme.colors.onSurface, backgroundColor: theme.colors.background },
+                  }}
                   placeholder={{ label: "Sélectionner un manager...", value: null }}
                 />
               </View>
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={handleClose}>Annuler</Button>
-              <Button mode="contained" onPress={handleSave} loading={saving}>
+              <Button mode="contained" onPress={handleSave} loading={saving} buttonColor={theme.colors.primary}>
                 Enregistrer
               </Button>
             </Dialog.Actions>
@@ -258,29 +292,19 @@ export default function WholesalersList() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, padding: 16 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   card: { marginBottom: 12, elevation: 4 },
-  actions: { flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' },
-  actionButton: { padding: 8, borderRadius: 5, marginBottom: 4, backgroundColor: 'blue' },
-  transactionsButton: { backgroundColor: 'orange' },
-  deleteButton: { backgroundColor: 'red' },
-  actionText: { color: 'white', fontSize: 12 },
-  errorText: { color: 'red', textAlign: 'center', marginBottom: 20 },
+  actions: { flexDirection: "column", alignItems: "flex-end", justifyContent: "center" },
+  actionButton: { padding: 8, borderRadius: 5, marginBottom: 4 },
+  actionText: { color: "white", fontSize: 12 },
+  errorText: { textAlign: "center", marginBottom: 20 },
   input: { marginBottom: 16 },
   pickerContainer: { marginBottom: 16 },
-  label: { fontSize: 16, color: "#555", marginBottom: 8 },
+  label: { fontSize: 16, marginBottom: 8 },
 });
 
 const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16, paddingVertical: 12, paddingHorizontal: 10,
-    borderWidth: 1, borderColor: 'gray', borderRadius: 4, color: 'black',
-    paddingRight: 30, backgroundColor: 'white',
-  },
-  inputAndroid: {
-    fontSize: 16, paddingHorizontal: 10, paddingVertical: 8,
-    borderWidth: 0.5, borderColor: 'purple', borderRadius: 8, color: 'black',
-    paddingRight: 30, backgroundColor: 'white',
-  },
+  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: 'gray', borderRadius: 4, paddingRight: 30 },
+  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: 'purple', borderRadius: 8, paddingRight: 30 },
 });
