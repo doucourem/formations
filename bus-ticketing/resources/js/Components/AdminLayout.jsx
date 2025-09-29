@@ -7,7 +7,7 @@ export default function AdminLayout({ children }) {
       <nav>
         <Link href={route('dashboard')}>Dashboard</Link> |{' '}
         <Link href={route('cities.index')}>Cities</Link> |{' '}
-        <Link href={route('trips.index')}>Trips</Link>
+        <Link href={route('routes.index')}>Trips</Link>
       </nav>
       <main>{children}</main>
     </div>

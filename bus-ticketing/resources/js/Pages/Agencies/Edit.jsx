@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
-import { usePage } from '@inertiajs/inertia-react';
 
-export default function Edit() {
-  const { agency } = usePage().props;
+export default function Edit({ agency }) {
   const [form, setForm] = useState({
-    name: agency.name || '',
-    city: agency.city || ''
+    name: agency?.name || '',
+    city: agency?.city || '',
   });
 
   const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e) => {
@@ -20,17 +18,34 @@ export default function Edit() {
 
   return (
     <div>
-      <h1>Edit Agency #{agency.id}</h1>
+      <h1>Modifier l’agence #{agency.id}</h1>
+
       <form onSubmit={handleSubmit}>
         <div>
-          <label>Name:</label>
-          <input name="name" placeholder="Agency name" value={form.name} onChange={handleChange} />
+          <label htmlFor="name">Nom :</label>
+          <input
+            id="name"
+            name="name"
+            placeholder="Nom de l’agence"
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
         </div>
+
         <div>
-          <label>City:</label>
-          <input name="city" placeholder="City" value={form.city} onChange={handleChange} />
+          <label htmlFor="city">Ville :</label>
+          <input
+            id="city"
+            name="city"
+            placeholder="Ville"
+            value={form.city}
+            onChange={handleChange}
+            required
+          />
         </div>
-        <button type="submit">Update</button>
+
+        <button type="submit">Mettre à jour</button>
       </form>
     </div>
   );

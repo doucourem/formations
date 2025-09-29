@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
-import { usePage } from '@inertiajs/inertia-react';
 
-export default function Edit() {
-  const { bus } = usePage().props;
+export default function Edit({ bus }) {
+  if (!bus) {
+    return <p>Chargement du bus...</p>;
+  }
 
   const [form, setForm] = useState({
     model: bus.model || '',
     seats: bus.seats || '',
-    agency_id: bus.agency_id || ''
+    agency_id: bus.agency_id || '',
   });
 
   const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
+    const { name, value, type } = e.target;
+    setForm({
+      ...form,
+      [name]: type === 'number' ? Number(value) : value,
+    });
   };
 
   const handleSubmit = (e) => {
@@ -22,21 +27,49 @@ export default function Edit() {
 
   return (
     <div>
-      <h1>Edit Bus #{bus.id}</h1>
+      <h1>Modifier le bus #{bus.id}</h1>
       <form onSubmit={handleSubmit}>
         <div>
-          <label>Model:</label>
-          <input name="model" placeholder="Bus model" value={form.model} onChange={handleChange} />
+          <label htmlFor="model">Modèle :</label>
+          <input
+            id="model"
+            name="model"
+            placeholder="Modèle du bus"
+            value={form.model}
+            onChange={handleChange}
+            required
+          />
         </div>
+
         <div>
-          <label>Seats:</label>
-          <input name="seats" type="number" placeholder="Number of seats" value={form.seats} onChange={handleChange} />
+          <label htmlFor="seats">Places :</label>
+          <input
+            id="seats"
+            name="seats"
+            type="number"
+            min="1"
+            placeholder="Nombre de places"
+            value={form.seats}
+            onChange={handleChange}
+            required
+          />
         </div>
+
         <div>
-          <label>Agency ID:</label>
-          <input name="agency_id" placeholder="Agency ID" value={form.agency_id} onChange={handleChange} />
+          <label htmlFor="agency_id">Agence :</label>
+          <input
+            id="agency_id"
+            name="agency_id"
+            type="number"
+            min="1"
+            placeholder="ID de l'agence"
+            value={form.agency_id}
+            onChange={handleChange}
+            required
+          />
         </div>
-        <button type="submit">Update</button>
+
+        <button type="submit">Mettre à jour</button>
       </form>
     </div>
   );

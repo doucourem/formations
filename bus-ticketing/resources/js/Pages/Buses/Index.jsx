@@ -1,91 +1,80 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
-import AdminLayout from '@/Components/AdminLayout';
-
-export default function Index({ agencies, filters }) {
+import GuestLayout from '@/Layouts/GuestLayout';
+export default function Index({ buses, filters }) {
   const [parPage, setParPage] = useState(filters?.per_page || 20);
-  const [ville, setVille] = useState(filters?.city || '');
+  const [agenceId, setAgenceId] = useState(filters?.agency_id || '');
 
   const filtrer = () => {
     Inertia.get(
-      route('agencies.index'),
-      { per_page: parPage, city: ville },
+      route('buses.index'),
+      { per_page: parPage, agency_id: agenceId },
       { preserveState: true }
     );
   };
 
   return (
-    <AdminLayout>
-      <h1 className="text-2xl font-bold mb-4">Agences</h1>
+     <GuestLayout>    <div>
+      <h1>Liste des bus</h1>
 
-      <div className="mb-4 flex gap-2 items-end">
-        <div>
-          <label className="block mb-1 font-medium">Ville :</label>
-          <input
-            type="text"
-            value={ville}
-            onChange={(e) => setVille(e.target.value)}
-            className="border px-2 py-1 rounded"
-          />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">Par page :</label>
-          <input
-            type="number"
-            value={parPage}
-            onChange={(e) => setParPage(e.target.value)}
-            className="border px-2 py-1 rounded w-20"
-          />
-        </div>
-        <button
-          onClick={filtrer}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Filtrer
-        </button>
+      <div>
+        <label htmlFor="agence">Agence :</label>
+        <input
+          id="agence"
+          type="text"
+          value={agenceId}
+          onChange={(e) => setAgenceId(e.target.value)}
+        />
+
+        <label htmlFor="parPage">Par page :</label>
+        <input
+          id="parPage"
+          type="number"
+          min="1"
+          value={parPage}
+          onChange={(e) => setParPage(e.target.value)}
+        />
+
+        <button onClick={filtrer}>Filtrer</button>
       </div>
 
-      <table className="w-full border-collapse border">
+      <table>
         <thead>
-          <tr className="bg-gray-200">
-            <th className="border px-2 py-1">ID</th>
-            <th className="border px-2 py-1">Nom</th>
-            <th className="border px-2 py-1">Ville</th>
-            <th className="border px-2 py-1">Actions</th>
+          <tr>
+            <th>ID</th>
+            <th>Modèle</th>
+            <th>Places</th>
+            <th>Agence</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {agencies.data.map((agence) => (
-            <tr key={agence.id}>
-              <td className="border px-2 py-1">{agence.id}</td>
-              <td className="border px-2 py-1">{agence.name}</td>
-              <td className="border px-2 py-1">{agence.city}</td>
-              <td className="border px-2 py-1">
-                <a
-                  href={route('agencies.edit', agence.id)}
-                  className="text-blue-600 hover:underline"
-                >
-                  Éditer
-                </a>
+          {buses.data.map((bus) => (
+            <tr key={bus.id}>
+              <td>{bus.id}</td>
+              <td>{bus.model}</td>
+              <td>{bus.seats}</td>
+              <td>{bus.agency?.name}</td>
+              <td>
+                <a href={route('buses.edit', bus.id)}>Modifier</a>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div className="mt-4 flex gap-2">
-        {agencies.links.map((link, i) => (
+      <div>
+        {buses.links.map((link, i) => (
           <button
             key={i}
             disabled={!link.url}
             onClick={() => Inertia.get(link.url)}
-            className={`px-3 py-1 border rounded ${
-              !link.url ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-gray-200'
-            }`}
             dangerouslySetInnerHTML={{ __html: link.label }}
           />
         ))}
       </div>
-    </AdminLayout>
+    </div>
+    </GuestLayout>
+
   );
 }
