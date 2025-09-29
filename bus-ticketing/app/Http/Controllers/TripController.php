@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use App\Models\Trip;
+
+class TripController extends Controller
+{
+    public function index(Request $request)
+    {
+        $perPage = (int) $request->input('per_page', 20);
+        $busId = $request->input('bus_id');
+        $routeId = $request->input('route_id');
+
+        $trips = Trip::with(['route.departureCity','route.arrivalCity','bus'])
+                     ->when($busId, fn($q) => $q->where('bus_id', $busId))
+                     ->when($routeId, fn($q) => $q->where('route_id', $routeId))
+                     ->orderBy('departure_at')
+                     ->paginate($perPage)
+                     ->withQueryString();
+
+        return Inertia::render('Trips/Index', [
+            'trips' => $trips,
+            'filters' => [
+                'bus_id' => $busId,
+                'route_id' => $routeId,
+                'per_page' => $perPage,
+            ],
+        ]);
+    }
+
+    public function create()
+    {
+        return Inertia::render('Trips/Create');
+    }
+
+    public function edit(Trip $trip)
+    {
+        $trip->load(['route', 'bus']);
+        return Inertia::render('Trips/Edit', [
+            'trip' => $trip
+        ]);
+    }
+}
