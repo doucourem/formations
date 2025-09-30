@@ -27,7 +27,10 @@
         "@emotion/styled": "^11.14.1",
         "@inertiajs/inertia": "^0.11.1",
         "@inertiajs/inertia-react": "^0.8.1",
+        "@mui/icons-material": "^7.3.2",
         "@mui/material": "^7.3.2",
+        "@mui/x-data-grid": "^8.12.1",
+        "@mui/x-date-pickers": "^8.12.0",
         "ziggy-js": "^2.6.0"
     }
 }

@@ -26,21 +26,25 @@ export default function WholesalersList() {
   const navigation = useNavigation();
   const theme = useTheme();
 
+  const [currentUser, setCurrentUser] = useState(null);
   const [wholesalers, setWholesalers] = useState([]);
   const [operators, setOperators] = useState([]);
-  const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
     name: "",
     operator_id: null,
-    manager_id: null,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getUser();
     fetchAll();
   }, []);
 
@@ -59,21 +63,14 @@ export default function WholesalersList() {
         .select("id, name");
       if (opError) throw opError;
 
-      const { data: mgData, error: mgError } = await supabase
-        .from("users")
-        .select("id, full_name")
-        .eq("role", "grossiste");
-      if (mgError) throw mgError;
-
       const enrichedWholesalers = (whData || []).map((wh) => ({
         ...wh,
         operator_name: (opData || []).find((op) => op.id === wh.operator_id)?.name || "-",
-        manager_name: (mgData || []).find((mg) => mg.id === wh.user_id)?.full_name || "-",
+        manager_name: wh.user_id === currentUser?.id ? "Vous" : "-", // afficher "Vous" si c'est l'utilisateur connecté
       }));
 
       setWholesalers(enrichedWholesalers);
       setOperators(opData || []);
-      setManagers(mgData || []);
     } catch (err) {
       console.error(err);
       setError("Erreur lors du chargement des données");
@@ -88,10 +85,9 @@ export default function WholesalersList() {
         id: wholesaler.id,
         name: wholesaler.name || "",
         operator_id: wholesaler.operator_id || null,
-        manager_id: wholesaler.user_id || null,
       });
     } else {
-      setFormData({ id: null, name: "", operator_id: null, manager_id: null });
+      setFormData({ id: null, name: "", operator_id: null });
     }
     setError(null);
     setOpen(true);
@@ -107,26 +103,22 @@ export default function WholesalersList() {
     setSaving(true);
     setError(null);
     try {
+      const payload = {
+        name: formData.name,
+        operator_id: formData.operator_id,
+        user_id: currentUser?.id, // manager = utilisateur connecté
+      };
+
       if (formData.id) {
         const { error: updateError } = await supabase
           .from("wholesalers")
-          .update({
-            name: formData.name,
-            operator_id: formData.operator_id,
-            user_id: formData.manager_id,
-          })
+          .update(payload)
           .eq("id", formData.id);
         if (updateError) throw updateError;
       } else {
         const { error: insertError } = await supabase
           .from("wholesalers")
-          .insert([
-            {
-              name: formData.name,
-              operator_id: formData.operator_id,
-              user_id: formData.manager_id,
-            },
-          ]);
+          .insert([payload]);
         if (insertError) throw insertError;
       }
       fetchAll();
@@ -262,19 +254,6 @@ export default function WholesalersList() {
                     inputAndroid: { ...pickerSelectStyles.inputAndroid, color: theme.colors.onSurface, backgroundColor: theme.colors.background },
                   }}
                   placeholder={{ label: "Sélectionner un opérateur...", value: null }}
-                />
-              </View>
-              <View style={styles.pickerContainer}>
-                <Text style={[styles.label, { color: theme.colors.onSurface }]}>Manager</Text>
-                <RNPickerSelect
-                  onValueChange={(value) => setFormData({ ...formData, manager_id: value })}
-                  items={managers.map((m) => ({ label: m.full_name, value: m.id }))}
-                  value={formData.manager_id}
-                  style={{
-                    inputIOS: { ...pickerSelectStyles.inputIOS, color: theme.colors.onSurface, backgroundColor: theme.colors.background },
-                    inputAndroid: { ...pickerSelectStyles.inputAndroid, color: theme.colors.onSurface, backgroundColor: theme.colors.background },
-                  }}
-                  placeholder={{ label: "Sélectionner un manager...", value: null }}
                 />
               </View>
             </Dialog.Content>

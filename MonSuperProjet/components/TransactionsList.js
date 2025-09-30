@@ -55,9 +55,7 @@ export default function TransactionsList() {
 
         return {
           ...t,
-          cash_name: getCashName(t.cash_id),
-          operator_name: getOperatorName(t.operator_id),
-          balance_after: newBalance,
+          cash_name: getCashName(t.cash_id)
         };
       });
       setTransactions(enriched);
@@ -144,11 +142,7 @@ export default function TransactionsList() {
               })}
             </Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: "bold", color: theme.colors.onSurface }}>
-              {formatCFA(item.balance_after)}
-            </Text>
-          </View>
+          
           <TouchableOpacity onPress={() => deleteTransaction(item.id)} style={styles.deleteButton}>
             <MaterialCommunityIcons name="delete" size={20} color="white" />
           </TouchableOpacity>
@@ -175,7 +169,7 @@ export default function TransactionsList() {
         </Button>
 
         <View style={styles.headerRow}>
-          {["Type", "Caisse", "Montant", "Opérateur", "Date", "Solde après"].map((h, i) => (
+          {["Type", "Caisse", "Montant", "Date"].map((h, i) => (
             <Text key={i} style={{ flex: 1, fontWeight: "bold", color: theme.colors.onSurface }}>
               {h}
             </Text>

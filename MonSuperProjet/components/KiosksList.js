@@ -17,33 +17,25 @@ import {
   Card,
   List,
 } from "react-native-paper";
-import RNPickerSelect from "react-native-picker-select";
 
 export default function KiosksList() {
   const [kiosks, setKiosks] = useState([]);
-  const [operators, setOperators] = useState([]);
-  const [wholesalers, setWholesalers] = useState([]);
   const [openPopup, setOpenPopup] = useState(false);
   const [currentKiosk, setCurrentKiosk] = useState({
     id: null,
     name: "",
     location: "",
-    operator_id: null,
-    wholesaler_id: null,
-    owner_id: "",
   });
 
   // Fetch data
   useEffect(() => {
     fetchKiosks();
-    fetchOperators();
-    fetchWholesalers();
   }, []);
 
   const fetchKiosks = async () => {
     const { data, error } = await supabase
       .from("kiosks")
-      .select("id, name, location, operator_id, wholesaler_id, owner_id, created_at");
+      .select("id, name, location, created_at");
     if (error) {
       Alert.alert("Erreur", error.message);
     } else {
@@ -51,29 +43,11 @@ export default function KiosksList() {
     }
   };
 
-  const fetchOperators = async () => {
-    const { data, error } = await supabase.from("operators").select("*");
-    if (error) {
-      Alert.alert("Erreur", error.message);
-    } else {
-      setOperators(data);
-    }
-  };
-
-  const fetchWholesalers = async () => {
-    const { data, error } = await supabase.from("wholesalers").select("*");
-    if (error) {
-      Alert.alert("Erreur", error.message);
-    } else {
-      setWholesalers(data);
-    }
-  };
-
   // Delete kiosk
   const deleteKiosk = async (id) => {
     Alert.alert(
       "Confirmation",
-      "Êtes-vous sûr de vouloir supprimer ce agent ?",
+      "Êtes-vous sûr de vouloir supprimer ce client ?",
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -95,14 +69,7 @@ export default function KiosksList() {
     if (kiosk) {
       setCurrentKiosk(kiosk);
     } else {
-      setCurrentKiosk({
-        id: null,
-        name: "",
-        location: "",
-        operator_id: null,
-        wholesaler_id: null,
-        owner_id: "",
-      });
+      setCurrentKiosk({ id: null, name: "", location: "" });
     }
     setOpenPopup(true);
   };
@@ -111,7 +78,7 @@ export default function KiosksList() {
 
   const handleSaveKiosk = async () => {
     try {
-      const { id, name, location, operator_id, wholesaler_id, owner_id } = currentKiosk;
+      const { id, name, location } = currentKiosk;
       if (!name || !location) {
         Alert.alert("Avertissement", "Nom et lieu sont obligatoires");
         return;
@@ -120,12 +87,12 @@ export default function KiosksList() {
       if (id) {
         const { error } = await supabase
           .from("kiosks")
-          .update({ name, location, operator_id, wholesaler_id, owner_id })
+          .update({ name, location })
           .eq("id", id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("kiosks").insert([
-          { name, location, operator_id, wholesaler_id, owner_id },
+          { name, location },
         ]);
         if (error) throw error;
       }
@@ -161,9 +128,6 @@ export default function KiosksList() {
             </View>
           )}
         />
-        <Text style={styles.text}>Opérateur: {operators.find((o) => o.id === item.operator_id)?.name || "-"}</Text>
-        <Text style={styles.text}>Grossiste: {wholesalers.find((w) => w.id === item.wholesaler_id)?.name || "-"}</Text>
-        <Text style={styles.text}>Propriétaire: {item.owner_id || "-"}</Text>
         <Text style={styles.text}>Créé le: {new Date(item.created_at).toLocaleString()}</Text>
       </Card.Content>
     </Card>
@@ -194,7 +158,7 @@ export default function KiosksList() {
         <Portal>
           <Dialog visible={openPopup} onDismiss={handleClosePopup}>
             <Dialog.Title>
-              {currentKiosk.id ? "Modifier agent" : "Ajouter agent"}
+              {currentKiosk.id ? "Modifier client" : "Ajouter client"}
             </Dialog.Title>
             <Dialog.Content>
               <TextInput
@@ -210,47 +174,6 @@ export default function KiosksList() {
                 value={currentKiosk.location}
                 onChangeText={(text) =>
                   setCurrentKiosk({ ...currentKiosk, location: text })
-                }
-                style={styles.input}
-              />
-
-              {/* Sélecteur Opérateur */}
-              <View style={styles.input}>
-                <Text>Opérateur</Text>
-                <RNPickerSelect
-                  onValueChange={(value) =>
-                    setCurrentKiosk({ ...currentKiosk, operator_id: value })
-                  }
-                  items={operators.map((o) => ({
-                    label: o.name,
-                    value: o.id,
-                  }))}
-                  value={currentKiosk.operator_id}
-                  placeholder={{ label: "Sélectionner un opérateur...", value: null }}
-                />
-              </View>
-
-              {/* Sélecteur Grossiste */}
-              <View style={styles.input}>
-                <Text>Grossiste</Text>
-                <RNPickerSelect
-                  onValueChange={(value) =>
-                    setCurrentKiosk({ ...currentKiosk, wholesaler_id: value })
-                  }
-                  items={wholesalers.map((w) => ({
-                    label: w.name,
-                    value: w.id,
-                  }))}
-                  value={currentKiosk.wholesaler_id}
-                  placeholder={{ label: "Sélectionner un grossiste...", value: null }}
-                />
-              </View>
-
-              <TextInput
-                label="Propriétaire"
-                value={currentKiosk.owner_id || ""}
-                onChangeText={(text) =>
-                  setCurrentKiosk({ ...currentKiosk, owner_id: text })
                 }
                 style={styles.input}
               />

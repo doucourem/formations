@@ -130,9 +130,9 @@ function DrawerNavigator({ user }) {
       </Drawer.Screen>
       <Drawer.Screen name="Caisse" component={CashesList} />
       <Drawer.Screen name="Transactions" component={TransactionsList} />
-      <Drawer.Screen name="Fournisseur" component={OperatorsList} />
-      <Drawer.Screen name="Vendeur" component={WholesalersList} />
-      <Drawer.Screen name="Agent" component={KiosksList} />
+      <Drawer.Screen name="Opérateur" component={OperatorsList} />
+      <Drawer.Screen name="Fournisseur" component={WholesalersList} />
+      <Drawer.Screen name="Client" component={KiosksList} />
       <Drawer.Screen name="Utilisateurs" component={UsersList} />
     </Drawer.Navigator>
   );
