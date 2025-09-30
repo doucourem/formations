@@ -6,6 +6,8 @@ use App\Http\Controllers\AgencyController;
 use App\Http\Controllers\RouteController as TripRouteController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CityController;
+use App\Http\Controllers\TripController;
+use App\Http\Controllers\TicketController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -51,6 +53,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Routes CRUD
     Route::resource('routes', TripRouteController::class)->except(['show']);
 
+      // Routes CRUD
+      Route::resource('trips', TripController::class)->except(['show']);
+
+      // Routes CRUD
+      Route::resource('ticket', TicketController::class)->except(['show']);
+      
     // Users CRUD
     Route::resource('users', UserController::class)->except(['show']);
 });

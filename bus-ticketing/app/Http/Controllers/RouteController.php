@@ -2,39 +2,55 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Route;
+use App\Models\City;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\Route;
 
 class RouteController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = (int) $request->input('per_page', 20);
-
-        $routes = Route::with(['departureCity','arrivalCity'])
-                       ->orderBy('departure_city_id')
-                       ->paginate($perPage)
-                       ->withQueryString();
-
+        $perPage = $request->input('per_page', 20);
+    
+        $routes = Route::with(['departureCity', 'arrivalCity'])
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    
+        // Générer l'URL d'édition pour chaque route
+        $routes->getCollection()->transform(function ($r) {
+            $r->edit_url = route('routes.edit', $r->id);
+            return $r;
+        });
+    
         return Inertia::render('Routes/Index', [
-            'routes' => $routes,
-            'filters' => [
+            'initialRoutes' => $routes,
+            'initialFilters' => [
                 'per_page' => $perPage,
             ],
         ]);
     }
+    
+
 
     public function create()
     {
-        return Inertia::render('Routes/Create');
+        $cities = City::orderBy('name')->get();
+        return Inertia::render('Routes/Create', [
+            'cities' => $cities,
+        ]);
     }
 
-    public function edit(Route $route)
+    public function store(Request $request)
     {
-        $route->load(['departureCity','arrivalCity']);
-        return Inertia::render('Routes/Edit', [
-            'route' => $route
+        $data = $request->validate([
+            'departure_city_id' => 'required|exists:cities,id',
+            'arrival_city_id' => 'required|exists:cities,id|different:departure_city_id',
         ]);
+
+        Route::create($data);
+
+        return redirect()->route('routes.index')->with('success', 'Route créée avec succès ✅');
     }
 }

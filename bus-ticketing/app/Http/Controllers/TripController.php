@@ -9,27 +9,33 @@ use App\Models\Trip;
 class TripController extends Controller
 {
     public function index(Request $request)
-    {
-        $perPage = (int) $request->input('per_page', 20);
-        $busId = $request->input('bus_id');
-        $routeId = $request->input('route_id');
+{
+    $perPage = $request->input('per_page', 20);
+    $busId = $request->input('bus_id');
+    $routeId = $request->input('route_id');
 
-        $trips = Trip::with(['route.departureCity','route.arrivalCity','bus'])
-                     ->when($busId, fn($q) => $q->where('bus_id', $busId))
-                     ->when($routeId, fn($q) => $q->where('route_id', $routeId))
-                     ->orderBy('departure_at')
-                     ->paginate($perPage)
-                     ->withQueryString();
+    $trips = \App\Models\Trip::with(['bus', 'route.departureCity', 'route.arrivalCity'])
+        ->when($busId, fn($q) => $q->where('bus_id', $busId))
+        ->when($routeId, fn($q) => $q->where('route_id', $routeId))
+        ->orderBy('departure_at')
+        ->paginate($perPage)
+        ->withQueryString();
 
-        return Inertia::render('Trips/Index', [
-            'trips' => $trips,
-            'filters' => [
-                'bus_id' => $busId,
-                'route_id' => $routeId,
-                'per_page' => $perPage,
-            ],
-        ]);
-    }
+    // Générer l'URL d'édition pour chaque trajet
+    $trips->getCollection()->transform(function ($t) {
+        $t->edit_url = route('trips.edit', $t->id);
+        return $t;
+    });
+
+    return Inertia::render('Trips/Index', [
+        'initialTrips' => $trips,
+        'initialFilters' => [
+            'bus_id' => $busId,
+            'route_id' => $routeId,
+            'per_page' => $perPage,
+        ],
+    ]);
+}
 
     public function create()
     {
