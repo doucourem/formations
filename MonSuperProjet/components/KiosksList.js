@@ -173,7 +173,7 @@ export default function KiosksList() {
     <PaperProvider>
       <View style={styles.container}>
         <Text variant="headlineMedium" style={styles.title}>
-          agents
+          Clients
         </Text>
         <Button
           mode="contained"
@@ -181,7 +181,7 @@ export default function KiosksList() {
           style={styles.addButton}
           icon="plus"
         >
-          Ajouter un agent
+          Ajouter un client
         </Button>
 
         <FlatList
