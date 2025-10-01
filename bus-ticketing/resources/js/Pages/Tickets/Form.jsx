@@ -7,6 +7,9 @@ import {
   TextField,
   MenuItem,
   Typography,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 
 export default function TicketForm({ ticket, trips }) {
@@ -30,9 +33,9 @@ export default function TicketForm({ ticket, trips }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (ticket?.id) {
-      Inertia.put(route('tickets.update', ticket.id), form);
+      Inertia.put(route('ticket.update', ticket.id), form);
     } else {
-      Inertia.post(route('tickets.store'), form);
+      Inertia.post(route('ticket.store'), form);
     }
   };
 
@@ -48,20 +51,27 @@ export default function TicketForm({ ticket, trips }) {
           onSubmit={handleSubmit}
           sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
         >
-          <TextField
-            select
-            label="Voyage"
-            name="trip_id"
-            value={form.trip_id}
-            onChange={handleChange}
-            required
-          >
-            {trips.map((t) => (
-              <MenuItem key={t.id} value={t.id}>
-                {t.route?.departureCity?.name || '-'} → {t.route?.arrivalCity?.name || '-'} ({t.departure_at})
-              </MenuItem>
-            ))}
-          </TextField>
+          {/* Voyage */}
+          <FormControl fullWidth>
+            <InputLabel id="trip-label">Voyage</InputLabel>
+            <Select
+              labelId="trip-label"
+              name="trip_id"
+              value={form.trip_id || ''}
+              label="Voyage"
+              onChange={handleChange}
+              required
+            >
+              {trips.map((t) => (
+                <MenuItem key={t.id} value={t.id}>
+                  {(t.route?.departureCity?.name || '-') +
+                    ' → ' +
+                    (t.route?.arrivalCity?.name || '-') +
+                    ` (${t.departure_at})`}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           <TextField
             label="Nom du client"
@@ -94,18 +104,22 @@ export default function TicketForm({ ticket, trips }) {
             required
           />
 
-          <TextField
-            select
-            label="Statut"
-            name="status"
-            value={form.status}
-            onChange={handleChange}
-            required
-          >
-            <MenuItem value="booked">Réservé</MenuItem>
-            <MenuItem value="paid">Payé</MenuItem>
-            <MenuItem value="cancelled">Annulé</MenuItem>
-          </TextField>
+          {/* Statut */}
+          <FormControl fullWidth>
+            <InputLabel id="status-label">Statut</InputLabel>
+            <Select
+              labelId="status-label"
+              name="status"
+              value={form.status}
+              label="Statut"
+              onChange={handleChange}
+              required
+            >
+              <MenuItem value="booked">Réservé</MenuItem>
+              <MenuItem value="paid">Payé</MenuItem>
+              <MenuItem value="cancelled">Annulé</MenuItem>
+            </Select>
+          </FormControl>
 
           <Button type="submit" variant="contained" color="success">
             {ticket?.id ? 'Mettre à jour' : 'Créer'}

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
-import { usePage } from '@inertiajs/inertia-react';
 import {
   Box,
   Button,
   TextField,
   Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 
-export default function Edit() {
-  const { trip } = usePage().props;
+export default function Edit({ trip, routes, buses }) {
   const [form, setForm] = useState({
     route_id: trip.route_id || '',
     bus_id: trip.bus_id || '',
@@ -43,21 +45,41 @@ export default function Edit() {
         onSubmit={handleSubmit}
         sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
       >
-        <TextField
-          label="ID de la route"
-          name="route_id"
-          value={form.route_id}
-          onChange={handleChange}
-          required
-        />
+        {/* Sélecteur de route */}
+        <FormControl fullWidth>
+          <InputLabel id="route-label">Route</InputLabel>
+          <Select
+            labelId="route-label"
+            name="route_id"
+            value={form.route_id}
+            onChange={handleChange}
+            required
+          >
+            {routes.map(r => (
+              <MenuItem key={r.id} value={r.id}>
+                {r.departureCity?.name || '-'} → {r.arrivalCity?.name || '-'}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-        <TextField
-          label="ID du bus"
-          name="bus_id"
-          value={form.bus_id}
-          onChange={handleChange}
-          required
-        />
+        {/* Sélecteur de bus */}
+        <FormControl fullWidth>
+          <InputLabel id="bus-label">Bus</InputLabel>
+          <Select
+            labelId="bus-label"
+            name="bus_id"
+            value={form.bus_id}
+            onChange={handleChange}
+            required
+          >
+            {buses.map(b => (
+              <MenuItem key={b.id} value={b.id}>
+                {b.name || b.id}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
         <TextField
           label="Départ"
