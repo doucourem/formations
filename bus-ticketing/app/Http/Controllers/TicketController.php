@@ -6,32 +6,58 @@ use App\Models\Ticket;
 use App\Models\Trip;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class TicketController extends Controller
 {
-    /**
-     * Affiche la liste des tickets.
-     */
-    public function index(Request $request)
-    {
-        $perPage = $request->input('per_page', 20);
+  public function index(Request $request)
+{
+    $perPage = $request->input('per_page', 20);
 
-        $tickets = Ticket::with('trip.route') // charger le voyage et sa route
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage)
-            ->withQueryString();
+   $tickets = Ticket::with(['trip.route', 'user'])
+    ->orderBy('created_at', 'desc')
+    ->paginate($perPage)
+    ->withQueryString();
 
-        return Inertia::render('Tickets/Index', [
-            'tickets' => $tickets,
-            'filters' => [
-                'per_page' => $perPage,
+
+    // Transformer pour Inertia + éviter les null
+    $ticketsData = $tickets->map(function ($ticket) {
+        return [
+            'id' => $ticket->id,
+            'trip' => $ticket->trip ? [
+                'id' => $ticket->trip->id,
+                'route' => $ticket->trip->route ? [
+                    'id' => $ticket->trip->route->id,
+                    'departure_city' => $ticket->trip->route->departureCity->name ?? '-',
+                    'arrival_city' => $ticket->trip->route->arrivalCity->name ?? '-',
+                    'departure_at' => $ticket->trip->departure_at,
+                    'arrival_at' => $ticket->trip->arrival_at,
+                ] : null,
+            ] : null,
+            'client_name' => $ticket->client_name,
+            'client_nina' => $ticket->client_nina,
+            'seat_number' => $ticket->seat_number,
+            'price' => $ticket->price,
+            'status' => $ticket->status,
+            'created_at' => $ticket->created_at,
+        ];
+    });
+
+    return Inertia::render('Tickets/Index', [
+        'tickets' => [
+            'data' => $ticketsData,
+            'meta' => [
+                'current_page' => $tickets->currentPage(),
+                'last_page' => $tickets->lastPage(),
+                'per_page' => $tickets->perPage(),
+                'total' => $tickets->total(),
             ],
-        ]);
-    }
+        ],
+        'filters' => ['per_page' => $perPage],
+    ]);
+}
 
-    /**
-     * Affiche le formulaire de création d'un ticket.
-     */
+
     public function create()
     {
         $trips = Trip::with('route')->get();
@@ -41,9 +67,6 @@ class TicketController extends Controller
         ]);
     }
 
-    /**
-     * Stocke un nouveau ticket.
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -55,15 +78,14 @@ class TicketController extends Controller
             'status' => 'required|in:booked,paid,cancelled',
         ]);
 
+        $data['user_id'] = Auth::id(); // association au user connecté
+
         Ticket::create($data);
 
-        return redirect()->route('tickets.index')
+        return redirect()->route('ticket.index')
                          ->with('success', 'Ticket créé avec succès ✅');
     }
 
-    /**
-     * Affiche le formulaire d'édition d'un ticket.
-     */
     public function edit(Ticket $ticket)
     {
         $trips = Trip::with('route')->get();
@@ -74,9 +96,6 @@ class TicketController extends Controller
         ]);
     }
 
-    /**
-     * Met à jour un ticket existant.
-     */
     public function update(Request $request, Ticket $ticket)
     {
         $data = $request->validate([
@@ -88,20 +107,19 @@ class TicketController extends Controller
             'status' => 'required|in:booked,paid,cancelled',
         ]);
 
+        $data['user_id'] = Auth::id();
+
         $ticket->update($data);
 
-        return redirect()->route('tickets.index')
+        return redirect()->route('ticket.index')
                          ->with('success', 'Ticket mis à jour avec succès ✅');
     }
 
-    /**
-     * Supprime un ticket.
-     */
     public function destroy(Ticket $ticket)
     {
         $ticket->delete();
 
-        return redirect()->route('tickets.index')
+        return redirect()->route('ticket.index')
                          ->with('success', 'Ticket supprimé avec succès ✅');
     }
 }

@@ -12,7 +12,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { Add, Remove } from '@mui/icons-material';
-
+import GuestLayout from '@/Layouts/GuestLayout';
 export default function CreateTripWithStops({ routes, buses }) {
   const [form, setForm] = useState({
     route_id: '',
@@ -56,6 +56,7 @@ export default function CreateTripWithStops({ routes, buses }) {
   };
 
   return (
+        <GuestLayout>
     <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
       <Typography variant="h4" gutterBottom>
         Créer un trajet avec arrêts
@@ -181,5 +182,6 @@ export default function CreateTripWithStops({ routes, buses }) {
         </Button>
       </Box>
     </Box>
+        </GuestLayout>
   );
 }

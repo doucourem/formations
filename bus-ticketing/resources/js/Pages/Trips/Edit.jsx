@@ -10,7 +10,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-
+import GuestLayout from '@/Layouts/GuestLayout';
 export default function Edit({ trip, routes, buses }) {
   const [form, setForm] = useState({
     route_id: trip.route_id || '',
@@ -35,6 +35,7 @@ export default function Edit({ trip, routes, buses }) {
   };
 
   return (
+        <GuestLayout>
     <Box sx={{ p: 3, maxWidth: 500, mx: 'auto' }}>
       <Typography variant="h4" gutterBottom>
         Éditer le trajet #{trip.id}
@@ -124,5 +125,6 @@ export default function Edit({ trip, routes, buses }) {
         </Button>
       </Box>
     </Box>
+        </GuestLayout>
   );
 }
