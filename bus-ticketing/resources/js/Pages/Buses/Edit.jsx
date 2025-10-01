@@ -65,21 +65,6 @@ export default function Edit({ bus, agencies }) {
             required
           />
 
-          <TextField
-            select
-            label="Agence"
-            name="agency_id"
-            value={form.agency_id}
-            onChange={handleChange}
-            required
-          >
-            {agencies.map((agency) => (
-              <MenuItem key={agency.id} value={agency.id}>
-                {agency.name}
-              </MenuItem>
-            ))}
-          </TextField>
-
           <Button type="submit" variant="contained" color="primary">
             Mettre à jour
           </Button>
