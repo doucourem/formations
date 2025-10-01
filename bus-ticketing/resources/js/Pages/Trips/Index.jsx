@@ -1,8 +1,24 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
+import {
+  Box,
+  Button,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+  Stack,
+   MenuItem  // <-- ajoute ceci
+} from '@mui/material';
+import GuestLayout from '@/Layouts/GuestLayout';
 
-export default function Index({ initialTrips, initialFilters }) {
-  const [trips, setTrips] = useState(initialTrips);
+export default function Index({ initialTrips, initialFilters, buses = [], routes = [] }) {
+  const [trips, setTrips] = useState(initialTrips || { data: [], links: [] });
   const [perPage, setPerPage] = useState(initialFilters?.per_page || 20);
   const [busId, setBusId] = useState(initialFilters?.bus_id || '');
   const [routeId, setRouteId] = useState(initialFilters?.route_id || '');
@@ -13,101 +29,135 @@ export default function Index({ initialTrips, initialFilters }) {
       { per_page: perPage, bus_id: busId, route_id: routeId },
       {
         preserveState: true,
-        onSuccess: page => setTrips(page.props.initialTrips),
+        onSuccess: page => setTrips(page.props.initialTrips || { data: [], links: [] }),
       }
     );
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Trajets</h1>
+    <GuestLayout>
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h4">Trajets</Typography>
+          <Button variant="contained" color="primary" onClick={() => Inertia.get(route('trips.create'))}>
+            Créer un trajet
+          </Button>
+        </Box>
 
-      <div className="mb-4 flex gap-2 items-end">
-        <div>
-          <label className="block mb-1 font-medium">Bus :</label>
-          <input
-            type="text"
+        {/* Filtrage */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+          <TextField
+            select
+            label="Bus"
             value={busId}
-            onChange={e => setBusId(e.target.value)}
-            className="border px-2 py-1 rounded"
-          />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">Route :</label>
-          <input
-            type="text"
+            onChange={(e) => setBusId(e.target.value)}
+            size="small"
+            sx={{ minWidth: 150 }}
+          >
+            <MenuItem value="">Tous les bus</MenuItem>
+            {buses?.map(bus => (
+              <MenuItem key={bus.id} value={bus.id}>{bus.model}</MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Route"
             value={routeId}
-            onChange={e => setRouteId(e.target.value)}
-            className="border px-2 py-1 rounded"
-          />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">Par page :</label>
-          <input
+            onChange={(e) => setRouteId(e.target.value)}
+            size="small"
+            sx={{ minWidth: 150 }}
+          >
+            <MenuItem value="">Toutes les routes</MenuItem>
+            {routes?.map(route => (
+              <MenuItem key={route.id} value={route.id}>
+                {route.departureCity?.name || '-'} → {route.arrivalCity?.name || '-'}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            label="Par page"
             type="number"
             value={perPage}
-            onChange={e => setPerPage(e.target.value)}
-            className="border px-2 py-1 rounded w-20"
+            onChange={(e) => setPerPage(e.target.value)}
+            size="small"
+            sx={{ width: 100 }}
+            inputProps={{ min: 1 }}
           />
-        </div>
-        <button
-          onClick={filtrer}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Filtrer
-        </button>
-      </div>
 
-      <table className="w-full border-collapse border">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border px-2 py-1">ID</th>
-            <th className="border px-2 py-1">Route</th>
-            <th className="border px-2 py-1">Bus</th>
-            <th className="border px-2 py-1">Départ</th>
-            <th className="border px-2 py-1">Arrivée</th>
-            <th className="border px-2 py-1">Prix</th>
-            <th className="border px-2 py-1">Places disponibles</th>
-            <th className="border px-2 py-1">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {trips.data.map(trip => (
-            <tr key={trip.id}>
-              <td className="border px-2 py-1">{trip.id}</td>
-              <td className="border px-2 py-1">
-                {trip.route?.departureCity?.name || '-'} → {trip.route?.arrivalCity?.name || '-'}
-              </td>
-              <td className="border px-2 py-1">{trip.bus?.model || '-'}</td>
-              <td className="border px-2 py-1">{trip.departure_at}</td>
-              <td className="border px-2 py-1">{trip.arrival_at}</td>
-              <td className="border px-2 py-1">{trip.base_price}</td>
-              <td className="border px-2 py-1">{trip.seats_available}</td>
-              <td className="border px-2 py-1">
-                <a href={trip.edit_url} className="text-blue-600 hover:underline">
-                  Éditer
-                </a>
-              </td>
-            </tr>
+          <Button variant="contained" color="secondary" onClick={filtrer}>
+            Filtrer
+          </Button>
+        </Stack>
+
+        {/* Tableau */}
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Route</TableCell>
+                <TableCell>Bus</TableCell>
+                <TableCell>Départ</TableCell>
+                <TableCell>Arrivée</TableCell>
+                <TableCell>Prix</TableCell>
+                <TableCell>Places disponibles</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {trips.data?.map(trip => (
+                <TableRow key={trip.id}>
+                  <TableCell>{trip.id}</TableCell>
+                  <TableCell>
+                    {trip.route?.departureCity?.name || '-'} → {trip.route?.arrivalCity?.name || '-'}
+                  </TableCell>
+                  <TableCell>{trip.bus?.model || '-'}</TableCell>
+                  <TableCell>{trip.departure_at}</TableCell>
+                  <TableCell>{trip.arrival_at}</TableCell>
+                  <TableCell>{trip.base_price}</TableCell>
+                  <TableCell>{trip.seats_available}</TableCell>
+                  <TableCell>
+                    <Button variant="outlined" size="small" href={trip.edit_url}>
+                      Éditer
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )) || (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">Aucun trajet trouvé</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Pagination */}
+        <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap' }}>
+          {trips.links?.map((link, i) => (
+            <Button
+              key={i}
+              disabled={!link.url}
+              variant={link.active ? 'contained' : 'outlined'}
+              size="small"
+              onClick={() =>
+                link.url &&
+                Inertia.get(link.url, {}, {
+                  onSuccess: page => setTrips(page.props.initialTrips || { data: [], links: [] }),
+                })
+              }
+            >
+              {typeof link.label === 'string' ? (
+                <span dangerouslySetInnerHTML={{ __html: link.label }} />
+              ) : (
+                String(link.label)
+              )}
+            </Button>
           ))}
-        </tbody>
-      </table>
-
-      <div className="mt-4 flex gap-2">
-        {trips.links.map((link, i) => (
-          <button
-            key={i}
-            disabled={!link.url}
-            onClick={() =>
-              Inertia.get(link.url, {}, { onSuccess: page => setTrips(page.props.initialTrips) })
-            }
-            className={`px-3 py-1 border rounded ${
-              !link.url ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-gray-200'
-            }`}
-            dangerouslySetInnerHTML={{ __html: link.label }}
-          />
-        ))}
-      </div>
-    </div>
+        </Stack>
+      </Box>
+    </GuestLayout>
   );
 }

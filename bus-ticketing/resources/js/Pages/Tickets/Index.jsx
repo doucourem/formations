@@ -1,63 +1,97 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
-import AdminLayout from '@/Components/AdminLayout';
 import GuestLayout from '@/Layouts/GuestLayout';
+import {
+  Box,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+} from '@mui/material';
+
 export default function Index({ initialTickets }) {
-  const [tickets, setTickets] = useState(initialTickets);
+  const [tickets, setTickets] = useState(initialTickets || { data: [], links: [] });
 
   const handlePage = (url) => {
+    if (!url) return;
     Inertia.get(url, {}, {
       preserveState: true,
-      onSuccess: page => setTickets(page.props.tickets),
+      onSuccess: page => setTickets(page.props.tickets || { data: [], links: [] }),
     });
   };
 
   return (
     <GuestLayout>
-      <h1 className="text-2xl font-bold mb-4">Tickets</h1>
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h4">Tickets</Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => Inertia.get(route('ticket.create'))}
+          >
+            Créer un ticket
+          </Button>
+        </Box>
 
-      <table className="w-full border-collapse border">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border px-2 py-1">ID</th>
-            <th className="border px-2 py-1">Voyage</th>
-            <th className="border px-2 py-1">Utilisateur</th>
-            <th className="border px-2 py-1">Siège</th>
-            <th className="border px-2 py-1">Prix</th>
-            <th className="border px-2 py-1">Statut</th>
-            <th className="border px-2 py-1">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tickets.data.map(ticket => (
-            <tr key={ticket.id}>
-              <td className="border px-2 py-1">{ticket.id}</td>
-              <td className="border px-2 py-1">
-                {ticket.trip?.route?.departureCity?.name} → {ticket.trip?.route?.arrivalCity?.name}
-              </td>
-              <td className="border px-2 py-1">{ticket.user?.name}</td>
-              <td className="border px-2 py-1">{ticket.seat_number}</td>
-              <td className="border px-2 py-1">{ticket.price}</td>
-              <td className="border px-2 py-1">{ticket.status}</td>
-              <td className="border px-2 py-1">
-                <a href={route('tickets.edit', ticket.id)} className="text-blue-600 hover:underline">Éditer</a>
-              </td>
-            </tr>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Voyage</TableCell>
+                <TableCell>Utilisateur</TableCell>
+                <TableCell>Siège</TableCell>
+                <TableCell>Prix</TableCell>
+                <TableCell>Statut</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {(tickets.data || []).map(ticket => (
+                <TableRow key={ticket.id}>
+                  <TableCell>{ticket.id}</TableCell>
+                  <TableCell>
+                    {ticket.trip?.route?.departureCity?.name || '-'} → {ticket.trip?.route?.arrivalCity?.name || '-'}
+                  </TableCell>
+                  <TableCell>{ticket.user?.name || '-'}</TableCell>
+                  <TableCell>{ticket.seat_number || '-'}</TableCell>
+                  <TableCell>{ticket.price || '-'}</TableCell>
+                  <TableCell>{ticket.status || '-'}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      href={route('tickets.edit', ticket.id)}
+                    >
+                      Éditer
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
+          {(tickets.links || []).map((link, i) => (
+            <Button
+              key={i}
+              disabled={!link.url}
+              onClick={() => handlePage(link.url)}
+              dangerouslySetInnerHTML={{ __html: link.label }}
+              variant="outlined"
+              size="small"
+            />
           ))}
-        </tbody>
-      </table>
-
-      <div className="mt-4 flex gap-2">
-        {tickets.links.map((link, i) => (
-          <button
-            key={i}
-            disabled={!link.url}
-            onClick={() => handlePage(link.url)}
-            className={`px-3 py-1 border rounded ${!link.url ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-gray-200'}`}
-            dangerouslySetInnerHTML={{ __html: link.label }}
-          />
-        ))}
-      </div>
+        </Box>
+      </Box>
     </GuestLayout>
   );
 }

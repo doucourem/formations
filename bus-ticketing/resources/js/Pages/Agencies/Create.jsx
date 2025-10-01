@@ -1,35 +1,58 @@
-import React, { useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
+import React, { useState } from "react";
+import { Inertia } from "@inertiajs/inertia";
+import { TextField, Button, Container, Typography, Box } from "@mui/material";
+import GuestLayout from "@/Layouts/GuestLayout";
 
 export default function Create() {
   const [form, setForm] = useState({
-    name: '',
-    city: ''
+    name: "",
+    city: "",
   });
 
   const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.post(route('agencies.store'), form);
+    Inertia.post(route("agencies.store"), form);
   };
 
   return (
-    <div>
-      <h1>Create Agency</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Name:</label>
-          <input name="name" placeholder="Agency name" value={form.name} onChange={handleChange} />
-        </div>
-        <div>
-          <label>City:</label>
-          <input name="city" placeholder="City" value={form.city} onChange={handleChange} />
-        </div>
-        <button type="submit">Create</button>
-      </form>
-    </div>
+    <GuestLayout>
+      <Container maxWidth="sm">
+        <Box sx={{ mt: 4, p: 3, boxShadow: 2, borderRadius: 2, bgcolor: "white" }}>
+          <Typography variant="h5" gutterBottom>
+            Créer une Agence
+          </Typography>
+
+          <form onSubmit={handleSubmit}>
+            <TextField
+              label="Nom de l'agence"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+            />
+
+            <TextField
+              label="Ville"
+              name="city"
+              value={form.city}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+            />
+
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+              Créer
+            </Button>
+          </form>
+        </Box>
+      </Container>
+    </GuestLayout>
   );
 }

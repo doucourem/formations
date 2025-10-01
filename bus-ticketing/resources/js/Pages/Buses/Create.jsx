@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
+import GuestLayout from '@/Layouts/GuestLayout';
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  MenuItem,
+} from '@mui/material';
 
-export default function Create() {
+export default function Create({ agencies }) {
   const [form, setForm] = useState({
     model: '',
     seats: '',
-    agency_id: ''
+    agency_id: '',
   });
 
   const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
+    const { name, value, type } = e.target;
+    setForm({
+      ...form,
+      [name]: type === 'number' ? Number(value) : value,
+    });
   };
 
   const handleSubmit = (e) => {
@@ -18,23 +30,57 @@ export default function Create() {
   };
 
   return (
-    <div>
-      <h1>Create Bus</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Model:</label>
-          <input name="model" placeholder="Bus model" value={form.model} onChange={handleChange} />
-        </div>
-        <div>
-          <label>Seats:</label>
-          <input name="seats" type="number" placeholder="Number of seats" value={form.seats} onChange={handleChange} />
-        </div>
-        <div>
-          <label>Agency ID:</label>
-          <input name="agency_id" placeholder="Agency ID" value={form.agency_id} onChange={handleChange} />
-        </div>
-        <button type="submit">Create</button>
-      </form>
-    </div>
+    <GuestLayout>
+      <Box sx={{ p: 3, maxWidth: 500, mx: 'auto' }}>
+        <Typography variant="h4" gutterBottom>
+          Créer un bus
+        </Typography>
+
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+        >
+          <TextField
+            label="Modèle"
+            name="model"
+            placeholder="Modèle du bus"
+            value={form.model}
+            onChange={handleChange}
+            required
+          />
+
+          <TextField
+            label="Nombre de places"
+            name="seats"
+            type="number"
+            min={1}
+            placeholder="Nombre de places"
+            value={form.seats}
+            onChange={handleChange}
+            required
+          />
+
+          <TextField
+            select
+            label="Agence"
+            name="agency_id"
+            value={form.agency_id}
+            onChange={handleChange}
+            required
+          >
+            {agencies.map((agency) => (
+              <MenuItem key={agency.id} value={agency.id}>
+                {agency.name}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <Button type="submit" variant="contained" color="primary">
+            Créer
+          </Button>
+        </Box>
+      </Box>
+    </GuestLayout>
   );
 }

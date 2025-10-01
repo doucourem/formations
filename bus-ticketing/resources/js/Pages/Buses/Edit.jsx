@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
+import GuestLayout from '@/Layouts/GuestLayout';
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  MenuItem,
+} from '@mui/material';
 
-export default function Edit({ bus }) {
+export default function Edit({ bus, agencies }) {
   if (!bus) {
-    return <p>Chargement du bus...</p>;
+    return <Typography>Chargement du bus...</Typography>;
   }
 
   const [form, setForm] = useState({
@@ -26,51 +34,57 @@ export default function Edit({ bus }) {
   };
 
   return (
-    <div>
-      <h1>Modifier le bus #{bus.id}</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="model">Modèle :</label>
-          <input
-            id="model"
+    <GuestLayout>
+      <Box sx={{ p: 3, maxWidth: 500, mx: 'auto' }}>
+        <Typography variant="h4" gutterBottom>
+          Modifier le bus #{bus.id}
+        </Typography>
+
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+        >
+          <TextField
+            label="Modèle"
             name="model"
             placeholder="Modèle du bus"
             value={form.model}
             onChange={handleChange}
             required
           />
-        </div>
 
-        <div>
-          <label htmlFor="seats">Places :</label>
-          <input
-            id="seats"
+          <TextField
+            label="Nombre de places"
             name="seats"
             type="number"
-            min="1"
+            min={1}
             placeholder="Nombre de places"
             value={form.seats}
             onChange={handleChange}
             required
           />
-        </div>
 
-        <div>
-          <label htmlFor="agency_id">Agence :</label>
-          <input
-            id="agency_id"
+          <TextField
+            select
+            label="Agence"
             name="agency_id"
-            type="number"
-            min="1"
-            placeholder="ID de l'agence"
             value={form.agency_id}
             onChange={handleChange}
             required
-          />
-        </div>
+          >
+            {agencies.map((agency) => (
+              <MenuItem key={agency.id} value={agency.id}>
+                {agency.name}
+              </MenuItem>
+            ))}
+          </TextField>
 
-        <button type="submit">Mettre à jour</button>
-      </form>
-    </div>
+          <Button type="submit" variant="contained" color="primary">
+            Mettre à jour
+          </Button>
+        </Box>
+      </Box>
+    </GuestLayout>
   );
 }

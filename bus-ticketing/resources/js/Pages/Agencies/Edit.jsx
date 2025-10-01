@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
-
+import GuestLayout from '@/Layouts/GuestLayout';
 export default function Edit({ agency }) {
   const [form, setForm] = useState({
     name: agency?.name || '',
@@ -17,6 +17,7 @@ export default function Edit({ agency }) {
   };
 
   return (
+    <GuestLayout>
     <div>
       <h1>Modifier l’agence #{agency.id}</h1>
 
@@ -48,5 +49,6 @@ export default function Edit({ agency }) {
         <button type="submit">Mettre à jour</button>
       </form>
     </div>
+    </GuestLayout>
   );
 }

@@ -26,7 +26,7 @@ export default function WholesalersList() {
   const navigation = useNavigation();
   const theme = useTheme();
 
-  const [currentUser, setCurrentUser] = useState(null);
+  const [user, setUser] = useState(null);
   const [wholesalers, setWholesalers] = useState([]);
   const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -39,16 +39,24 @@ export default function WholesalersList() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  // Récupérer utilisateur connecté
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) Alert.alert("Erreur Auth", error.message);
+      else setUser(user);
     };
     getUser();
-    fetchAll();
   }, []);
 
+  // Fetch grossistes dès que l'utilisateur est disponible
+  useEffect(() => {
+    if (user) fetchAll();
+  }, [user]);
+
+  // Récupérer grossistes et opérateurs
   const fetchAll = async () => {
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
@@ -66,7 +74,7 @@ export default function WholesalersList() {
       const enrichedWholesalers = (whData || []).map((wh) => ({
         ...wh,
         operator_name: (opData || []).find((op) => op.id === wh.operator_id)?.name || "-",
-        manager_name: wh.user_id === currentUser?.id ? "Vous" : "-", // afficher "Vous" si c'est l'utilisateur connecté
+        manager_name: wh.user_id === user.id ? "Vous" : "-",
       }));
 
       setWholesalers(enrichedWholesalers);
@@ -100,20 +108,27 @@ export default function WholesalersList() {
       setError("Nom et Opérateur sont obligatoires.");
       return;
     }
+    if (!user?.id) {
+      setError("Utilisateur non connecté.");
+      return;
+    }
+
     setSaving(true);
     setError(null);
+
     try {
       const payload = {
         name: formData.name,
         operator_id: formData.operator_id,
-        user_id: currentUser?.id, // manager = utilisateur connecté
+        user_id: user.id,
       };
 
       if (formData.id) {
         const { error: updateError } = await supabase
           .from("wholesalers")
           .update(payload)
-          .eq("id", formData.id);
+          .eq("id", formData.id)
+          .eq("user_id", user.id);
         if (updateError) throw updateError;
       } else {
         const { error: insertError } = await supabase
@@ -121,11 +136,12 @@ export default function WholesalersList() {
           .insert([payload]);
         if (insertError) throw insertError;
       }
+
       fetchAll();
       handleClose();
     } catch (err) {
       console.error(err);
-      setError("Erreur lors de l'enregistrement");
+      setError(err.message || "Erreur lors de l'enregistrement");
     } finally {
       setSaving(false);
     }
@@ -141,7 +157,11 @@ export default function WholesalersList() {
           text: "Supprimer",
           onPress: async () => {
             try {
-              const { error } = await supabase.from("wholesalers").delete().eq("id", id);
+              const { error } = await supabase
+                .from("wholesalers")
+                .delete()
+                .eq("id", id)
+                .eq("user_id", user?.id);
               if (error) throw error;
               fetchAll();
             } catch (err) {

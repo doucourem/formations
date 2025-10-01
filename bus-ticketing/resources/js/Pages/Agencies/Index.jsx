@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import GuestLayout from '@/Layouts/GuestLayout';
+import {
+  Box,
+  Button,
+  TextField,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Paper,
+  Typography,
+  Pagination,
+} from '@mui/material';
 
 export default function Index({ agencies, filters }) {
   const [parPage, setParPage] = useState(filters?.per_page || 20);
@@ -16,82 +30,88 @@ export default function Index({ agencies, filters }) {
 
   return (
     <GuestLayout>
-      <h1 className="text-2xl font-bold mb-4">Agences</h1>
+      <Typography variant="h4" gutterBottom>
+        Agences
+      </Typography>
 
-      <div className="mb-4 flex gap-2 items-end">
-        <div>
-          <label className="block mb-1 font-medium">Ville :</label>
-          <input
-            type="text"
-            value={ville}
-            onChange={(e) => setVille(e.target.value)}
-            className="border px-2 py-1 rounded"
-          />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">Par page :</label>
-          <input
-            type="number"
-            value={parPage}
-            onChange={(e) => setParPage(Number(e.target.value))}
-            className="border px-2 py-1 rounded w-20"
-          />
-        </div>
-        <button
-          onClick={filtrer}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
+      {/* Filtres */}
+      <Box display="flex" gap={2} mb={3} alignItems="flex-end">
+        <TextField
+          label="Ville"
+          value={ville}
+          onChange={(e) => setVille(e.target.value)}
+          variant="outlined"
+          size="small"
+        />
+        <TextField
+          label="Par page"
+          type="number"
+          value={parPage}
+          onChange={(e) => setParPage(Number(e.target.value))}
+          variant="outlined"
+          size="small"
+          sx={{ width: 120 }}
+        />
+        <Button variant="contained" color="primary" onClick={filtrer}>
           Filtrer
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      <table className="w-full border-collapse border">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border px-2 py-1">ID</th>
-            <th className="border px-2 py-1">Nom</th>
-            <th className="border px-2 py-1">Ville</th>
-            <th className="border px-2 py-1">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {agencies?.data?.map((agence) => (
-            <tr key={agence.id}>
-              <td className="border px-2 py-1">{agence.id}</td>
-              <td className="border px-2 py-1">{agence.name}</td>
-              <td className="border px-2 py-1">{agence.city || '-'}</td>
-              <td className="border px-2 py-1">
-                <a
-                  href={route('agencies.edit', agence.id)}
-                  className="text-blue-600 hover:underline"
-                >
-                  Éditer
-                </a>
-              </td>
-            </tr>
-          )) || (
-            <tr>
-              <td colSpan="4" className="text-center p-2">
-                Aucune agence trouvée.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      {/* Tableau */}
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell><strong>ID</strong></TableCell>
+              <TableCell><strong>Nom</strong></TableCell>
+              <TableCell><strong>Ville</strong></TableCell>
+              <TableCell><strong>Actions</strong></TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {agencies?.data?.length > 0 ? (
+              agencies.data.map((agence) => (
+                <TableRow key={agence.id}>
+                  <TableCell>{agence.id}</TableCell>
+                  <TableCell>{agence.name}</TableCell>
+                  <TableCell>{agence.city || '-'}</TableCell>
+                  <TableCell>
+                    <Button
+                      href={route('agencies.edit', agence.id)}
+                      color="primary"
+                      size="small"
+                    >
+                      Éditer
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} align="center">
+                  Aucune agence trouvée.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      <div className="mt-4 flex gap-2 flex-wrap">
-        {agencies?.links?.map((link, i) => (
-          <button
-            key={i}
-            disabled={!link.url}
-            onClick={() => link.url && Inertia.get(link.url)}
-            className={`px-3 py-1 border rounded ${
-              !link.url ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-gray-200'
-            }`}
-            dangerouslySetInnerHTML={{ __html: link.label }}
-          />
-        ))}
-      </div>
+      {/* Pagination */}
+      <Box mt={3} display="flex" justifyContent="center">
+        <Pagination
+          count={agencies?.last_page || 1}
+          page={agencies?.current_page || 1}
+          onChange={(e, page) =>
+            Inertia.get(route('agencies.index'), {
+              per_page: parPage,
+              city: ville,
+              page,
+            })
+          }
+          color="primary"
+        />
+      </Box>
     </GuestLayout>
   );
 }

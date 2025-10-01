@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import GuestLayout from '@/Layouts/GuestLayout';
+import {
+  Box,
+  Button,
+  TextField,
+  MenuItem,
+  Typography,
+} from '@mui/material';
 
 export default function TicketForm({ ticket, trips }) {
   const [form, setForm] = useState({
@@ -12,7 +19,13 @@ export default function TicketForm({ ticket, trips }) {
     status: ticket?.status || 'booked',
   });
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value, type } = e.target;
+    setForm({
+      ...form,
+      [name]: type === 'number' ? Number(value) : value,
+    });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -25,97 +38,80 @@ export default function TicketForm({ ticket, trips }) {
 
   return (
     <GuestLayout>
-      <h1 className="text-2xl font-bold mb-4">
-        {ticket?.id ? `Éditer le ticket #${ticket.id}` : 'Créer un ticket'}
-      </h1>
+      <Box sx={{ p: 3, maxWidth: 500, mx: 'auto' }}>
+        <Typography variant="h4" gutterBottom>
+          {ticket?.id ? `Éditer le ticket #${ticket.id}` : 'Créer un ticket'}
+        </Typography>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block mb-1 font-medium">Voyage</label>
-          <select
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+        >
+          <TextField
+            select
+            label="Voyage"
             name="trip_id"
             value={form.trip_id}
             onChange={handleChange}
-            className="border px-2 py-1 rounded w-full"
             required
           >
-            <option value="">Sélectionner un voyage</option>
             {trips.map((t) => (
-              <option key={t.id} value={t.id}>
+              <MenuItem key={t.id} value={t.id}>
                 {t.route?.departureCity?.name || '-'} → {t.route?.arrivalCity?.name || '-'} ({t.departure_at})
-              </option>
+              </MenuItem>
             ))}
-          </select>
-        </div>
+          </TextField>
 
-        <div>
-          <label className="block mb-1 font-medium">Nom du client</label>
-          <input
-            type="text"
+          <TextField
+            label="Nom du client"
             name="client_name"
             value={form.client_name}
             onChange={handleChange}
-            className="border px-2 py-1 rounded w-full"
             required
           />
-        </div>
 
-        <div>
-          <label className="block mb-1 font-medium">NINA</label>
-          <input
-            type="text"
+          <TextField
+            label="NINA"
             name="client_nina"
             value={form.client_nina}
             onChange={handleChange}
-            className="border px-2 py-1 rounded w-full"
           />
-        </div>
 
-        <div>
-          <label className="block mb-1 font-medium">Siège</label>
-          <input
-            type="text"
+          <TextField
+            label="Siège"
             name="seat_number"
             value={form.seat_number}
             onChange={handleChange}
-            className="border px-2 py-1 rounded w-full"
           />
-        </div>
 
-        <div>
-          <label className="block mb-1 font-medium">Prix</label>
-          <input
-            type="number"
+          <TextField
+            label="Prix"
             name="price"
+            type="number"
             value={form.price}
             onChange={handleChange}
-            className="border px-2 py-1 rounded w-full"
             required
           />
-        </div>
 
-        <div>
-          <label className="block mb-1 font-medium">Statut</label>
-          <select
+          <TextField
+            select
+            label="Statut"
             name="status"
             value={form.status}
             onChange={handleChange}
-            className="border px-2 py-1 rounded w-full"
             required
           >
-            <option value="booked">Réservé</option>
-            <option value="paid">Payé</option>
-            <option value="cancelled">Annulé</option>
-          </select>
-        </div>
+            <MenuItem value="booked">Réservé</MenuItem>
+            <MenuItem value="paid">Payé</MenuItem>
+            <MenuItem value="cancelled">Annulé</MenuItem>
+          </TextField>
 
-        <button
-          type="submit"
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-        >
-          {ticket?.id ? 'Mettre à jour' : 'Créer'}
-        </button>
-      </form>
+          <Button type="submit" variant="contained" color="success">
+            {ticket?.id ? 'Mettre à jour' : 'Créer'}
+          </Button>
+        </Box>
+      </Box>
     </GuestLayout>
   );
 }

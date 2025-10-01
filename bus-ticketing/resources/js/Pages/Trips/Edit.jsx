@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import { usePage } from '@inertiajs/inertia-react';
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+} from '@mui/material';
 
 export default function Edit() {
   const { trip } = usePage().props;
@@ -14,7 +20,11 @@ export default function Edit() {
   });
 
   const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
+    const { name, value, type } = e.target;
+    setForm({
+      ...form,
+      [name]: type === 'number' ? Number(value) : value,
+    });
   };
 
   const handleSubmit = (e) => {
@@ -23,17 +33,74 @@ export default function Edit() {
   };
 
   return (
-    <div>
-      <h1>Edit Trip #{trip.id}</h1>
-      <form onSubmit={handleSubmit}>
-        <input name="route_id" placeholder="Route ID" value={form.route_id} onChange={handleChange} />
-        <input name="bus_id" placeholder="Bus ID" value={form.bus_id} onChange={handleChange} />
-        <input name="departure_at" type="datetime-local" value={form.departure_at} onChange={handleChange} />
-        <input name="arrival_at" type="datetime-local" value={form.arrival_at} onChange={handleChange} />
-        <input name="base_price" type="number" placeholder="Price" value={form.base_price} onChange={handleChange} />
-        <input name="seats_available" type="number" placeholder="Seats" value={form.seats_available} onChange={handleChange} />
-        <button type="submit">Update</button>
-      </form>
-    </div>
+    <Box sx={{ p: 3, maxWidth: 500, mx: 'auto' }}>
+      <Typography variant="h4" gutterBottom>
+        Éditer le trajet #{trip.id}
+      </Typography>
+
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+      >
+        <TextField
+          label="ID de la route"
+          name="route_id"
+          value={form.route_id}
+          onChange={handleChange}
+          required
+        />
+
+        <TextField
+          label="ID du bus"
+          name="bus_id"
+          value={form.bus_id}
+          onChange={handleChange}
+          required
+        />
+
+        <TextField
+          label="Départ"
+          name="departure_at"
+          type="datetime-local"
+          value={form.departure_at}
+          onChange={handleChange}
+          InputLabelProps={{ shrink: true }}
+          required
+        />
+
+        <TextField
+          label="Arrivée"
+          name="arrival_at"
+          type="datetime-local"
+          value={form.arrival_at}
+          onChange={handleChange}
+          InputLabelProps={{ shrink: true }}
+          required
+        />
+
+        <TextField
+          label="Prix"
+          name="base_price"
+          type="number"
+          value={form.base_price}
+          onChange={handleChange}
+          required
+        />
+
+        <TextField
+          label="Places disponibles"
+          name="seats_available"
+          type="number"
+          value={form.seats_available}
+          onChange={handleChange}
+          required
+        />
+
+        <Button type="submit" variant="contained" color="success">
+          Mettre à jour
+        </Button>
+      </Box>
+    </Box>
   );
 }

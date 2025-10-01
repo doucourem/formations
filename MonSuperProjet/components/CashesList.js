@@ -21,6 +21,7 @@ import {
 import RNPickerSelect from "react-native-picker-select";
 
 const CashesList = () => {
+  const [user, setUser] = useState(null);
   const [cashes, setCashes] = useState([]);
   const [kiosks, setKiosks] = useState([]);
   const [openCashDialog, setOpenCashDialog] = useState(false);
@@ -32,34 +33,55 @@ const CashesList = () => {
     closed: false,
   });
 
-  // Transactions
   const [transactions, setTransactions] = useState([]);
   const [selectedCash, setSelectedCash] = useState(null);
   const [openTransactionDialog, setOpenTransactionDialog] = useState(false);
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("CREDIT");
 
+  // Récupérer l'utilisateur connecté
   useEffect(() => {
-    fetchKiosks();
+    const getUser = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) Alert.alert("Erreur Auth", error.message);
+      else setUser(user);
+    };
+    getUser();
   }, []);
 
+  // Récupérer kiosques de l'utilisateur
   useEffect(() => {
-    if (kiosks.length > 0) fetchCashes();
-  }, [kiosks]);
+    if (user) fetchKiosks();
+  }, [user]);
 
   const fetchKiosks = async () => {
-    const { data, error } = await supabase.from("kiosks").select("id, name");
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("kiosks")
+      .select("id, name")
+      .eq("owner_id", user.id);
+
     if (error) console.error(error);
     else setKiosks(data || []);
   };
 
+  // Récupérer caisses liées aux kiosques de l'utilisateur
+  useEffect(() => {
+    if (kiosks.length > 0) fetchCashes();
+  }, [kiosks]);
+
   const fetchCashes = async () => {
-    const { data, error } = await supabase.from("cashes").select("*");
+    const kioskIds = kiosks.map(k => k.id);
+    const { data, error } = await supabase
+      .from("cashes")
+      .select("*")
+      .in("kiosk_id", kioskIds);
+
     if (error) console.error(error);
     else {
       const enriched = (data || []).map((c) => ({
         ...c,
-        kiosk_name: kiosks.find((k) => k.id === c.kiosk_id)?.name || c.kiosk_id,
+        kiosk_name: kiosks.find(k => k.id === c.kiosk_id)?.name || c.kiosk_id,
         balance: c.balance !== null ? Number(c.balance) : 0,
       }));
       setCashes(enriched);
@@ -84,13 +106,8 @@ const CashesList = () => {
     }
   };
 
-  const formatCFA = (value) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "XOF",
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
+  const formatCFA = (value) =>
+    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", minimumFractionDigits: 0 }).format(value);
 
   const openEditDialog = (cash) => {
     setEditingCash(cash);
@@ -105,33 +122,30 @@ const CashesList = () => {
 
   const saveCash = async () => {
     const { kioskId, name, balance, closed } = formData;
-
     if (!kioskId || !name) {
       Alert.alert("Avertissement", "Veuillez remplir tous les champs obligatoires");
       return;
     }
 
-    const payload = {
-      kiosk_id: kioskId,
-      name,
-      balance: parseFloat(balance) || 0,
-      closed,
-    };
+    const payload = { kiosk_id: kioskId, name, balance: parseFloat(balance) || 0, closed };
 
-    let error;
-    if (editingCash) {
-      ({ error } = await supabase.from("cashes").update(payload).eq("id", editingCash.id));
-    } else {
-      ({ error } = await supabase.from("cashes").insert([payload]));
-    }
+    try {
+      let error;
+      if (editingCash) {
+        ({ error } = await supabase.from("cashes").update(payload).eq("id", editingCash.id));
+      } else {
+        ({ error } = await supabase.from("cashes").insert([payload]));
+      }
 
-    if (error) {
-      Alert.alert("Erreur", "Erreur lors de l'enregistrement : " + error.message);
-    } else {
+      if (error) throw error;
+
       setFormData({ kioskId: null, name: "", balance: 0, closed: false });
       setEditingCash(null);
       setOpenCashDialog(false);
       fetchCashes();
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Erreur", "Erreur lors de l'enregistrement : " + err.message);
     }
   };
 
@@ -173,16 +187,13 @@ const CashesList = () => {
     const newBalance = type === "CREDIT" ? cash.balance + newAmount : cash.balance - newAmount;
 
     try {
-      // Ajouter transaction
       const { error: insertError } = await supabase.from("transactions").insert([{
         cash_id: cash.id,
         amount: newAmount,
-        type,
-        balance_after: newBalance,
+        type
       }]);
       if (insertError) throw insertError;
 
-      // Mettre à jour le solde de la caisse
       const { error: updateError } = await supabase.from("cashes").update({ balance: newBalance }).eq("id", cash.id);
       if (updateError) throw updateError;
 
@@ -217,7 +228,13 @@ const CashesList = () => {
             </View>
           )}
         />
-        <Text style={styles.closedStatus}>Clôturée : {item.closed ? "Oui" : "Non"}</Text>
+        {/* Couleur selon statut */}
+        <Text style={[
+          styles.closedStatus,
+          { color: item.closed ? "red" : "green", fontWeight: "bold" }
+        ]}>
+          Clôturée : {item.closed ? "Oui" : "Non"}
+        </Text>
       </Card.Content>
     </Card>
   );
@@ -255,7 +272,7 @@ const CashesList = () => {
                 <Text>Kiosque</Text>
                 <RNPickerSelect
                   onValueChange={(value) => setFormData({ ...formData, kioskId: value })}
-                  items={kiosks.map((k) => ({ label: `${k.name} (#${k.id})`, value: k.id }))}
+                  items={kiosks.map((k) => ({ label: k.name, value: k.id }))}
                   value={formData.kioskId}
                   style={pickerSelectStyles}
                   placeholder={{ label: "Sélectionner un kiosque...", value: null }}
@@ -349,7 +366,7 @@ const styles = StyleSheet.create({
   deleteButton: { backgroundColor: "red" },
   transactionsButton: { backgroundColor: "green" },
   buttonText: { color: "white", fontSize: 12 },
-  closedStatus: { marginTop: 8, marginLeft: 64, fontSize: 14, color: "#555" },
+  closedStatus: { marginTop: 8, marginLeft: 64, fontSize: 14 },
   inputContainer: { marginBottom: 16 },
   input: { marginBottom: 16 },
   switchContainer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },

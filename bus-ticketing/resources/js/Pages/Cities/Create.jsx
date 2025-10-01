@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import { Link } from '@inertiajs/inertia-react';
-import AdminLayout from '@/Components/AdminLayout';
+import GuestLayout from '@/Layouts/GuestLayout';
 
 export default function Create() {
   const [form, setForm] = useState({
@@ -18,11 +18,11 @@ export default function Create() {
   };
 
   return (
-    <AdminLayout>
-      <h1 className="text-2xl font-bold mb-4">Add New City</h1>
+    <GuestLayout>
+      <h1 className="text-2xl font-bold mb-4">Créer une nouvelle ville</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block font-medium mb-1">Name</label>
+          <label className="block font-medium mb-1">Nom de la ville</label>
           <input
             type="text"
             name="name"
@@ -49,16 +49,16 @@ export default function Create() {
             type="submit"
             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
           >
-            Save
+            Enregistrer
           </button>
           <Link
             href={route('cities.index')}
             className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
           >
-            Cancel
+            Annuler
           </Link>
         </div>
       </form>
-    </AdminLayout>
+    </GuestLayout>
   );
 }
