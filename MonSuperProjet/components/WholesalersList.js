@@ -150,7 +150,7 @@ export default function WholesalersList() {
   const deleteWholesaler = (id) => {
     Alert.alert(
       "Confirmation",
-      "Voulez-vous vraiment supprimer ce grossiste ?",
+      "Voulez-vous vraiment supprimer ce fournisseur  ?",
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -224,7 +224,7 @@ export default function WholesalersList() {
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.header}>
           <Text variant="headlineMedium" style={{ color: theme.colors.onSurface }}>
-            Grossistes
+            Mes fournisseurs
           </Text>
           <Button
             mode="contained"
@@ -252,7 +252,7 @@ export default function WholesalersList() {
         <Portal>
           <Dialog visible={open} onDismiss={handleClose} style={{ backgroundColor: theme.colors.surface }}>
             <Dialog.Title style={{ color: theme.colors.onSurface }}>
-              {formData.id ? "Modifier un grossiste" : "Ajouter un grossiste"}
+              {formData.id ? "Modifier un fournisseur" : "Ajouter un fournisseur"}
             </Dialog.Title>
             <Dialog.Content>
               {error && <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>}

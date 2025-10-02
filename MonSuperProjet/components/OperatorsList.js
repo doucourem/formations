@@ -193,7 +193,7 @@ export default function OperatorsList() {
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.header}>
           <Text variant="headlineMedium" style={{ color: theme.colors.onSurface }}>
-            Gestion des Fournisseurs
+            Gestion des opérateurs
           </Text>
           <Button
             mode="contained"

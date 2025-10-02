@@ -125,14 +125,11 @@ function DrawerNavigator({ user }) {
         drawerStyle: { backgroundColor: theme.colors.surface },
       }}
     >
-      <Drawer.Screen name="Dashboard">
-        {(props) => <DashboardMenu {...props} user={user} />}
-      </Drawer.Screen>
       <Drawer.Screen name="Caisse" component={CashesList} />
       <Drawer.Screen name="Transactions" component={TransactionsList} />
-      <Drawer.Screen name="Opérateur" component={OperatorsList} />
-      <Drawer.Screen name="Fournisseur" component={WholesalersList} />
-      <Drawer.Screen name="Client" component={KiosksList} />
+      <Drawer.Screen name="Opérateurs" component={OperatorsList} />
+      <Drawer.Screen name="Fournisseurs" component={WholesalersList} />
+      <Drawer.Screen name="Clients" component={KiosksList} />
       <Drawer.Screen name="Utilisateurs" component={UsersList} />
     </Drawer.Navigator>
   );
