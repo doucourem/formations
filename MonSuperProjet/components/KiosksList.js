@@ -31,8 +31,13 @@ export default function KiosksList() {
 
   const [openTransactionsDialog, setOpenTransactionsDialog] = useState(false);
   const [selectedCash, setSelectedCash] = useState(null);
+  const [amount, setAmount] = useState("");
+  const [type, setType] = useState("CREDIT");
+  const [editingTransaction, setEditingTransaction] = useState(null);
 
+  // =====================
   // Auth
+  // =====================
   useEffect(() => {
     const getUser = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -42,10 +47,10 @@ export default function KiosksList() {
     getUser();
   }, []);
 
+  // =====================
   // Fetch kiosks
-  useEffect(() => {
-    if (user) fetchKiosks();
-  }, [user]);
+  // =====================
+  useEffect(() => { if (user) fetchKiosks(); }, [user]);
 
   const fetchKiosks = async () => {
     const { data, error } = await supabase
@@ -79,6 +84,9 @@ export default function KiosksList() {
     setBalances(balancesTemp);
   };
 
+  // =====================
+  // Transactions
+  // =====================
   const fetchTransactions = async (cash) => {
     const { data, error } = await supabase
       .from("transactions")
@@ -94,44 +102,93 @@ export default function KiosksList() {
 
   const handleOpenTransactions = async (cash) => {
     setSelectedCash(cash);
+    setEditingTransaction(null);
+    setAmount("");
+    setType("CREDIT");
     await fetchTransactions(cash);
     setOpenTransactionsDialog(true);
   };
 
-  const renderItem = ({ item }) => {
-    const kioskCashes = cashesMap[item.id] || [];
-    return (
-      <Card style={styles.card}>
-        <Card.Content>
-          <List.Item
-            title={item.name}
-            description={`Lieu: ${item.location}\nSolde total: ${balances[item.id]?.toLocaleString("fr-FR")} XOF`}
-            left={() => <List.Icon icon="store" />}
-            right={() => (
-              <View style={styles.actions}>
-                <IconButton icon="pencil" color="blue" size={20} onPress={() => handleOpenPopup(item)} />
-                <IconButton icon="delete" color="red" size={20} onPress={() => deleteKiosk(item.id)} />
-              </View>
-            )}
-          />
-          <Text style={styles.text}>Créé le: {new Date(item.created_at).toLocaleString()}</Text>
+  const handleAddOrEditTransaction = async () => {
+    if (!amount) {
+      Alert.alert("Avertissement", "Veuillez remplir le montant !");
+      return;
+    }
+    const newAmount = parseFloat(amount);
+    try {
+      if (editingTransaction) {
+        const { error } = await supabase
+          .from("transactions")
+          .update({ amount: newAmount, type })
+          .eq("id", editingTransaction.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("transactions")
+          .insert([{ cash_id: selectedCash.id, amount: newAmount, type }]);
+        if (error) throw error;
+      }
 
-          {/* Liste des caisses */}
-          {kioskCashes.map((c) => (
-            <TouchableOpacity
-              key={c.id}
-              style={styles.cashItem}
-              onPress={() => handleOpenTransactions(c)}
-            >
-              <Text>{c.name} - Solde: {c.balance?.toLocaleString("fr-FR")} XOF</Text>
-              <Text style={styles.link}>Voir opérations</Text>
-            </TouchableOpacity>
-          ))}
-        </Card.Content>
-      </Card>
-    );
+      // Mettre à jour le solde de la caisse
+      const cashes = cashesMap[selectedCash.kiosk_id] || [];
+      const cashIndex = cashes.findIndex(c => c.id === selectedCash.id);
+      if (cashIndex !== -1) {
+        const oldBalance = cashes[cashIndex].balance;
+        let newBalance = oldBalance;
+        if (editingTransaction) {
+          if (editingTransaction.type === "CREDIT") newBalance -= editingTransaction.amount;
+          else newBalance += editingTransaction.amount;
+        }
+        if (type === "CREDIT") newBalance += newAmount;
+        else newBalance -= newAmount;
+        cashes[cashIndex].balance = newBalance;
+
+        setCashesMap({ ...cashesMap, [selectedCash.kiosk_id]: cashes });
+        setBalances({ ...balances, [selectedCash.kiosk_id]: cashes.reduce((sum, c) => sum + c.balance, 0) });
+      }
+
+      await fetchTransactions(selectedCash);
+      setAmount("");
+      setType("CREDIT");
+      setEditingTransaction(null);
+    } catch (err) {
+      Alert.alert("Erreur", err.message);
+    }
   };
 
+  const handleEditTransaction = (t) => {
+    setEditingTransaction(t);
+    setAmount(t.amount.toString());
+    setType(t.type);
+  };
+
+  const handleDeleteTransaction = async (t) => {
+    try {
+      const { error } = await supabase.from("transactions").delete().eq("id", t.id);
+      if (error) throw error;
+
+      // Ajuster le solde
+      const cashes = cashesMap[selectedCash.kiosk_id] || [];
+      const cashIndex = cashes.findIndex(c => c.id === selectedCash.id);
+      if (cashIndex !== -1) {
+        let newBalance = cashes[cashIndex].balance;
+        if (t.type === "CREDIT") newBalance -= t.amount;
+        else newBalance += t.amount;
+        cashes[cashIndex].balance = newBalance;
+
+        setCashesMap({ ...cashesMap, [selectedCash.kiosk_id]: cashes });
+        setBalances({ ...balances, [selectedCash.kiosk_id]: cashes.reduce((sum, c) => sum + c.balance, 0) });
+      }
+
+      await fetchTransactions(selectedCash);
+    } catch (err) {
+      Alert.alert("Erreur", err.message);
+    }
+  };
+
+  // =====================
+  // Kiosk CRUD
+  // =====================
   const deleteKiosk = async (id) => {
     Alert.alert(
       "Confirmation",
@@ -179,6 +236,38 @@ export default function KiosksList() {
     }
   };
 
+  // =====================
+  // Render
+  // =====================
+  const renderItem = ({ item }) => {
+    const kioskCashes = cashesMap[item.id] || [];
+    return (
+      <Card style={styles.card}>
+        <Card.Content>
+          <List.Item
+            title={item.name}
+            description={`Lieu: ${item.location}\nSolde total: ${balances[item.id]?.toLocaleString("fr-FR")} XOF`}
+            left={() => <List.Icon icon="store" />}
+            right={() => (
+              <View style={styles.actions}>
+                <IconButton icon="pencil" color="blue" size={20} onPress={() => handleOpenPopup(item)} />
+                <IconButton icon="delete" color="red" size={20} onPress={() => deleteKiosk(item.id)} />
+              </View>
+            )}
+          />
+          <Text style={styles.text}>Créé le: {new Date(item.created_at).toLocaleString()}</Text>
+
+          {kioskCashes.map((c) => (
+            <TouchableOpacity key={c.id} style={styles.cashItem} onPress={() => handleOpenTransactions(c)}>
+              <Text>{c.name} - Solde: {c.balance?.toLocaleString("fr-FR")} XOF</Text>
+              <Text style={styles.link}>Voir opérations</Text>
+            </TouchableOpacity>
+          ))}
+        </Card.Content>
+      </Card>
+    );
+  };
+
   return (
     <PaperProvider>
       <View style={styles.container}>
@@ -213,11 +302,32 @@ export default function KiosksList() {
                   title={`${t.type} - ${t.amount?.toLocaleString("fr-FR")} XOF`}
                   description={`Date: ${new Date(t.created_at).toLocaleString()}`}
                   left={() => <List.Icon icon="currency-usd" />}
+                  right={() => (
+                    <View style={{ flexDirection: "row" }}>
+                      <Button compact onPress={() => handleEditTransaction(t)}>Modifier</Button>
+                      <Button compact textColor="red" onPress={() => handleDeleteTransaction(t)}>Supprimer</Button>
+                    </View>
+                  )}
                 />
               ))}
+
+              <Text style={{ marginTop: 12, fontWeight: "bold" }}>
+                {editingTransaction ? "Modifier transaction" : "Nouvelle transaction"}
+              </Text>
+              <TextInput
+                label="Montant"
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="numeric"
+                style={{ marginTop: 8 }}
+              />
+              <Button mode="outlined" onPress={() => setType(type === "CREDIT" ? "DEBIT" : "CREDIT")} style={{ marginTop: 8 }}>
+                Type: {type}
+              </Button>
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setOpenTransactionsDialog(false)}>Fermer</Button>
+              <Button onPress={handleAddOrEditTransaction} mode="contained">{editingTransaction ? "Enregistrer" : "Ajouter"}</Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
