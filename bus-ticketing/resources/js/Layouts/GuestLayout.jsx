@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Link } from '@inertiajs/react';
-
-// MUI
 import {
   AppBar,
   Toolbar,
@@ -15,7 +13,7 @@ import {
   ListItemText,
   CssBaseline,
   Box,
-  Divider,
+  Stack,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -46,14 +44,6 @@ export default function GuestLayout({ children }) {
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Logo */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <Link href="/">
-          <ApplicationLogo className="h-16 w-16" />
-        </Link>
-      </Box>
-      <Divider />
-      {/* Menu */}
       <List sx={{ flexGrow: 1 }}>
         {menuItems.map((item) => (
           <ListItem key={item.text} button component={Link} href={item.route}>
@@ -80,6 +70,11 @@ export default function GuestLayout({ children }) {
           >
             <MenuIcon />
           </IconButton>
+
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}>
+            <ApplicationLogo className="h-10 w-10 mr-2" />
+          </Link>
+
           <Typography variant="h6" noWrap>
             Gestion Billets
           </Typography>
@@ -95,6 +90,8 @@ export default function GuestLayout({ children }) {
         }}
         open
       >
+        {/* Toolbar vide pour aligner le menu sous l'AppBar */}
+        <Toolbar />
         {drawerContent}
       </Drawer>
 
@@ -118,12 +115,13 @@ export default function GuestLayout({ children }) {
         sx={{
           flexGrow: 1,
           p: 3,
-          mt: { xs: 7, sm: 0 }, // décale le contenu sous AppBar mobile
-          ml: { sm: `${drawerWidth}px` }, // décale le contenu pour desktop
           bgcolor: '#f5f5f5',
           minHeight: '100vh',
+          ml: { sm: `${drawerWidth}px` },
         }}
       >
+        {/* Toolbar vide pour push le contenu sous l'AppBar */}
+        <Toolbar />
         {children}
       </Box>
     </Box>

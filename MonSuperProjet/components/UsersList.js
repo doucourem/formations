@@ -85,36 +85,71 @@ export default function UsersList() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.email || !formData.full_name || (!editingUser && !formData.password)) {
-      setError("Veuillez remplir tous les champs obligatoires.");
+  if (!formData.email || !formData.full_name || (!editingUser && !formData.password)) {
+    setError("Veuillez remplir tous les champs obligatoires.");
+    return;
+  }
+
+  if (editingUser) {
+    // Mise à jour d'un utilisateur existant
+    const { error } = await supabase
+      .from("users")
+      .update({ email: formData.email, full_name: formData.full_name, role: formData.role })
+      .eq("id", editingUser.id);
+    if (error) Alert.alert("Erreur", error.message);
+    else {
+      Alert.alert("Succès", "Utilisateur mis à jour.");
+      setOpenDialog(false);
+      fetchUsers();
+    }
+  } else {
+    // Création d'un nouvel utilisateur
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.full_name,
+          role: formData.role,
+        },
+      },
+    });
+
+    if (signUpError) {
+      Alert.alert("Erreur Auth", signUpError.message);
       return;
     }
 
-    if (editingUser) {
-      const { error } = await supabase
-        .from("users")
-        .update({ email: formData.email, full_name: formData.full_name, role: formData.role })
-        .eq("id", editingUser.id);
-      if (error) Alert.alert("Erreur", error.message);
-      else {
-        Alert.alert("Succès", "Utilisateur mis à jour.");
-        setOpenDialog(false);
-        fetchUsers();
-      }
-    } else {
-      const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: { data: { full_name: formData.full_name, role: formData.role } },
-      });
-      if (error) Alert.alert("Erreur", error.message);
-      else {
-        Alert.alert("Succès", "Utilisateur créé ! Vérifiez votre email pour confirmation.");
-        setOpenDialog(false);
-        fetchUsers();
-      }
+    // Vérifier que l'utilisateur Auth a bien été créé
+    if (!authData.user?.id) {
+      Alert.alert("Erreur", "Impossible de récupérer l'id de l'utilisateur Auth.");
+      return;
     }
-  };
+
+    // Insertion dans la table users
+    const { error: insertError } = await supabase.from("users").insert([
+      {
+        id: authData.user.id, 
+        auth_id: authData.user.id,           // clé unique liée à Auth
+        email: formData.email,
+        full_name: formData.full_name,
+        role: formData.role,
+        is_active: true,
+        created_by: null                     // tu peux mettre l'ID de l'admin si besoin
+      },
+    ]);
+
+    if (insertError) {
+      Alert.alert("Erreur table users", insertError.message);
+      return;
+    }
+
+    Alert.alert("Succès", "Utilisateur créé avec succès ! Vérifiez votre email pour confirmation.");
+    setOpenDialog(false);
+    fetchUsers();
+  }
+};
+
 
   const renderItem = ({ item }) => (
     <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>

@@ -1,39 +1,45 @@
-import React, { useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
-import { usePage } from '@inertiajs/inertia-react';
+import React, { useState } from "react";
+import { Inertia } from "@inertiajs/inertia";
+import { TextField, Button, Container, Typography, Box } from "@mui/material";
+import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Edit() {
-  const { trip } = usePage().props;
+export default function Edit({ user }) {
   const [form, setForm] = useState({
-    route_id: trip.route_id || '',
-    bus_id: trip.bus_id || '',
-    departure_at: trip.departure_at || '',
-    arrival_at: trip.arrival_at || '',
-    base_price: trip.base_price || '',
-    seats_available: trip.seats_available || ''
+    name: user.name,
+    email: user.email,
+    password: "",
+    password_confirmation: "",
+    role: user.role || "",
   });
 
-  const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.put(route('trips.update', trip.id), form);
+    Inertia.put(route("users.update", user.id), form);
   };
 
   return (
-    <div>
-      <h1>Edit Trip #{trip.id}</h1>
-      <form onSubmit={handleSubmit}>
-        <input name="route_id" placeholder="Route ID" value={form.route_id} onChange={handleChange} />
-        <input name="bus_id" placeholder="Bus ID" value={form.bus_id} onChange={handleChange} />
-        <input name="departure_at" type="datetime-local" value={form.departure_at} onChange={handleChange} />
-        <input name="arrival_at" type="datetime-local" value={form.arrival_at} onChange={handleChange} />
-        <input name="base_price" type="number" placeholder="Price" value={form.base_price} onChange={handleChange} />
-        <input name="seats_available" type="number" placeholder="Seats" value={form.seats_available} onChange={handleChange} />
-        <button type="submit">Update</button>
-      </form>
-    </div>
+    <GuestLayout>
+      <Container maxWidth="sm">
+        <Box sx={{ mt: 4, p: 3, boxShadow: 2, borderRadius: 2, bgcolor: "white" }}>
+          <Typography variant="h5" gutterBottom>
+            Modifier l'utilisateur
+          </Typography>
+
+          <form onSubmit={handleSubmit}>
+            <TextField label="Nom" name="name" value={form.name} onChange={handleChange} fullWidth margin="normal" required />
+            <TextField label="Email" name="email" type="email" value={form.email} onChange={handleChange} fullWidth margin="normal" required />
+            <TextField label="Mot de passe (laisser vide pour ne pas changer)" name="password" type="password" value={form.password} onChange={handleChange} fullWidth margin="normal" />
+            <TextField label="Confirmer mot de passe" name="password_confirmation" type="password" value={form.password_confirmation} onChange={handleChange} fullWidth margin="normal" />
+            <TextField label="Rôle" name="role" value={form.role} onChange={handleChange} fullWidth margin="normal" />
+
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+              Mettre à jour
+            </Button>
+          </form>
+        </Box>
+      </Container>
+    </GuestLayout>
   );
 }

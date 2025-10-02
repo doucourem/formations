@@ -41,7 +41,7 @@ export default function Index({ initialTickets }) {
 
         <TableContainer component={Paper}>
           <Table>
-            <TableHead>
+           <TableHead sx={{ bgcolor: '#1976d2' }}>
               <TableRow>
                 <TableCell>ID</TableCell>
                 <TableCell>Voyage</TableCell>

@@ -1,37 +1,45 @@
-import React, { useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
+import React, { useState } from "react";
+import { Inertia } from "@inertiajs/inertia";
+import { TextField, Button, Container, Typography, Box } from "@mui/material";
+import GuestLayout from "@/Layouts/GuestLayout";
 
 export default function Create() {
   const [form, setForm] = useState({
-    route_id: '',
-    bus_id: '',
-    departure_at: '',
-    arrival_at: '',
-    base_price: '',
-    seats_available: ''
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+    role: "",
   });
 
-  const handleChange = (e) => {
-    setForm({...form, [e.target.name]: e.target.value});
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.post(route('trips.store'), form);
+    Inertia.post(route("users.store"), form);
   };
 
   return (
-    <div>
-      <h1>Create Trip</h1>
-      <form onSubmit={handleSubmit}>
-        <input name="route_id" placeholder="Route ID" value={form.route_id} onChange={handleChange} />
-        <input name="bus_id" placeholder="Bus ID" value={form.bus_id} onChange={handleChange} />
-        <input name="departure_at" type="datetime-local" value={form.departure_at} onChange={handleChange} />
-        <input name="arrival_at" type="datetime-local" value={form.arrival_at} onChange={handleChange} />
-        <input name="base_price" type="number" placeholder="Price" value={form.base_price} onChange={handleChange} />
-        <input name="seats_available" type="number" placeholder="Seats" value={form.seats_available} onChange={handleChange} />
-        <button type="submit">Create</button>
-      </form>
-    </div>
+    <GuestLayout>
+      <Container maxWidth="sm">
+        <Box sx={{ mt: 4, p: 3, boxShadow: 2, borderRadius: 2, bgcolor: "white" }}>
+          <Typography variant="h5" gutterBottom>
+            Créer un utilisateur
+          </Typography>
+
+          <form onSubmit={handleSubmit}>
+            <TextField label="Nom" name="name" value={form.name} onChange={handleChange} fullWidth margin="normal" required />
+            <TextField label="Email" name="email" type="email" value={form.email} onChange={handleChange} fullWidth margin="normal" required />
+            <TextField label="Mot de passe" name="password" type="password" value={form.password} onChange={handleChange} fullWidth margin="normal" required />
+            <TextField label="Confirmer mot de passe" name="password_confirmation" type="password" value={form.password_confirmation} onChange={handleChange} fullWidth margin="normal" required />
+            <TextField label="Rôle" name="role" value={form.role} onChange={handleChange} fullWidth margin="normal" />
+
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+              Créer
+            </Button>
+          </form>
+        </Box>
+      </Container>
+    </GuestLayout>
   );
 }

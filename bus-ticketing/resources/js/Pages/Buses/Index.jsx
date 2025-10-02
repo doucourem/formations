@@ -15,7 +15,11 @@ import {
   Paper,
   Typography,
   Stack,
+  IconButton,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 export default function Index({ buses, filters, agencies }) {
   const [parPage, setParPage] = useState(filters?.per_page || 20);
@@ -29,71 +33,108 @@ export default function Index({ buses, filters, agencies }) {
     );
   };
 
+  const handleDelete = (id) => {
+    if (confirm("Voulez-vous vraiment supprimer ce bus ?")) {
+      Inertia.delete(route('buses.destroy', id), { preserveState: true });
+    }
+  };
+
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Liste des bus
-        </Typography>
-
-        {/* Filtrage */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-          <TextField
-            select
-            label="Agence"
-            value={agenceId}
-            onChange={(e) => setAgenceId(e.target.value)}
-            sx={{ minWidth: 200 }}
+        {/* Header avec titre + bouton créer */}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ mb: 3 }}
+        >
+          <Typography variant="h4">Liste des bus</Typography>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<AddIcon />}
+            href={route('buses.create')}
           >
-            <MenuItem value="">Toutes les agences</MenuItem>
-            {agencies?.map((agency) => (
-              <MenuItem key={agency.id} value={agency.id}>
-                {agency.name}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            label="Par page"
-            type="number"
-            inputProps={{ min: 1 }}
-            value={parPage}
-            onChange={(e) => setParPage(e.target.value)}
-            sx={{ width: 120 }}
-          />
-
-          <Button variant="contained" color="primary" onClick={handleFilter}>
-            Filtrer
+            Créer un bus
           </Button>
         </Stack>
 
+        {/* Filtrage */}
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              select
+              label="Agence"
+              value={agenceId}
+              onChange={(e) => setAgenceId(e.target.value)}
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="">Toutes les agences</MenuItem>
+              {agencies?.map((agency) => (
+                <MenuItem key={agency.id} value={agency.id}>
+                  {agency.name}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Par page"
+              type="number"
+              inputProps={{ min: 1 }}
+              value={parPage}
+              onChange={(e) => setParPage(e.target.value)}
+              sx={{ width: 120 }}
+            />
+
+            <Button variant="contained" color="primary" onClick={handleFilter}>
+              Filtrer
+            </Button>
+          </Stack>
+        </Paper>
+
         {/* Tableau */}
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 3 }}>
           <Table>
-            <TableHead>
+            <TableHead sx={{ bgcolor: '#1976d2' }}>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Modèle</TableCell>
-                <TableCell>Places</TableCell>
-                <TableCell>Agence</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Modèle</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Places</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Agence</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {buses?.data?.map((bus) => (
-                <TableRow key={bus.id}>
+              {buses?.data?.map((bus, index) => (
+                <TableRow
+                  key={bus.id}
+                  sx={{
+                    bgcolor: index % 2 === 0 ? '#f9f9f9' : 'white',
+                    '&:hover': { bgcolor: '#e3f2fd' },
+                  }}
+                >
                   <TableCell>{bus.id}</TableCell>
                   <TableCell>{bus.model}</TableCell>
                   <TableCell>{bus.seats}</TableCell>
                   <TableCell>{bus.agency?.name ?? '-'}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      href={route('buses.edit', bus.id)}
-                    >
-                      Modifier
-                    </Button>
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={1} justifyContent="center">
+                      <IconButton
+                        color="primary"
+                        href={route('buses.edit', bus.id)}
+                        size="small"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDelete(bus.id)}
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
@@ -110,7 +151,6 @@ export default function Index({ buses, filters, agencies }) {
               variant={link.active ? 'contained' : 'outlined'}
               size="small"
               onClick={() => link.url && Inertia.get(link.url)}
-              // S'assurer que label est une string
             >
               {typeof link.label === 'string' ? (
                 <span dangerouslySetInnerHTML={{ __html: link.label }} />

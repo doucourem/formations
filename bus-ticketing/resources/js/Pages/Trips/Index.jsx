@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
+import { Link } from '@inertiajs/inertia-react';
 import {
   Box,
   Button,
@@ -13,9 +14,15 @@ import {
   Paper,
   Typography,
   Stack,
-   MenuItem  // <-- ajoute ceci
+  MenuItem,
+  IconButton,
 } from '@mui/material';
 import GuestLayout from '@/Layouts/GuestLayout';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function Index({ initialTrips, initialFilters, buses = [], routes = [] }) {
   const [trips, setTrips] = useState(initialTrips || { data: [], links: [] });
@@ -34,6 +41,25 @@ export default function Index({ initialTrips, initialFilters, buses = [], routes
     );
   };
 
+  const handleDelete = (id) => {
+    if (confirm("Voulez-vous vraiment supprimer ce trajet ?")) {
+      Inertia.delete(route('trips.destroy', id), { preserveState: true });
+    }
+  };
+
+  const handlePage = (url) => {
+    if (!url) return;
+    Inertia.get(url, {}, {
+      preserveState: true,
+      onSuccess: page => setTrips(page.props.initialTrips || { data: [], links: [] }),
+    });
+  };
+
+  const formatDateFR = (date) => {
+    if (!date) return '-';
+    return format(new Date(date), "dd MMMM yyyy 'à' HH:mm", { locale: fr });
+  };
+
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
@@ -46,28 +72,12 @@ export default function Index({ initialTrips, initialFilters, buses = [], routes
 
         {/* Filtrage */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-          <TextField
-            select
-            label="Bus"
-            value={busId}
-            onChange={(e) => setBusId(e.target.value)}
-            size="small"
-            sx={{ minWidth: 150 }}
-          >
+          <TextField select label="Bus" value={busId} onChange={e => setBusId(e.target.value)} size="small" sx={{ minWidth: 150 }}>
             <MenuItem value="">Tous les bus</MenuItem>
-            {buses?.map(bus => (
-              <MenuItem key={bus.id} value={bus.id}>{bus.model}</MenuItem>
-            ))}
+            {buses?.map(bus => <MenuItem key={bus.id} value={bus.id}>{bus.model}</MenuItem>)}
           </TextField>
 
-          <TextField
-            select
-            label="Route"
-            value={routeId}
-            onChange={(e) => setRouteId(e.target.value)}
-            size="small"
-            sx={{ minWidth: 150 }}
-          >
+          <TextField select label="Route" value={routeId} onChange={e => setRouteId(e.target.value)} size="small" sx={{ minWidth: 150 }}>
             <MenuItem value="">Toutes les routes</MenuItem>
             {routes?.map(route => (
               <MenuItem key={route.id} value={route.id}>
@@ -94,13 +104,13 @@ export default function Index({ initialTrips, initialFilters, buses = [], routes
         {/* Tableau */}
         <TableContainer component={Paper}>
           <Table>
-            <TableHead>
+           <TableHead sx={{ bgcolor: '#1976d2' }}>
               <TableRow>
                 <TableCell>ID</TableCell>
                 <TableCell>Route</TableCell>
                 <TableCell>Bus</TableCell>
-                <TableCell>Départ</TableCell>
-                <TableCell>Arrivée</TableCell>
+                <TableCell><CalendarTodayIcon fontSize="small" sx={{ mr: 0.5 }} /> Départ</TableCell>
+                <TableCell><CalendarTodayIcon fontSize="small" sx={{ mr: 0.5 }} /> Arrivée</TableCell>
                 <TableCell>Prix</TableCell>
                 <TableCell>Places disponibles</TableCell>
                 <TableCell>Actions</TableCell>
@@ -108,24 +118,27 @@ export default function Index({ initialTrips, initialFilters, buses = [], routes
             </TableHead>
 
             <TableBody>
-              {trips.data?.map(trip => (
+              {trips.data.length > 0 ? trips.data.map(trip => (
                 <TableRow key={trip.id}>
                   <TableCell>{trip.id}</TableCell>
-                  <TableCell>
-                    {trip.route?.departureCity?.name || '-'} → {trip.route?.arrivalCity?.name || '-'}
-                  </TableCell>
+                  <TableCell>{trip.route?.departureCity?.name || '-'} → {trip.route?.arrivalCity?.name || '-'}</TableCell>
                   <TableCell>{trip.bus?.model || '-'}</TableCell>
-                  <TableCell>{trip.departure_at}</TableCell>
-                  <TableCell>{trip.arrival_at}</TableCell>
+                  <TableCell>{formatDateFR(trip.departure_at)}</TableCell>
+                  <TableCell>{formatDateFR(trip.arrival_at)}</TableCell>
                   <TableCell>{trip.base_price}</TableCell>
                   <TableCell>{trip.seats_available}</TableCell>
                   <TableCell>
-                    <Button variant="outlined" size="small" href={trip.edit_url}>
-                      Éditer
-                    </Button>
+                    <Stack direction="row" spacing={1} justifyContent="center">
+                      <IconButton color="primary" size="small" component={Link} href={trip.edit_url}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton color="error" size="small" onClick={() => handleDelete(trip.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Stack>
                   </TableCell>
                 </TableRow>
-              )) || (
+              )) : (
                 <TableRow>
                   <TableCell colSpan={8} align="center">Aucun trajet trouvé</TableCell>
                 </TableRow>
@@ -142,18 +155,9 @@ export default function Index({ initialTrips, initialFilters, buses = [], routes
               disabled={!link.url}
               variant={link.active ? 'contained' : 'outlined'}
               size="small"
-              onClick={() =>
-                link.url &&
-                Inertia.get(link.url, {}, {
-                  onSuccess: page => setTrips(page.props.initialTrips || { data: [], links: [] }),
-                })
-              }
+              onClick={() => handlePage(link.url)}
             >
-              {typeof link.label === 'string' ? (
-                <span dangerouslySetInnerHTML={{ __html: link.label }} />
-              ) : (
-                String(link.label)
-              )}
+              {link.label.replace(/<[^>]*>?/gm, '')}
             </Button>
           ))}
         </Stack>

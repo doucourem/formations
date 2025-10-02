@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
-import GuestLayout from '@/Layouts/GuestLayout';
+import React, { useState } from "react";
+import { Inertia } from "@inertiajs/inertia";
 import {
   Box,
   Button,
-  TextField,
   Table,
   TableBody,
   TableCell,
@@ -13,31 +11,22 @@ import {
   TableRow,
   Paper,
   Typography,
-  Stack
-} from '@mui/material';
+  Pagination,
+  Stack,
+  IconButton,
+} from "@mui/material";
+import GuestLayout from "@/Layouts/GuestLayout";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 
-export default function Index({ initialUsers = { data: [], links: [] }, initialFilters = {} }) {
-  const [users, setUsers] = useState(initialUsers);
-  const [role, setRole] = useState(initialFilters.role || '');
-  const [perPage, setPerPage] = useState(initialFilters.per_page || 20);
+export default function Index({ users, filters }) {
+  const [perPage, setPerPage] = useState(filters?.per_page || 20);
+  const [role, setRole] = useState(filters?.role || "");
 
-  const handleFilter = () => {
-    Inertia.get(
-      route('users.index'),
-      { role, per_page: perPage },
-      {
-        preserveState: true,
-        onSuccess: page => setUsers(page.props.users ?? { data: [], links: [] }),
-      }
-    );
-  };
-
-  const handlePage = (url) => {
-    if (!url) return;
-    Inertia.get(url, {}, {
-      preserveState: true,
-      onSuccess: page => setUsers(page.props.users ?? { data: [], links: [] }),
-    });
+  const handleDelete = (id) => {
+    if (confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) {
+      Inertia.delete(route("users.destroy", id), { preserveState: true });
+    }
   };
 
   return (
@@ -45,69 +34,43 @@ export default function Index({ initialUsers = { data: [], links: [] }, initialF
       <Box sx={{ p: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4">Utilisateurs</Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => Inertia.get(route('users.create'))}
-          >
+          <Button variant="contained" color="primary" href={route("users.create")}>
             Créer un utilisateur
           </Button>
         </Stack>
 
-        {/* Filtres */}
-        <Stack direction="row" spacing={2} mb={3} flexWrap="wrap" alignItems="flex-end">
-          <TextField
-            label="Role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            size="small"
-          />
-          <TextField
-            label="Par page"
-            type="number"
-            value={perPage}
-            onChange={(e) => setPerPage(e.target.value)}
-            size="small"
-            sx={{ width: 100 }}
-          />
-          <Button variant="contained" color="secondary" onClick={handleFilter}>
-            Filtrer
-          </Button>
-        </Stack>
-
-        {/* Table */}
+        {/* Tableau */}
         <TableContainer component={Paper}>
           <Table>
-            <TableHead>
+            <TableHead sx={{ bgcolor: "#1976d2" }}>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Nom</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell><strong>ID</strong></TableCell>
+                <TableCell><strong>Nom</strong></TableCell>
+                <TableCell><strong>Email</strong></TableCell>
+                <TableCell><strong>Rôle</strong></TableCell>
+                <TableCell align="center"><strong>Actions</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {users.data?.map(user => (
+              {users.data?.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.id}</TableCell>
                   <TableCell>{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      href={route('users.edit', user.id)}
-                    >
-                      Éditer
-                    </Button>
+                  <TableCell>{user.role || "-"}</TableCell>
+                  <TableCell align="center">
+                    <IconButton color="primary" href={route("users.edit", user.id)} size="small">
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton color="error" onClick={() => handleDelete(user.id)} size="small">
+                      <DeleteIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               )) || (
                 <TableRow>
                   <TableCell colSpan={5} align="center">
-                    Aucun utilisateur
+                    Aucun utilisateur trouvé.
                   </TableCell>
                 </TableRow>
               )}
@@ -116,18 +79,16 @@ export default function Index({ initialUsers = { data: [], links: [] }, initialF
         </TableContainer>
 
         {/* Pagination */}
-        <Stack direction="row" spacing={1} mt={2} flexWrap="wrap">
-          {users.links?.map((link, i) => (
-            <Button
-              key={i}
-              disabled={!link?.url}
-              onClick={() => handlePage(link.url)}
-              dangerouslySetInnerHTML={{ __html: link.label }}
-              variant={link.active ? "contained" : "outlined"}
-              size="small"
-            />
-          ))}
-        </Stack>
+        <Box mt={3} display="flex" justifyContent="center">
+          <Pagination
+            count={users.last_page || 1}
+            page={users.current_page || 1}
+            onChange={(e, page) => Inertia.get(route("users.index"), { per_page: perPage, role, page })}
+            color="primary"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
       </Box>
     </GuestLayout>
   );

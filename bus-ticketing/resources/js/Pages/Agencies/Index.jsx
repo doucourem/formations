@@ -14,7 +14,12 @@ import {
   Paper,
   Typography,
   Pagination,
+  Stack,
+  IconButton,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 export default function Index({ agencies, filters }) {
   const [parPage, setParPage] = useState(filters?.per_page || 20);
@@ -28,14 +33,29 @@ export default function Index({ agencies, filters }) {
     );
   };
 
+  const handleDelete = (id) => {
+    if (confirm("Voulez-vous vraiment supprimer cette agence ?")) {
+      Inertia.delete(route('agencies.destroy', id), { preserveState: true });
+    }
+  };
+
   return (
     <GuestLayout>
-      <Typography variant="h4" gutterBottom>
-        Agences
-      </Typography>
+      {/* Header avec titre + bouton Créer */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4">Agences</Typography>
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={<AddIcon />}
+          href={route('agencies.create')}
+        >
+          Créer
+        </Button>
+      </Box>
 
       {/* Filtres */}
-      <Box display="flex" gap={2} mb={3} alignItems="flex-end">
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={3} alignItems="flex-end">
         <TextField
           label="Ville"
           value={ville}
@@ -55,17 +75,17 @@ export default function Index({ agencies, filters }) {
         <Button variant="contained" color="primary" onClick={filtrer}>
           Filtrer
         </Button>
-      </Box>
+      </Stack>
 
       {/* Tableau */}
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ maxHeight: 500 }}>
         <Table>
-          <TableHead>
+          <TableHead sx={{ bgcolor: '#1976d2' }}>
             <TableRow>
-              <TableCell><strong>ID</strong></TableCell>
-              <TableCell><strong>Nom</strong></TableCell>
-              <TableCell><strong>Ville</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
+              <TableCell sx={{ color: '#ffffff', fontWeight: 'bold' }}>ID</TableCell>
+              <TableCell sx={{ color: '#ffffff', fontWeight: 'bold' }}>Nom</TableCell>
+              <TableCell sx={{ color: '#ffffff', fontWeight: 'bold' }}>Ville</TableCell>
+              <TableCell align="center" sx={{ color: '#ffffff', fontWeight: 'bold' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -75,14 +95,21 @@ export default function Index({ agencies, filters }) {
                   <TableCell>{agence.id}</TableCell>
                   <TableCell>{agence.name}</TableCell>
                   <TableCell>{agence.city || '-'}</TableCell>
-                  <TableCell>
-                    <Button
-                      href={route('agencies.edit', agence.id)}
+                  <TableCell align="center">
+                    <IconButton
                       color="primary"
+                      href={route('agencies.edit', agence.id)}
                       size="small"
                     >
-                      Éditer
-                    </Button>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleDelete(agence.id)}
+                      size="small"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))
@@ -110,6 +137,18 @@ export default function Index({ agencies, filters }) {
             })
           }
           color="primary"
+          showFirstButton
+          showLastButton
+          getItemAriaLabel={(type, page, selected) => {
+            switch (type) {
+              case 'first': return 'Première page';
+              case 'last': return 'Dernière page';
+              case 'next': return 'Page suivante';
+              case 'previous': return 'Page précédente';
+              case 'page': return `Page ${page}${selected ? ' (sélectionnée)' : ''}`;
+              default: return '';
+            }
+          }}
         />
       </Box>
     </GuestLayout>

@@ -9,27 +9,31 @@ use Inertia\Inertia;
 
 class RouteController extends Controller
 {
+    // Afficher la liste des routes
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 20);
-    
+
         $routes = Route::with(['departureCity', 'arrivalCity'])
             ->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
-    
-        // Générer l'URL d'édition pour chaque route
+
+        // Générer l'URL d'édition et s'assurer que les villes ne sont pas null
         $routes->getCollection()->transform(function ($r) {
             $r->edit_url = route('routes.edit', $r->id);
+            $r->departureCity = $r->departureCity ?? (object)['name' => '-'];
+            $r->arrivalCity = $r->arrivalCity ?? (object)['name' => '-'];
             return $r;
         });
-    
+
         return Inertia::render('Routes/Index', [
             'initialRoutes' => $routes,
             'initialFilters' => ['per_page' => $perPage],
         ]);
     }
-    
+
+    // Formulaire de création
     public function create()
     {
         $cities = City::orderBy('name')->get();
@@ -38,6 +42,7 @@ class RouteController extends Controller
         ]);
     }
 
+    // Stocker une nouvelle route
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -51,7 +56,7 @@ class RouteController extends Controller
         return redirect()->route('routes.index')->with('success', 'Route créée avec succès ✅');
     }
 
-    // ✅ Nouvelle méthode edit
+    // Formulaire d'édition
     public function edit(Route $route)
     {
         $cities = City::orderBy('name')->get();
@@ -62,7 +67,7 @@ class RouteController extends Controller
         ]);
     }
 
-    // ✅ Nouvelle méthode update
+    // Mettre à jour une route
     public function update(Request $request, Route $route)
     {
         $data = $request->validate([
@@ -76,7 +81,7 @@ class RouteController extends Controller
         return redirect()->route('routes.index')->with('success', 'Route mise à jour avec succès ✅');
     }
 
-    // Optionnel : méthode destroy pour suppression
+    // Supprimer une route
     public function destroy(Route $route)
     {
         $route->delete();

@@ -14,7 +14,11 @@ import {
   Typography,
   TextField,
   Stack,
+  IconButton,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 export default function Index({ initialRoutes, initialFilters }) {
   const [routes, setRoutes] = useState(initialRoutes);
@@ -38,6 +42,12 @@ export default function Index({ initialRoutes, initialFilters }) {
     });
   };
 
+  const handleDelete = (id) => {
+    if (confirm("Voulez-vous vraiment supprimer cette route ?")) {
+      Inertia.delete(route('routes.destroy', id), { preserveState: true });
+    }
+  };
+
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
@@ -45,7 +55,8 @@ export default function Index({ initialRoutes, initialFilters }) {
           <Typography variant="h4">Routes</Typography>
           <Button
             variant="contained"
-            color="primary"
+            color="success"
+            startIcon={<AddIcon />}
             onClick={() => Inertia.get(route('routes.create'))}
           >
             Créer une route
@@ -68,12 +79,12 @@ export default function Index({ initialRoutes, initialFilters }) {
 
         <TableContainer component={Paper}>
           <Table>
-            <TableHead>
+            <TableHead sx={{ bgcolor: '#1976d2' }}>
               <TableRow>
                 <TableCell>ID</TableCell>
                 <TableCell>Ville de départ</TableCell>
                 <TableCell>Ville d'arrivée</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -82,14 +93,23 @@ export default function Index({ initialRoutes, initialFilters }) {
                   <TableCell>{routeItem.id}</TableCell>
                   <TableCell>{routeItem.departureCity?.name || '-'}</TableCell>
                   <TableCell>{routeItem.arrivalCity?.name || '-'}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => Inertia.get(routeItem.edit_url)}
-                    >
-                      Éditer
-                    </Button>
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={1} justifyContent="center">
+                      <IconButton
+                        color="primary"
+                        size="small"
+                        onClick={() => Inertia.get(routeItem.edit_url)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        color="error"
+                        size="small"
+                        onClick={() => handleDelete(routeItem.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}

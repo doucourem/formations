@@ -58,14 +58,32 @@ class TicketController extends Controller
 }
 
 
-    public function create()
-    {
-        $trips = Trip::with('route')->get();
+public function create()
+{
+    $trips = Trip::with([
+        'route.departureCity',
+        'route.arrivalCity'
+    ])->get();
 
-        return Inertia::render('Tickets/Form', [
-            'trips' => $trips,
-        ]);
-    }
+    // Transformer pour JSON Inertia
+    $trips = $trips->map(function($t) {
+        return [
+            'id' => $t->id,
+            'departure_at' => $t->departure_at,
+            'route' => [
+                'id' => $t->route->id,
+                'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
+                'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
+            ]
+        ];
+    });
+
+    return Inertia::render('Tickets/Form', [
+        'trips' => $trips,
+    ]);
+}
+
+
 
     public function store(Request $request)
     {
