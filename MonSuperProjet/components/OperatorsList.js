@@ -71,26 +71,36 @@ export default function OperatorsList() {
     else setOperators(data);
   };
 
-  const deleteOperator = (id) => {
-    Alert.alert(
-      "Confirmation",
-      "Voulez-vous vraiment supprimer cet opérateur ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          onPress: async () => {
-            setLoading(true);
-            setError(null);
-            const { error: deleteError } = await supabase.from("operators").delete().eq("id", id);
+  const deleteOperator = async (id) => {
+  Alert.alert(
+    "Confirmation",
+    "Voulez-vous vraiment supprimer cet opérateur ?",
+    [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        onPress: async () => {
+          setLoading(true);
+          setError(null);
+          try {
+            const { data, error } = await supabase
+              .from("operators")
+              .delete()
+              .eq("id", id);
+            if (error) throw error;
+            fetchOperators(); // rafraîchir la liste
+          } catch (err) {
+            setError("Erreur lors de la suppression : " + err.message);
+          } finally {
             setLoading(false);
-            if (deleteError) setError("Erreur lors de la suppression : " + deleteError.message);
-          },
+          }
         },
-      ],
-      { cancelable: true }
-    );
-  };
+      },
+    ],
+    { cancelable: true }
+  );
+};
+
 
   const handleOpen = (operator = null) => {
     if (operator) {
@@ -107,29 +117,39 @@ export default function OperatorsList() {
   };
 
   const handleSave = async () => {
-    if (!name || !code) {
-      setError("Nom et code sont obligatoires.");
-      return;
-    }
+  if (!name || !code) {
+    setError("Nom et code sont obligatoires.");
+    return;
+  }
 
-    setSaving(true);
-    setError(null);
+  setSaving(true);
+  setError(null);
+
+  try {
+    // Récupérer l'utilisateur connecté
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) throw new Error(userError.message);
+    if (!user) throw new Error("Utilisateur non connecté");
+
+    const userId = user.id;
+
     let queryError;
 
     if (editId) {
+      // Mise à jour
       const { error: updateError } = await supabase
         .from("operators")
-        .update({ name, code })
+        .update({ name, code, user_id: userId }) // on peut mettre user_id si nécessaire
         .eq("id", editId);
       queryError = updateError;
     } else {
+      // Création
       const { error: insertError } = await supabase
         .from("operators")
-        .insert([{ name, code }]);
+        .insert([{ name, code, user_id: userId }]); // obligatoire si RLS
       queryError = insertError;
     }
 
-    setSaving(false);
     if (queryError) {
       setError("Erreur lors de l'enregistrement : " + queryError.message);
     } else {
@@ -137,8 +157,15 @@ export default function OperatorsList() {
       setEditId(null);
       setName("");
       setCode("");
+      fetchOperators(); // rafraîchir la liste
     }
-  };
+  } catch (err) {
+    setError("Erreur lors de l'enregistrement : " + err.message);
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   const formatDateFr = (date) => {
     if (!date) return "-";

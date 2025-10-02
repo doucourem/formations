@@ -6,6 +6,7 @@ import {
   FlatList,
   Alert,
   TouchableOpacity,
+  useWindowDimensions,
 } from "react-native";
 import {
   Button,
@@ -22,6 +23,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function TransactionsList() {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 600; // 👈 seuil mobile
+
   const [transactions, setTransactions] = useState([]);
   const [cashes, setCashes] = useState([]);
   const [kiosks, setKiosks] = useState([]);
@@ -34,7 +38,10 @@ export default function TransactionsList() {
   // Récupérer utilisateur
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
       if (error) return Alert.alert("Erreur Auth", error.message);
       setUser(user);
     };
@@ -64,7 +71,10 @@ export default function TransactionsList() {
     const { data: cashesData, error: cashesError } = await supabase
       .from("cashes")
       .select("id, name, kiosk_id")
-      .in("kiosk_id", kiosksData.map(k => k.id));
+      .in(
+        "kiosk_id",
+        kiosksData.map((k) => k.id)
+      );
     if (cashesError) return Alert.alert("Erreur", cashesError.message);
     setCashes(cashesData);
   };
@@ -73,20 +83,25 @@ export default function TransactionsList() {
     const { data, error } = await supabase
       .from("transactions")
       .select("*")
-      .in("cash_id", cashes.map(c => c.id)) // 🔒 seulement les caisses de l'utilisateur
+      .in(
+        "cash_id",
+        cashes.map((c) => c.id)
+      )
       .order("created_at", { ascending: true });
 
     if (error) return console.error(error);
 
     const cashBalances = {};
-    const enriched = (data || []).map(t => {
+    const enriched = (data || []).map((t) => {
       const isCredit = t.type === "CREDIT";
       const prevBalance = cashBalances[t.cash_id] || 0;
-      const newBalance = isCredit ? prevBalance + t.amount : prevBalance - t.amount;
+      const newBalance = isCredit
+        ? prevBalance + t.amount
+        : prevBalance - t.amount;
       cashBalances[t.cash_id] = newBalance;
 
-      const cash = cashes.find(c => c.id === t.cash_id);
-      const kiosk = kiosks.find(k => k.id === cash?.kiosk_id);
+      const cash = cashes.find((c) => c.id === t.cash_id);
+      const kiosk = kiosks.find((k) => k.id === cash?.kiosk_id);
 
       return {
         ...t,
@@ -98,7 +113,8 @@ export default function TransactionsList() {
   };
 
   const createTransaction = async () => {
-    if (!cashId || !amount) return Alert.alert("Avertissement", "Veuillez remplir tous les champs !");
+    if (!cashId || !amount)
+      return Alert.alert("Avertissement", "Veuillez remplir tous les champs !");
     const { error } = await supabase.from("transactions").insert([
       { cash_id: cashId, amount: parseFloat(amount), type },
     ]);
@@ -111,37 +127,83 @@ export default function TransactionsList() {
   };
 
   const deleteTransaction = async (id) => {
-    Alert.alert(
-      "Confirmation",
-      "Voulez-vous supprimer cette transaction ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          onPress: async () => {
-            const { error } = await supabase.from("transactions").delete().eq("id", id);
-            if (error) return Alert.alert("Erreur", error.message);
-            fetchTransactions();
-          },
+    Alert.alert("Confirmation", "Voulez-vous supprimer cette transaction ?", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        onPress: async () => {
+          const { error } = await supabase
+            .from("transactions")
+            .delete()
+            .eq("id", id);
+          if (error) return Alert.alert("Erreur", error.message);
+          fetchTransactions();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const formatCFA = (amount) =>
-    new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", minimumFractionDigits: 0 }).format(amount);
+    new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "XOF",
+      minimumFractionDigits: 0,
+    }).format(amount);
 
   const renderItem = ({ item }) => {
     const isCredit = item.type === "CREDIT";
+
+    // 🟢 Version mobile : carte verticale
+    if (isSmallScreen) {
+      return (
+        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+          <Card.Content>
+            <Text style={{ fontWeight: "bold" }}>{item.cash_name}</Text>
+            <Text>{item.kiosk_name}</Text>
+            <Text
+              style={{
+                color: isCredit ? "green" : "red",
+                fontWeight: "bold",
+              }}
+            >
+              {isCredit ? "Crédit" : "Débit"} : {formatCFA(item.amount)}
+            </Text>
+            <Text>{new Date(item.created_at).toLocaleString()}</Text>
+
+            <TouchableOpacity
+              onPress={() => deleteTransaction(item.id)}
+              style={[styles.deleteButton, { alignSelf: "flex-end", marginTop: 8 }]}
+            >
+              <MaterialCommunityIcons name="delete" size={20} color="white" />
+            </TouchableOpacity>
+          </Card.Content>
+        </Card>
+      );
+    }
+
+    // 🟢 Version desktop / large : tableau en ligne
     return (
       <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
         <Card.Content style={styles.row}>
           <Text style={{ flex: 1 }}>{isCredit ? "Crédit" : "Débit"}</Text>
           <Text style={{ flex: 1 }}>{item.cash_name}</Text>
-          <Text style={{ flex: 1, color: isCredit ? "green" : "red", fontWeight: "bold" }}>{formatCFA(item.amount)}</Text>
+          <Text
+            style={{
+              flex: 1,
+              color: isCredit ? "green" : "red",
+              fontWeight: "bold",
+            }}
+          >
+            {formatCFA(item.amount)}
+          </Text>
           <Text style={{ flex: 1 }}>{item.kiosk_name}</Text>
-          <Text style={{ flex: 1 }}>{new Date(item.created_at).toLocaleString()}</Text>
-          <TouchableOpacity onPress={() => deleteTransaction(item.id)} style={styles.deleteButton}>
+          <Text style={{ flex: 1 }}>
+            {new Date(item.created_at).toLocaleString()}
+          </Text>
+          <TouchableOpacity
+            onPress={() => deleteTransaction(item.id)}
+            style={styles.deleteButton}
+          >
             <MaterialCommunityIcons name="delete" size={20} color="white" />
           </TouchableOpacity>
         </Card.Content>
@@ -151,16 +213,42 @@ export default function TransactionsList() {
 
   return (
     <PaperProvider theme={theme}>
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onSurface }]}>Transactions</Text>
-        <Button mode="contained" onPress={() => setOpen(true)} style={styles.addButton} icon="plus">Nouvelle transaction</Button>
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
+        <Text
+          variant="headlineMedium"
+          style={[styles.title, { color: theme.colors.onSurface }]}
+        >
+          Transactions
+        </Text>
+        <Button
+          mode="contained"
+          onPress={() => setOpen(true)}
+          style={styles.addButton}
+          icon="plus"
+        >
+          Nouvelle transaction
+        </Button>
 
-        <View style={styles.headerRow}>
-          {["Type", "Caisse", "Montant", "Kiosque", "Date"].map((h, i) => (
-            <Text key={i} style={{ flex: 1, fontWeight: "bold", color: theme.colors.onSurface }}>{h}</Text>
-          ))}
-          <Text style={{ width: 40 }}></Text>
-        </View>
+        {/* En-tête seulement sur grand écran */}
+        {!isSmallScreen && (
+          <View style={styles.headerRow}>
+            {["Type", "Caisse", "Montant", "Kiosque", "Date"].map((h, i) => (
+              <Text
+                key={i}
+                style={{
+                  flex: 1,
+                  fontWeight: "bold",
+                  color: theme.colors.onSurface,
+                }}
+              >
+                {h}
+              </Text>
+            ))}
+            <Text style={{ width: 40 }}></Text>
+          </View>
+        )}
 
         <FlatList
           data={transactions}
@@ -168,24 +256,40 @@ export default function TransactionsList() {
           renderItem={renderItem}
         />
 
+        {/* Dialog pour créer une transaction */}
         <Portal>
           <Dialog visible={open} onDismiss={() => setOpen(false)}>
             <Dialog.Title>Créer une transaction</Dialog.Title>
             <Dialog.Content>
               <RNPickerSelect
                 onValueChange={setCashId}
-                items={cashes.map(c => ({ label: `${c.name} (${kiosks.find(k => k.id === c.kiosk_id)?.name})`, value: c.id }))}
+                items={cashes.map((c) => ({
+                  label: `${c.name} (${
+                    kiosks.find((k) => k.id === c.kiosk_id)?.name
+                  })`,
+                  value: c.id,
+                }))}
                 placeholder={{ label: "Sélectionner une caisse...", value: null }}
               />
-              <TextInput label="Montant" keyboardType="numeric" value={amount} onChangeText={setAmount} />
+              <TextInput
+                label="Montant"
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={setAmount}
+              />
               <RNPickerSelect
                 onValueChange={setType}
-                items={[{ label: "Crédit", value: "CREDIT" }, { label: "Débit", value: "DEBIT" }]}
+                items={[
+                  { label: "Crédit", value: "CREDIT" },
+                  { label: "Débit", value: "DEBIT" },
+                ]}
               />
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setOpen(false)}>Annuler</Button>
-              <Button onPress={createTransaction} mode="contained">Créer</Button>
+              <Button onPress={createTransaction} mode="contained">
+                Créer
+              </Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
