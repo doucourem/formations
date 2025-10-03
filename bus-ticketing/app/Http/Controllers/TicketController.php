@@ -14,14 +14,19 @@ class TicketController extends Controller
 {
     $perPage = $request->input('per_page', 20);
 
-   $tickets = Ticket::with(['trip.route', 'user'])
-    ->orderBy('created_at', 'desc')
-    ->paginate($perPage)
-    ->withQueryString();
+    // Récupérer les tickets avec relations nécessaires
+    $tickets = Ticket::with([
+        'trip.route.departureCity',
+        'trip.route.arrivalCity',
+        'user'
+    ])->orderBy('created_at', 'desc')
+      ->paginate($perPage)
+      ->withQueryString();
 
+      
 
-    // Transformer pour Inertia + éviter les null
-    $ticketsData = $tickets->map(function ($ticket) {
+    // Transformer la collection contenue dans le paginator
+    $ticketsData = $tickets->getCollection()->map(function ($ticket) {
         return [
             'id' => $ticket->id,
             'trip' => $ticket->trip ? [
@@ -36,13 +41,22 @@ class TicketController extends Controller
             ] : null,
             'client_name' => $ticket->client_name,
             'client_nina' => $ticket->client_nina,
+            'client_phone' => $ticket->client_phone,
+            'client_email' => $ticket->client_email,
             'seat_number' => $ticket->seat_number,
             'price' => $ticket->price,
             'status' => $ticket->status,
-            'created_at' => $ticket->created_at,
+            'created_at' => $ticket->created_at->format('Y-m-d H:i:s'),
+            'user' => $ticket->user ? [
+                'id' => $ticket->user->id,
+                'name' => $ticket->user->name,
+                'email' => $ticket->user->email,
+            ] : null,
         ];
     });
 
+    
+    // Retourner à Inertia
     return Inertia::render('Tickets/Index', [
         'tickets' => [
             'data' => $ticketsData,
@@ -53,37 +67,36 @@ class TicketController extends Controller
                 'total' => $tickets->total(),
             ],
         ],
-        'filters' => ['per_page' => $perPage],
+        'filters' => [
+            'per_page' => $perPage,
+        ],
     ]);
 }
 
 
-public function create()
-{
-    $trips = Trip::with([
-        'route.departureCity',
-        'route.arrivalCity'
-    ])->get();
+    public function create()
+    {
+        $trips = Trip::with([
+            'route.departureCity',
+            'route.arrivalCity'
+        ])->get();
 
-    // Transformer pour JSON Inertia
-    $trips = $trips->map(function($t) {
-        return [
-            'id' => $t->id,
-            'departure_at' => $t->departure_at,
-            'route' => [
-                'id' => $t->route->id,
-                'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
-                'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
-            ]
-        ];
-    });
+        $trips = $trips->map(function($t) {
+            return [
+                'id' => $t->id,
+                'departure_at' => $t->departure_at,
+                'route' => [
+                    'id' => $t->route->id,
+                    'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
+                    'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
+                ]
+            ];
+        });
 
-    return Inertia::render('Tickets/Form', [
-        'trips' => $trips,
-    ]);
-}
-
-
+        return Inertia::render('Tickets/Form', [
+            'trips' => $trips,
+        ]);
+    }
 
     public function store(Request $request)
     {
@@ -96,7 +109,7 @@ public function create()
             'status' => 'required|in:booked,paid,cancelled',
         ]);
 
-        $data['user_id'] = Auth::id(); // association au user connecté
+        $data['user_id'] = Auth::id();
 
         Ticket::create($data);
 
@@ -106,7 +119,7 @@ public function create()
 
     public function edit(Ticket $ticket)
     {
-        $trips = Trip::with('route')->get();
+        $trips = Trip::with(['route.departureCity', 'route.arrivalCity'])->get();
 
         return Inertia::render('Tickets/Form', [
             'ticket' => $ticket,

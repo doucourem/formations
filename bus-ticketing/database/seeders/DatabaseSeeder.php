@@ -4,11 +4,14 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Database\Seeders\TicketsTableSeeder; // ✅ Import du seeder de tickets
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
         // ----------------------
@@ -20,7 +23,6 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Segou'],
             ['name' => 'Kayes'],
         ];
-
         DB::table('cities')->insert($cities);
 
         // ----------------------
@@ -31,7 +33,6 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Agence Sikasso', 'city_id' => 2, 'address' => 'Avenue principale'],
             ['name' => 'Agence Segou', 'city_id' => 3, 'address' => 'Place centrale'],
         ];
-
         DB::table('agencies')->insert($agencies);
 
         // ----------------------
@@ -42,7 +43,6 @@ class DatabaseSeeder extends Seeder
             ['registration_number' => 'ML-5678-CD', 'model' => 'Hyundai County', 'capacity' => 40, 'status' => 'available', 'agency_id' => 2],
             ['registration_number' => 'ML-9012-EF', 'model' => 'Mercedes Sprinter', 'capacity' => 20, 'status' => 'maintenance', 'agency_id' => 3],
         ];
-
         DB::table('buses')->insert($buses);
 
         // ----------------------
@@ -53,7 +53,6 @@ class DatabaseSeeder extends Seeder
             ['departure_city_id' => 2, 'arrival_city_id' => 3], // Sikasso → Segou
             ['departure_city_id' => 1, 'arrival_city_id' => 3], // Bamako → Segou
         ];
-
         DB::table('routes')->insert($routes);
 
         // ----------------------
@@ -85,7 +84,6 @@ class DatabaseSeeder extends Seeder
                 'seats_available' => 20,
             ],
         ];
-
         DB::table('trips')->insert($trips);
 
         // ----------------------
@@ -98,6 +96,13 @@ class DatabaseSeeder extends Seeder
             'role' => 'admin',
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
+        ]);
+
+        // ----------------------
+        // 7. Tickets Seeder
+        // ----------------------
+        $this->call([
+            TicketsTableSeeder::class,
         ]);
     }
 }

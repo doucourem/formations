@@ -19,7 +19,7 @@ use Inertia\Inertia;
 */
 
 // Page d'accueil
-Route::get('/', function () {
+/*Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin'       => Route::has('login'),
         'canRegister'    => Route::has('register'),
@@ -27,7 +27,7 @@ Route::get('/', function () {
         'phpVersion'     => PHP_VERSION,
     ]);
 });
-
+*/
 // Dashboard protégé
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {

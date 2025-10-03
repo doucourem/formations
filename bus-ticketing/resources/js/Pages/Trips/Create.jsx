@@ -68,40 +68,41 @@ export default function CreateTripWithStops({ routes, buses }) {
           sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
         >
           {/* Select Route */}
-          <FormControl fullWidth required>
-            <InputLabel id="route-label">Route</InputLabel>
-            <Select
-              labelId="route-label"
-              name="route_id"
-              value={form.route_id}
-              label="Route"
-              onChange={handleChange}
-            >
-              {routes.map((r) => (
-                <MenuItem key={r.id} value={r.id}>
-                  {r.departureCity?.name || '-'} → {r.arrivalCity?.name || '-'}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <FormControl fullWidth required sx={{ mb: 2 }}>
+  <InputLabel id="route-label">Route</InputLabel>
+  <Select
+    labelId="route-label"
+    name="route_id"
+    value={form.route_id}
+    label="Route"
+    onChange={handleChange}
+  >
+    {routes.map((r) => (
+      <MenuItem key={r.id} value={r.id}>
+        {r.departure_city || '-'} → {r.arrival_city || '-'}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
 
-          {/* Select Bus */}
-          <FormControl fullWidth required>
-            <InputLabel id="bus-label">Bus</InputLabel>
-            <Select
-              labelId="bus-label"
-              name="bus_id"
-              value={form.bus_id}
-              label="Bus"
-              onChange={handleChange}
-            >
-              {buses.map((b) => (
-                <MenuItem key={b.id} value={b.id}>
-                  {b.name || `Bus #${b.id}`}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+
+<FormControl fullWidth required sx={{ mb: 2 }}>
+  <InputLabel id="bus-label">Bus</InputLabel>
+  <Select
+    labelId="bus-label"
+    name="bus_id"
+    value={form.bus_id}
+    label="Bus"
+    onChange={handleChange}
+  >
+    {buses.map((b) => (
+      <MenuItem key={b.id} value={b.id}>
+        {b.name || `Bus #${b.id}`} - {b.capacity ? `${b.capacity} places` : ''}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
+
 
           {/* Dates */}
           <TextField

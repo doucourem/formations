@@ -50,22 +50,33 @@ class TripController extends Controller
 }
 
 
-   public function create()
+public function create()
 {
-    // On récupère les routes avec leurs villes de départ et d'arrivée
+    // Récupérer toutes les routes avec leurs villes de départ et d'arrivée
     $routes = TripRoute::with([
-        'departureCity:id,name', // sélection des colonnes nécessaires
-        'arrivalCity:id,name'
-    ])->get();
+        'departureCity:id,name',
+        'arrivalCity:id,name',
+    ])->get()
+      ->map(function ($route) {
+          return [
+              'id' => $route->id,
+              'departure_city' => $route->departureCity->name ?? '-',
+              'arrival_city' => $route->arrivalCity->name ?? '-',
+          ];
+      });
 
-    // Tous les bus
-    $buses = Bus::all();
+    // Récupérer tous les bus avec leurs noms et capacités
+    $buses = Bus::select('id', 'name', 'capacity')->get();
 
+    // Renvoyer les données à Inertia
     return Inertia::render('Trips/Create', [
         'routes' => $routes,
         'buses' => $buses,
     ]);
 }
+
+
+
 
     public function edit(Trip $trip)
     {
