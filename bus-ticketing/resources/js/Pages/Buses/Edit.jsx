@@ -7,6 +7,9 @@ import {
   TextField,
   Typography,
   MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 
 export default function Edit({ bus, agencies }) {
@@ -16,7 +19,7 @@ export default function Edit({ bus, agencies }) {
 
   const [form, setForm] = useState({
     model: bus.model || '',
-    seats: bus.seats || '',
+    capacity: bus.capacity || '',
     agency_id: bus.agency_id || '',
   });
 
@@ -56,14 +59,29 @@ export default function Edit({ bus, agencies }) {
 
           <TextField
             label="Nombre de places"
-            name="seats"
+            name="capacity"
             type="number"
             min={1}
             placeholder="Nombre de places"
-            value={form.seats}
+            value={form.capacity}
             onChange={handleChange}
             required
           />
+
+          <FormControl fullWidth required>
+            <InputLabel>Agence</InputLabel>
+            <Select
+              name="agency_id"
+              value={form.agency_id}
+              onChange={handleChange}
+            >
+              {agencies.map((agency) => (
+                <MenuItem key={agency.id} value={agency.id}>
+                  {agency.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           <Button type="submit" variant="contained" color="primary">
             Mettre à jour

@@ -1,12 +1,22 @@
 import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
-import { TextField, Button, Container, Typography, Box } from "@mui/material";
+import {
+  TextField,
+  Button,
+  Container,
+  Typography,
+  Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
+} from "@mui/material";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Create() {
+export default function Create({ cities }) {
   const [form, setForm] = useState({
     name: "",
-    city: "",
+    city_id: "",
   });
 
   const handleChange = (e) => {
@@ -37,15 +47,20 @@ export default function Create() {
               required
             />
 
-            <TextField
-              label="Ville"
-              name="city"
-              value={form.city}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
+            <FormControl fullWidth margin="normal" required>
+              <InputLabel>Ville</InputLabel>
+              <Select
+                name="city_id"
+                value={form.city_id}
+                onChange={handleChange}
+              >
+                {cities.map((city) => (
+                  <MenuItem key={city.id} value={city.id}>
+                    {city.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
               Créer

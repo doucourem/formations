@@ -15,7 +15,7 @@ import {
 import { Add, Remove } from '@mui/icons-material';
 import GuestLayout from '@/Layouts/GuestLayout';
 
-export default function CreateTripWithStops({ routes, buses }) {
+export default function Create({ routes = [], buses = [] }) {
   const [form, setForm] = useState({
     route_id: '',
     bus_id: '',
@@ -52,6 +52,20 @@ export default function CreateTripWithStops({ routes, buses }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validation simple
+    if (
+      !form.route_id ||
+      !form.bus_id ||
+      !form.departure_at ||
+      !form.arrival_at ||
+      form.base_price === '' ||
+      form.seats_available === ''
+    ) {
+      alert('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+
     Inertia.post(route('trips.store'), form);
   };
 
@@ -62,47 +76,38 @@ export default function CreateTripWithStops({ routes, buses }) {
           Créer un trajet avec arrêts
         </Typography>
 
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-        >
-          {/* Select Route */}
-          <FormControl fullWidth required sx={{ mb: 2 }}>
-  <InputLabel id="route-label">Route</InputLabel>
-  <Select
-    labelId="route-label"
-    name="route_id"
-    value={form.route_id}
-    label="Route"
-    onChange={handleChange}
-  >
-    {routes.map((r) => (
-      <MenuItem key={r.id} value={r.id}>
-        {r.departure_city || '-'} → {r.arrival_city || '-'}
-      </MenuItem>
-    ))}
-  </Select>
-</FormControl>
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Route */}
+          <FormControl fullWidth required>
+            <InputLabel>Route</InputLabel>
+            <Select name="route_id" value={form.route_id} onChange={handleChange}>
+              {routes.length > 0 ? (
+                routes.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>
+                    {(r.departure_city || '-') + ' → ' + (r.arrival_city || '-')}
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem value="">Aucune route disponible</MenuItem>
+              )}
+            </Select>
+          </FormControl>
 
-
-<FormControl fullWidth required sx={{ mb: 2 }}>
-  <InputLabel id="bus-label">Bus</InputLabel>
-  <Select
-    labelId="bus-label"
-    name="bus_id"
-    value={form.bus_id}
-    label="Bus"
-    onChange={handleChange}
-  >
-    {buses.map((b) => (
-      <MenuItem key={b.id} value={b.id}>
-        {b.name || `Bus #${b.id}`} - {b.capacity ? `${b.capacity} places` : ''}
-      </MenuItem>
-    ))}
-  </Select>
-</FormControl>
-
+          {/* Bus */}
+          <FormControl fullWidth required>
+            <InputLabel>Bus</InputLabel>
+            <Select name="bus_id" value={form.bus_id} onChange={handleChange}>
+              {buses.length > 0 ? (
+                buses.map((b) => (
+                  <MenuItem key={b.id} value={b.id}>
+                    {b.registration_number} ({b.model}) - {b.capacity} places
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem value="">Aucun bus disponible</MenuItem>
+              )}
+            </Select>
+          </FormControl>
 
           {/* Dates */}
           <TextField
@@ -171,12 +176,7 @@ export default function CreateTripWithStops({ routes, buses }) {
               ))}
             </Stack>
 
-            <Button
-              variant="outlined"
-              startIcon={<Add />}
-              onClick={addStop}
-              sx={{ mt: 1 }}
-            >
+            <Button variant="outlined" startIcon={<Add />} onClick={addStop} sx={{ mt: 1 }}>
               Ajouter un arrêt
             </Button>
           </Box>

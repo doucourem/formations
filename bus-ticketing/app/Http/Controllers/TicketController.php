@@ -119,8 +119,21 @@ class TicketController extends Controller
 
     public function edit(Ticket $ticket)
     {
-        $trips = Trip::with(['route.departureCity', 'route.arrivalCity'])->get();
-
+        $trips = Trip::with([
+            'route.departureCity',
+            'route.arrivalCity'
+        ])->get();
+        $trips = $trips->map(function($t) {
+            return [
+                'id' => $t->id,
+                'departure_at' => $t->departure_at,
+                'route' => [
+                    'id' => $t->route->id,
+                    'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
+                    'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
+                ]
+            ];
+        });
         return Inertia::render('Tickets/Form', [
             'ticket' => $ticket,
             'trips' => $trips,

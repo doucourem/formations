@@ -18,49 +18,47 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
-// Page d'accueil
-/*Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin'       => Route::has('login'),
-        'canRegister'    => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion'     => PHP_VERSION,
-    ]);
+// Page d’accueil publique (redirige vers login si non connecté)
+Route::get('/', function () {
+    return redirect()->route('login');
 });
-*/
-// Dashboard protégé
+
+// Groupe protégé (authentifié + email vérifié)
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    // Tableau de bord
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
-    // Gestion du profil utilisateur
+    // Gestion du profil
     Route::prefix('profile')->group(function () {
         Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
-    // Cities CRUD
+    // Villes CRUD
     Route::resource('cities', CityController::class)->except(['show']);
 
-    // Buses CRUD
-    Route::resource('buses', BusController::class)->except(['show']);
-
-    // Agencies CRUD
+    // Agences CRUD
     Route::resource('agencies', AgencyController::class)->except(['show']);
 
-    // Routes CRUD
+    // Bus CRUD
+    Route::resource('buses', BusController::class)->except(['show']);
+
+    // Routes (trajets) CRUD
     Route::resource('routes', TripRouteController::class)->except(['show']);
 
-      // Routes CRUD
-      Route::resource('trips', TripController::class)->except(['show']);
+    // Voyages CRUD
+    Route::resource('trips', TripController::class)->except(['show']);
 
-      // Routes CRUD
-      Route::resource('ticket', TicketController::class)->except(['show']);
-      
-    // Users CRUD
+    // Tickets CRUD
+    Route::resource('ticket', TicketController::class)->except(['show']);
+
+    // Utilisateurs CRUD
     Route::resource('users', UserController::class)->except(['show']);
 });
 
-require __DIR__.'/auth.php';
+// Authentification (login, register, logout, etc.)
+require __DIR__ . '/auth.php';

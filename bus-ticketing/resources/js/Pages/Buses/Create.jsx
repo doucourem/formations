@@ -7,12 +7,17 @@ import {
   TextField,
   Typography,
   MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 
-export default function Create({ agencies }) {
+export default function Create({ agencies = [] }) {
   const [form, setForm] = useState({
+    registration_number: '',
     model: '',
-    seats: '',
+    capacity: '',
+    status: 'active',
     agency_id: '',
   });
 
@@ -26,6 +31,14 @@ export default function Create({ agencies }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Vérification des champs obligatoires
+    if (!form.registration_number || !form.model || !form.capacity || !form.agency_id) {
+      alert('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    // Envoi via Inertia
     Inertia.post(route('buses.store'), form);
   };
 
@@ -42,9 +55,16 @@ export default function Create({ agencies }) {
           sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
         >
           <TextField
+            label="Numéro d'immatriculation"
+            name="registration_number"
+            value={form.registration_number}
+            onChange={handleChange}
+            required
+          />
+
+          <TextField
             label="Modèle"
             name="model"
-            placeholder="Modèle du bus"
             value={form.model}
             onChange={handleChange}
             required
@@ -52,14 +72,45 @@ export default function Create({ agencies }) {
 
           <TextField
             label="Nombre de places"
-            name="seats"
+            name="capacity"
             type="number"
             min={1}
-            placeholder="Nombre de places"
-            value={form.seats}
+            value={form.capacity}
             onChange={handleChange}
             required
           />
+
+          <FormControl fullWidth required>
+            <InputLabel>Statut</InputLabel>
+            <Select
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+            >
+              <MenuItem value="active">Actif</MenuItem>
+              <MenuItem value="inactive">Inactif</MenuItem>
+              <MenuItem value="maintenance">Maintenance</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth required>
+            <InputLabel>Agence</InputLabel>
+            <Select
+              name="agency_id"
+              value={form.agency_id}
+              onChange={handleChange}
+            >
+              {agencies.length > 0 ? (
+                agencies.map((agency) => (
+                  <MenuItem key={agency.id} value={agency.id}>
+                    {agency.name}
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem value="">Aucune agence disponible</MenuItem>
+              )}
+            </Select>
+          </FormControl>
 
           <Button type="submit" variant="contained" color="primary">
             Créer
