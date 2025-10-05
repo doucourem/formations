@@ -59,7 +59,7 @@ class TripController extends Controller
                 'arrival_city' => $route->arrivalCity->name ?? '-',
             ]);
 
-        $buses = Bus::select('id', 'name', 'capacity')->get();
+        $buses = Bus::select('id', 'registration_number','model', 'capacity')->get();
 
         return Inertia::render('Trips/Create', [
             'routes' => $routes,

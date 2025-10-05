@@ -52,7 +52,10 @@ class BusController extends Controller
     public function edit(Bus $bus)
     {
         $bus->load('agency');
-
+    
+        // Charger toutes les agences pour le select
+        $agencies = \App\Models\Agency::select('id', 'name')->get();
+    
         return Inertia::render('Buses/Edit', [
             'bus' => [
                 'id' => $bus->id,
@@ -63,9 +66,10 @@ class BusController extends Controller
                 'agency_id' => $bus->agency_id,
                 'agency' => $bus->agency?->name ?? '',
             ],
+            'agencies' => $agencies,
         ]);
     }
-
+    
     /**
      * Store a newly created bus in storage.
      */

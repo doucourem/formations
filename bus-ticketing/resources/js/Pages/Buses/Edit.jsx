@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import GuestLayout from '@/Layouts/GuestLayout';
 import {
@@ -12,16 +12,31 @@ import {
   Select,
 } from '@mui/material';
 
-export default function Edit({ bus, agencies }) {
+export default function Edit({ bus, agencies = [] }) {
+  const [form, setForm] = useState({
+    registration_number: '',
+    model: '',
+    capacity: '',
+    status: 'active',
+    agency_id: '',
+  });
+
+  // Initialiser le formulaire avec les données du bus
+  useEffect(() => {
+    if (bus) {
+      setForm({
+        registration_number: bus.registration_number || '',
+        model: bus.model || '',
+        capacity: bus.capacity || '',
+        status: bus.status || 'active',
+        agency_id: bus.agency_id || '',
+      });
+    }
+  }, [bus]);
+
   if (!bus) {
     return <Typography>Chargement du bus...</Typography>;
   }
-
-  const [form, setForm] = useState({
-    model: bus.model || '',
-    capacity: bus.capacity || '',
-    agency_id: bus.agency_id || '',
-  });
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -33,6 +48,12 @@ export default function Edit({ bus, agencies }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!form.registration_number || !form.model || !form.capacity || !form.agency_id) {
+      alert('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
     Inertia.put(route('buses.update', bus.id), form);
   };
 
@@ -49,9 +70,16 @@ export default function Edit({ bus, agencies }) {
           sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
         >
           <TextField
+            label="Numéro d'immatriculation"
+            name="registration_number"
+            value={form.registration_number}
+            onChange={handleChange}
+            required
+          />
+
+          <TextField
             label="Modèle"
             name="model"
-            placeholder="Modèle du bus"
             value={form.model}
             onChange={handleChange}
             required
@@ -62,11 +90,23 @@ export default function Edit({ bus, agencies }) {
             name="capacity"
             type="number"
             min={1}
-            placeholder="Nombre de places"
             value={form.capacity}
             onChange={handleChange}
             required
           />
+
+          <FormControl fullWidth required>
+            <InputLabel>Statut</InputLabel>
+            <Select
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+            >
+              <MenuItem value="active">Actif</MenuItem>
+              <MenuItem value="inactive">Inactif</MenuItem>
+              <MenuItem value="maintenance">Maintenance</MenuItem>
+            </Select>
+          </FormControl>
 
           <FormControl fullWidth required>
             <InputLabel>Agence</InputLabel>
@@ -75,11 +115,15 @@ export default function Edit({ bus, agencies }) {
               value={form.agency_id}
               onChange={handleChange}
             >
-              {agencies.map((agency) => (
-                <MenuItem key={agency.id} value={agency.id}>
-                  {agency.name}
-                </MenuItem>
-              ))}
+              {agencies.length > 0 ? (
+                agencies.map((agency) => (
+                  <MenuItem key={agency.id} value={agency.id}>
+                    {agency.name}
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem value="">Aucune agence disponible</MenuItem>
+              )}
             </Select>
           </FormControl>
 
