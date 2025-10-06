@@ -156,41 +156,37 @@ export default function TransactionsList() {
   const renderItem = ({ item }) => {
     const isCredit = item.type === "CREDIT";
 
-    if (isSmallScreen) {
-      return (
-        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-          <Card.Content>
-            <Text style={{ fontWeight: "bold" }}>{item.cash_name}</Text>
-            <Text>{item.kiosk_name}</Text>
-            <Text style={{ color: isCredit ? "green" : "red", fontWeight: "bold" }}>
-              {isCredit ? "Crédit" : "Débit"} : {formatCFA(item.amount)}
-            </Text>
-            <Text>Solde après : {formatCFA(item.balance_after)}</Text>
-            <Text>{new Date(item.created_at).toLocaleString()}</Text>
-
-            <TouchableOpacity
-              onPress={() => deleteTransaction(item.id)}
-              style={[styles.deleteButton, { alignSelf: "flex-end", marginTop: 8 }]}
-            >
-              <MaterialCommunityIcons name="delete" size={20} color="white" />
-            </TouchableOpacity>
-          </Card.Content>
-        </Card>
-      );
-    }
-
     return (
       <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-        <Card.Content style={styles.row}>
-          <Text style={{ flex: 1 }}>{isCredit ? "Crédit" : "Débit"}</Text>
-          <Text style={{ flex: 1 }}>{item.cash_name}</Text>
-          <Text style={{ flex: 1, color: isCredit ? "green" : "red", fontWeight: "bold" }}>
+        <Card.Content style={isSmallScreen ? {} : styles.row}>
+          <Text style={{ flex: 1, color: theme.colors.onSurface }}>
+            {isCredit ? "Crédit" : "Débit"}
+          </Text>
+          <Text style={{ flex: 1, color: theme.colors.onSurface }}>
+            {item.cash_name}
+          </Text>
+          <Text
+            style={{
+              flex: 1,
+              color: isCredit ? "green" : "red",
+              fontWeight: "bold",
+            }}
+          >
             {formatCFA(item.amount)}
           </Text>
-          <Text style={{ flex: 1 }}>{item.kiosk_name}</Text>
-          <Text style={{ flex: 1 }}>{new Date(item.created_at).toLocaleString()}</Text>
-          <Text style={{ flex: 1, fontWeight: "bold" }}>{formatCFA(item.balance_after)}</Text>
-          <TouchableOpacity onPress={() => deleteTransaction(item.id)} style={styles.deleteButton}>
+          <Text style={{ flex: 1, color: theme.colors.onSurface }}>
+            {item.kiosk_name}
+          </Text>
+          <Text style={{ flex: 1, color: theme.colors.onSurface }}>
+            {new Date(item.created_at).toLocaleString()}
+          </Text>
+          <Text style={{ flex: 1, color: theme.colors.onSurface, fontWeight: "bold" }}>
+            {formatCFA(item.balance_after)}
+          </Text>
+          <TouchableOpacity
+            onPress={() => deleteTransaction(item.id)}
+            style={styles.deleteButton}
+          >
             <MaterialCommunityIcons name="delete" size={20} color="white" />
           </TouchableOpacity>
         </Card.Content>
@@ -226,40 +222,72 @@ export default function TransactionsList() {
           <Dialog visible={open} onDismiss={() => setOpen(false)}>
             <Dialog.Title>Créer une transaction</Dialog.Title>
             <Dialog.Content>
-              <TextInput
-                label="Rechercher une caisse..."
-                value={cashQuery}
-                onChangeText={setCashQuery}
-                style={{ marginBottom: 12 }}
-              />
-
-              <FlatList
-                data={cashes.filter(c => c.name.toLowerCase().includes(cashQuery.toLowerCase()))}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    onPress={() => setCashId(item.id)}
+              {/* AUTOCOMPLETE CAISSE */}
+              <View style={{ position: "relative", marginBottom: 12 }}>
+                <TextInput
+                  label="Rechercher une caisse..."
+                  value={cashQuery}
+                  onChangeText={setCashQuery}
+                  mode="outlined"
+                  style={{ backgroundColor: theme.colors.surface }}
+                  textColor={theme.colors.onSurface}
+                />
+                {cashQuery.length > 0 && (
+                  <Card
                     style={{
-                      padding: 8,
-                      backgroundColor: cashId === item.id ? "#ddd" : "#fff",
-                      borderBottomWidth: 1,
-                      borderColor: "#ccc",
+                      position: "absolute",
+                      top: 60,
+                      left: 0,
+                      right: 0,
+                      zIndex: 10,
+                      maxHeight: 200,
+                      backgroundColor: theme.colors.surfaceVariant,
                     }}
                   >
-                    <Text>{item.name} ({kiosks.find(k => k.id === item.kiosk_id)?.name})</Text>
-                  </TouchableOpacity>
+                    <FlatList
+                      data={cashes.filter((c) =>
+                        c.name.toLowerCase().includes(cashQuery.toLowerCase())
+                      )}
+                      keyExtractor={(item) => item.id.toString()}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setCashId(item.id);
+                            setCashQuery(item.name);
+                          }}
+                          style={{
+                            padding: 10,
+                            backgroundColor:
+                              cashId === item.id
+                                ? theme.colors.primaryContainer
+                                : theme.colors.surface,
+                            borderBottomWidth: 1,
+                            borderBottomColor: theme.colors.outlineVariant,
+                          }}
+                        >
+                          <Text style={{ color: theme.colors.onSurface }}>
+                            {item.name} (
+                            {kiosks.find((k) => k.id === item.kiosk_id)?.name})
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    />
+                  </Card>
                 )}
-                style={{ maxHeight: 150, marginBottom: 12 }}
-              />
+              </View>
 
+              {/* MONTANT */}
               <TextInput
                 label="Montant"
                 keyboardType="numeric"
                 value={amount}
                 onChangeText={setAmount}
                 style={{ marginBottom: 12 }}
+                mode="outlined"
+                textColor={theme.colors.onSurface}
               />
 
+              {/* TYPE */}
               <View style={{ flexDirection: "row", marginBottom: 12 }}>
                 <Button
                   mode={type === "CREDIT" ? "contained" : "outlined"}
@@ -276,9 +304,12 @@ export default function TransactionsList() {
                 </Button>
               </View>
             </Dialog.Content>
+
             <Dialog.Actions>
               <Button onPress={() => setOpen(false)}>Annuler</Button>
-              <Button onPress={createTransaction} mode="contained">Créer</Button>
+              <Button onPress={createTransaction} mode="contained">
+                Créer
+              </Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>

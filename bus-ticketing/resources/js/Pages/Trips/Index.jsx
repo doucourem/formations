@@ -21,6 +21,7 @@ import GuestLayout from '@/Layouts/GuestLayout';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -63,6 +64,7 @@ export default function Index({ initialTrips, initialFilters, buses = [], routes
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
+        {/* En-tête */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4">Trajets</Typography>
           <Button variant="contained" color="primary" onClick={() => Inertia.get(route('trips.create'))}>
@@ -104,16 +106,20 @@ export default function Index({ initialTrips, initialFilters, buses = [], routes
         {/* Tableau */}
         <TableContainer component={Paper}>
           <Table>
-           <TableHead sx={{ bgcolor: '#1976d2' }}>
+            <TableHead sx={{ bgcolor: '#1976d2' }}>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Route</TableCell>
-                <TableCell>Bus</TableCell>
-                <TableCell><CalendarTodayIcon fontSize="small" sx={{ mr: 0.5 }} /> Départ</TableCell>
-                <TableCell><CalendarTodayIcon fontSize="small" sx={{ mr: 0.5 }} /> Arrivée</TableCell>
-                <TableCell>Prix</TableCell>
-                <TableCell>Places disponibles</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell sx={{ color: '#fff' }}>ID</TableCell>
+                <TableCell sx={{ color: '#fff' }}>Route</TableCell>
+                <TableCell sx={{ color: '#fff' }}>Bus</TableCell>
+                <TableCell sx={{ color: '#fff' }}>
+                  <CalendarTodayIcon fontSize="small" sx={{ mr: 0.5 }} /> Départ
+                </TableCell>
+                <TableCell sx={{ color: '#fff' }}>
+                  <CalendarTodayIcon fontSize="small" sx={{ mr: 0.5 }} /> Arrivée
+                </TableCell>
+                <TableCell sx={{ color: '#fff' }}>Prix</TableCell>
+                <TableCell sx={{ color: '#fff' }}>Places dispo</TableCell>
+                <TableCell sx={{ color: '#fff' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
 
@@ -125,13 +131,21 @@ export default function Index({ initialTrips, initialFilters, buses = [], routes
                   <TableCell>{trip.bus?.model || '-'}</TableCell>
                   <TableCell>{formatDateFR(trip.departure_at)}</TableCell>
                   <TableCell>{formatDateFR(trip.arrival_at)}</TableCell>
-                  <TableCell>{trip.base_price}</TableCell>
+                  <TableCell>{trip.base_price} FCFA</TableCell>
                   <TableCell>{trip.seats_available}</TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={1} justifyContent="center">
+                      {/* Voir détails */}
+                      <IconButton color="info" size="small" component={Link} href={route('trips.show', trip.id)}>
+                        <VisibilityIcon />
+                      </IconButton>
+
+                      {/* Modifier */}
                       <IconButton color="primary" size="small" component={Link} href={trip.edit_url}>
                         <EditIcon />
                       </IconButton>
+
+                      {/* Supprimer */}
                       <IconButton color="error" size="small" onClick={() => handleDelete(trip.id)}>
                         <DeleteIcon />
                       </IconButton>

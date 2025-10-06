@@ -164,4 +164,14 @@ class TripController extends Controller
                 ->with('error', 'Impossible de supprimer ce voyage.');
         }
     }
+
+    public function show(Trip $trip)
+{
+    $trip->load(['bus', 'route.departureCity', 'route.arrivalCity']);
+
+    return Inertia::render('Trips/Show', [
+        'trip' => $trip,
+    ]);
+}
+
 }
