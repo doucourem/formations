@@ -166,4 +166,16 @@ class TicketController extends Controller
         return redirect()->route('ticket.index')
                          ->with('success', 'Ticket supprimé avec succès ✅');
     }
+
+    public function show($id)
+    {
+        $ticket = Ticket::with(['trip.route', 'trip.bus', 'user'])
+            ->findOrFail($id);
+    
+        return Inertia::render('Tickets/Show', [
+            'ticket' => $ticket,
+        ]);
+    }
+    
+
 }

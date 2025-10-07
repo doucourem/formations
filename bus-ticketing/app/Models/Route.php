@@ -12,7 +12,10 @@ class Route extends Model
     protected $fillable = [
         'departure_city_id',
         'arrival_city_id',
+        'distance',
+        'price',
     ];
+    
 
     // Relation vers la ville de départ
     public function departureCity()

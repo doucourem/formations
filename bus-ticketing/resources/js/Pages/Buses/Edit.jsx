@@ -108,24 +108,6 @@ export default function Edit({ bus, agencies = [] }) {
             </Select>
           </FormControl>
 
-          <FormControl fullWidth required>
-            <InputLabel>Agence</InputLabel>
-            <Select
-              name="agency_id"
-              value={form.agency_id}
-              onChange={handleChange}
-            >
-              {agencies.length > 0 ? (
-                agencies.map((agency) => (
-                  <MenuItem key={agency.id} value={agency.id}>
-                    {agency.name}
-                  </MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Aucune agence disponible</MenuItem>
-              )}
-            </Select>
-          </FormControl>
 
           <Button type="submit" variant="contained" color="primary">
             Mettre à jour

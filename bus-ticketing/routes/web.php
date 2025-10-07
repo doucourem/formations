@@ -39,25 +39,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Villes CRUD
-    Route::resource('cities', CityController::class)->except(['show']);
+    Route::resource('cities', CityController::class);
 
     // Agences CRUD
-    Route::resource('agencies', AgencyController::class)->except(['show']);
+    Route::resource('agencies', AgencyController::class);
 
     // Bus CRUD
-    Route::resource('buses', BusController::class)->except(['show']);
+    Route::resource('buses', BusController::class);
 
     // Routes (trajets) CRUD
-    Route::resource('routes', TripRouteController::class)->except(['show']);
+    Route::resource('routes', TripRouteController::class);
 
     // Voyages CRUD
-    Route::resource('trips', TripController::class)->except(['show']);
+    Route::resource('trips', TripController::class);
 
     // Tickets CRUD
-    Route::resource('ticket', TicketController::class)->except(['show']);
+    Route::resource('ticket', TicketController::class);
 
     // Utilisateurs CRUD
-    Route::resource('users', UserController::class)->except(['show']);
+    Route::resource('users', UserController::class);
 });
 
 // Authentification (login, register, logout, etc.)

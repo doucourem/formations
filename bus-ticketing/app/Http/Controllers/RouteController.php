@@ -42,19 +42,20 @@ class RouteController extends Controller
         ]);
     }
 
-    // Stocker une nouvelle route
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'departure_city_id' => 'required|exists:cities,id',
-            'arrival_city_id' => 'required|exists:cities,id|different:departure_city_id',
-            'distance' => 'nullable|numeric|min:0',
+        $validated = $request->validate([
+            'departure_city_id' => 'required|exists:cities,id|different:arrival_city_id',
+            'arrival_city_id' => 'required|exists:cities,id',
+            'distance' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
         ]);
-
-        Route::create($data);
-
-        return redirect()->route('routes.index')->with('success', 'Route créée avec succès ✅');
+    
+        Route::create($validated);
+    
+        return redirect()->route('routes.index')->with('success', 'Trajet créé avec succès.');
     }
+    
 
     // Formulaire d'édition
     public function edit(Route $route)
@@ -68,18 +69,21 @@ class RouteController extends Controller
     }
 
     // Mettre à jour une route
-    public function update(Request $request, Route $route)
-    {
-        $data = $request->validate([
-            'departure_city_id' => 'required|exists:cities,id',
-            'arrival_city_id' => 'required|exists:cities,id|different:departure_city_id',
-            'distance' => 'nullable|numeric|min:0',
-        ]);
+    public function update(Request $request, $id)
+{
+    $validated = $request->validate([
+        'departure_city_id' => 'required|exists:cities,id|different:arrival_city_id',
+        'arrival_city_id' => 'required|exists:cities,id',
+        'distance' => 'required|numeric|min:0',
+        'price' => 'required|numeric|min:0',
+    ]);
 
-        $route->update($data);
+    $route = Route::findOrFail($id);
+    $route->update($validated);
 
-        return redirect()->route('routes.index')->with('success', 'Route mise à jour avec succès ✅');
-    }
+    return redirect()->route('routes.index')->with('success', 'Trajet mis à jour avec succès.');
+}
+
 
     // Supprimer une route
     public function destroy(Route $route)

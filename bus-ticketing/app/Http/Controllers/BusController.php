@@ -80,7 +80,6 @@ class BusController extends Controller
             'model' => ['required', 'string', 'max:255'],
             'capacity' => ['required', 'integer', 'min:1'],
             'status' => ['required', 'in:active,inactive,maintenance'],
-            'agency_id' => ['required', 'exists:agencies,id'],
         ]);
 
         Bus::create($validated);

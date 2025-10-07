@@ -29,4 +29,10 @@ class Trip extends Model
     {
         return $this->belongsTo(Route::class);
     }
+
+    // ⚡ Relation avec les billets
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
 }

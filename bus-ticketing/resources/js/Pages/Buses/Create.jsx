@@ -33,8 +33,8 @@ export default function Create({ agencies = [] }) {
     e.preventDefault();
 
     // Vérification des champs obligatoires
-    if (!form.registration_number || !form.model || !form.capacity || !form.agency_id) {
-      alert('Veuillez remplir tous les champs obligatoires');
+    if (!form.registration_number || !form.model || !form.capacity) {
+      alert('Veuillez remplir tous les champs obligatoires bbb');
       return;
     }
 
@@ -90,25 +90,6 @@ export default function Create({ agencies = [] }) {
               <MenuItem value="active">Actif</MenuItem>
               <MenuItem value="inactive">Inactif</MenuItem>
               <MenuItem value="maintenance">Maintenance</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth required>
-            <InputLabel>Agence</InputLabel>
-            <Select
-              name="agency_id"
-              value={form.agency_id}
-              onChange={handleChange}
-            >
-              {agencies.length > 0 ? (
-                agencies.map((agency) => (
-                  <MenuItem key={agency.id} value={agency.id}>
-                    {agency.name}
-                  </MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Aucune agence disponible</MenuItem>
-              )}
             </Select>
           </FormControl>
 

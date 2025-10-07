@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
+import React, { useState } from "react";
+import { Inertia } from "@inertiajs/inertia";
 import {
   Box,
   Button,
@@ -11,72 +11,85 @@ import {
   Select,
   MenuItem,
   Stack,
-} from '@mui/material';
-import { Add, Remove } from '@mui/icons-material';
-import GuestLayout from '@/Layouts/GuestLayout';
+} from "@mui/material";
+import { Add, Remove } from "@mui/icons-material";
+import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Create({ routes = [], buses = [] }) {
+export default function Create({ routes = [], buses = [], cities = [] }) {
   const [form, setForm] = useState({
-    route_id: '',
-    bus_id: '',
-    departure_at: '',
-    arrival_at: '',
-    base_price: '',
-    seats_available: '',
-    stops: [''], // tableau pour les arrêts intermédiaires
+    route_id: "",
+    bus_id: "",
+    departure_at: "",
+    arrival_at: "",
+    base_price: "",
+    seats_available: "",
+    stops: [
+      { city_id: "", distance_from_start: "", partial_price: "" },
+    ],
   });
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-    let val = value;
-    if (type === 'number' || ['base_price', 'seats_available'].includes(name)) {
-      val = value === '' ? '' : Number(value);
-    }
+    const val =
+      type === "number" || ["base_price", "seats_available"].includes(name)
+        ? value === ""
+          ? ""
+          : Number(value)
+        : value;
     setForm({ ...form, [name]: val });
   };
 
-  const handleStopChange = (index, value) => {
-    const newStops = [...form.stops];
-    newStops[index] = value;
-    setForm({ ...form, stops: newStops });
+  const handleStopChange = (index, field, value) => {
+    const updated = [...form.stops];
+    updated[index][field] = value;
+    setForm({ ...form, stops: updated });
   };
 
-  const addStop = () => setForm({ ...form, stops: [...form.stops, ''] });
+  const addStop = () => {
+    setForm({
+      ...form,
+      stops: [
+        ...form.stops,
+        { city_id: "", distance_from_start: "", partial_price: "" },
+      ],
+    });
+  };
 
   const removeStop = (index) => {
-    if (form.stops.length > 1) {
-      const newStops = form.stops.filter((_, i) => i !== index);
-      setForm({ ...form, stops: newStops });
-    }
+    const updated = form.stops.filter((_, i) => i !== index);
+    setForm({ ...form, stops: updated });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Validation simple
     if (
       !form.route_id ||
       !form.bus_id ||
       !form.departure_at ||
       !form.arrival_at ||
-      form.base_price === '' ||
-      form.seats_available === ''
+      form.base_price === "" ||
+      form.seats_available === ""
     ) {
-      alert('Veuillez remplir tous les champs obligatoires.');
+      alert("Veuillez remplir tous les champs obligatoires.");
       return;
     }
 
-    Inertia.post(route('trips.store'), form);
+    Inertia.post(route("trips.store"), form);
   };
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ p: 3, maxWidth: 700, mx: "auto" }}>
         <Typography variant="h4" gutterBottom>
           Créer un trajet avec arrêts
         </Typography>
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+        >
           {/* Route */}
           <FormControl fullWidth required>
             <InputLabel>Route</InputLabel>
@@ -84,7 +97,9 @@ export default function Create({ routes = [], buses = [] }) {
               {routes.length > 0 ? (
                 routes.map((r) => (
                   <MenuItem key={r.id} value={r.id}>
-                    {(r.departure_city || '-') + ' → ' + (r.arrival_city || '-')}
+                    {(r.departure_city || "-") +
+                      " → " +
+                      (r.arrival_city|| "-")}
                   </MenuItem>
                 ))
               ) : (
@@ -100,7 +115,7 @@ export default function Create({ routes = [], buses = [] }) {
               {buses.length > 0 ? (
                 buses.map((b) => (
                   <MenuItem key={b.id} value={b.id}>
-                    {b.registration_number} ({b.model}) - {b.capacity} places
+                    {b.registration_number} ({b.model}) – {b.capacity} places
                   </MenuItem>
                 ))
               ) : (
@@ -156,15 +171,53 @@ export default function Create({ routes = [], buses = [] }) {
               Arrêts intermédiaires
             </Typography>
 
-            <Stack spacing={1}>
+            <Stack spacing={2}>
               {form.stops.map((stop, index) => (
-                <Box key={index} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Box
+                  key={index}
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <FormControl sx={{ flex: 1 }}>
+                    <InputLabel>Ville</InputLabel>
+                    <Select
+                      value={stop.city_id}
+                      onChange={(e) =>
+                        handleStopChange(index, "city_id", e.target.value)
+                      }
+                    >
+                      {cities.map((c) => (
+                        <MenuItem key={c.id} value={c.id}>
+                          {c.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
                   <TextField
-                    label={`Arrêt #${index + 1}`}
-                    value={stop}
-                    onChange={(e) => handleStopChange(index, e.target.value)}
-                    fullWidth
+                    label="Distance (km)"
+                    type="number"
+                    value={stop.distance_from_start}
+                    onChange={(e) =>
+                      handleStopChange(index, "distance_from_start", e.target.value)
+                    }
+                    sx={{ width: 120 }}
                   />
+
+                  <TextField
+                    label="Prix partiel (FCFA)"
+                    type="number"
+                    value={stop.partial_price}
+                    onChange={(e) =>
+                      handleStopChange(index, "partial_price", e.target.value)
+                    }
+                    sx={{ width: 140 }}
+                  />
+
                   <IconButton
                     color="error"
                     onClick={() => removeStop(index)}
@@ -176,12 +229,17 @@ export default function Create({ routes = [], buses = [] }) {
               ))}
             </Stack>
 
-            <Button variant="outlined" startIcon={<Add />} onClick={addStop} sx={{ mt: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<Add />}
+              onClick={addStop}
+              sx={{ mt: 1 }}
+            >
               Ajouter un arrêt
             </Button>
           </Box>
 
-          <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
+          <Button type="submit" variant="contained" color="primary" sx={{ mt: 3 }}>
             Créer le trajet
           </Button>
         </Box>

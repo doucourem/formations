@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\User;
+use App\Models\Agency;
+
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -29,9 +31,13 @@ class UserController extends Controller
     }
 
     public function create()
-    {
-        return Inertia::render('Users/Create');
-    }
+{
+    $agences = Agency::all();
+    return Inertia::render('Users/Create', [
+        'agences' => $agences
+    ]);
+}
+
 
     public function edit(User $user)
     {

@@ -103,7 +103,7 @@ export default function Index({ tickets }) {
                         <IconButton
                           color="info"
                           size="small"
-                          onClick={() => Inertia.get(route('trip.show', ticket.trip?.id))}
+                          onClick={() => Inertia.get(route('ticket.show', ticket.id))}
                         >
                           <VisibilityIcon />
                         </IconButton>

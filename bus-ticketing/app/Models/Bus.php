@@ -14,7 +14,6 @@ class Bus extends Model
         'model',
         'capacity',
         'status',
-        'agency_id',
     ];
 
     /**

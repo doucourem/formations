@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
-import GuestLayout from '@/Layouts/GuestLayout';
+import React, { useState } from "react";
+import { Inertia } from "@inertiajs/inertia";
+import GuestLayout from "@/Layouts/GuestLayout";
 import {
   Box,
   Button,
@@ -10,36 +10,40 @@ import {
   FormControl,
   InputLabel,
   Select,
-} from '@mui/material';
+} from "@mui/material";
 
 export default function Create({ cities }) {
   const [form, setForm] = useState({
-    departure_city_id: '',
-    arrival_city_id: '',
-    distance: '',
+    departure_city_id: "",
+    arrival_city_id: "",
+    distance: "",
+    price: "",
   });
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    const { name, value, type } = e.target;
+    setForm({
+      ...form,
+      [name]: type === "number" ? Number(value) : value,
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.post(route('routes.store'), form);
+    Inertia.post(route("routes.store"), form);
   };
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 3, maxWidth: 500, mx: 'auto' }}>
+      <Box sx={{ p: 3, maxWidth: 500, mx: "auto" }}>
         <Typography variant="h4" gutterBottom>
-          Créer une route
+          Créer un trajet
         </Typography>
 
         <Box
           component="form"
           onSubmit={handleSubmit}
-          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
           {/* Ville de départ */}
           <FormControl fullWidth>
@@ -52,7 +56,7 @@ export default function Create({ cities }) {
               onChange={handleChange}
               required
             >
-              {cities.map(city => (
+              {cities.map((city) => (
                 <MenuItem key={city.id} value={city.id}>
                   {city.name}
                 </MenuItem>
@@ -71,7 +75,7 @@ export default function Create({ cities }) {
               onChange={handleChange}
               required
             >
-              {cities.map(city => (
+              {cities.map((city) => (
                 <MenuItem key={city.id} value={city.id}>
                   {city.name}
                 </MenuItem>
@@ -87,6 +91,18 @@ export default function Create({ cities }) {
             value={form.distance}
             onChange={handleChange}
             required
+            inputProps={{ min: 0 }}
+          />
+
+          {/* Prix */}
+          <TextField
+            label="Prix (FCFA)"
+            name="price"
+            type="number"
+            value={form.price}
+            onChange={handleChange}
+            required
+            inputProps={{ min: 0 }}
           />
 
           <Button type="submit" variant="contained" color="primary">
