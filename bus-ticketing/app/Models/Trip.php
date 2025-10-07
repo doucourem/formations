@@ -18,21 +18,47 @@ class Trip extends Model
         'seats_available',
     ];
 
-    // Relation avec le bus
+    protected $casts = [
+        'departure_at' => 'datetime',
+        'arrival_at' => 'datetime',
+    ];
+
+    // 🚍 Relation avec le bus
     public function bus()
     {
         return $this->belongsTo(Bus::class);
     }
 
-    // Relation avec la route
+    // 🗺️ Relation avec la route
     public function route()
     {
         return $this->belongsTo(Route::class);
     }
 
-    // ⚡ Relation avec les billets
+    // 🎫 Relation avec les billets
     public function tickets()
     {
         return $this->hasMany(Ticket::class);
+    }
+
+    // 🛑 Relation avec les arrêts intermédiaires
+    public function stops()
+    {
+        return $this->hasMany(TripStop::class);
+    }
+
+    // 🕒 Formattage automatique des dates
+    public function getFormattedDepartureAttribute()
+    {
+        return $this->departure_at
+            ? $this->departure_at->format('d/m/Y H:i')
+            : null;
+    }
+
+    public function getFormattedArrivalAttribute()
+    {
+        return $this->arrival_at
+            ? $this->arrival_at->format('d/m/Y H:i')
+            : null;
     }
 }

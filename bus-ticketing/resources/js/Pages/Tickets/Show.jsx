@@ -17,6 +17,33 @@ export default function Show({ ticket }) {
   }
 
   const handleBack = () => Inertia.visit(route("ticket.index"));
+  const handleEdit = () => Inertia.visit(route("ticket.edit", ticket.id));
+
+  const translateStatus = (status) => {
+    switch (status) {
+      case "paid":
+        return "Payé";
+      case "cancelled":
+        return "Annulé";
+      case "reserved":
+        return "Réservé";
+      default:
+        return status;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "paid":
+        return "green";
+      case "cancelled":
+        return "red";
+      case "reserved":
+        return "orange";
+      default:
+        return "black";
+    }
+  };
 
   return (
     <GuestLayout>
@@ -27,60 +54,64 @@ export default function Show({ ticket }) {
 
         <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 2 }}>
           <Stack spacing={2}>
+            {/* Infos client */}
+            <Typography variant="h6">Informations client</Typography>
             <Typography variant="body1">
-              <strong>Nom du client :</strong> {ticket.client_name}
+              <strong>Nom :</strong> {ticket.client_name || "—"}
             </Typography>
-
             <Typography variant="body1">
               <strong>NINA :</strong> {ticket.client_nina || "—"}
             </Typography>
 
+            <Divider />
+
+            {/* Infos utilisateur/vendeur */}
+            <Typography variant="h6">Informations utilisateur / vendeur</Typography>
+            <Typography variant="body1">
+              <strong>Nom :</strong> {ticket.user?.name || "—"}
+            </Typography>
+            <Typography variant="body1">
+              <strong>Email :</strong> {ticket.user?.email || "—"}
+            </Typography>
+            <Typography variant="body1">
+              <strong>Agence :</strong> {ticket.user?.agency?.name || "—"}
+            </Typography>
+
+            <Divider />
+
+            {/* Infos ticket */}
+            <Typography variant="h6">Informations du ticket</Typography>
             <Typography variant="body1">
               <strong>Siège :</strong> {ticket.seat_number || "—"}
             </Typography>
-
             <Typography variant="body1">
-              <strong>Prix :</strong> {ticket.price} FCFA
+              <strong>Prix :</strong> {ticket.price || "—"} FCFA
             </Typography>
-
             <Typography variant="body1">
               <strong>Statut :</strong>{" "}
-              <span
-                style={{
-                  color:
-                    ticket.status === "paid"
-                      ? "green"
-                      : ticket.status === "cancelled"
-                      ? "red"
-                      : "orange",
-                  fontWeight: 600,
-                }}
-              >
-                {ticket.status === "paid"
-                  ? "Payé"
-                  : ticket.status === "cancelled"
-                  ? "Annulé"
-                  : "Réservé"}
+              <span style={{ color: getStatusColor(ticket.status), fontWeight: 600 }}>
+                {translateStatus(ticket.status)}
               </span>
             </Typography>
 
             <Divider />
 
+            {/* Infos voyage */}
+            <Typography variant="h6">Informations voyage</Typography>
             <Typography variant="body1">
               <strong>Voyage :</strong>{" "}
               {ticket.trip?.route
-                ? `${ticket.trip.route.departureCity?.name} → ${ticket.trip.route.arrivalCity?.name}`
+                ? `${ticket.trip.route.departureCity} → ${ticket.trip.route.arrivalCity}`
                 : "Non spécifié"}
             </Typography>
-
             <Typography variant="body1">
-              <strong>Départ :</strong>{" "}
-              {ticket.trip?.departure_at || "Non défini"}
+              <strong>Départ :</strong> {ticket.trip?.departure_time || "Non défini"}
             </Typography>
-
             <Typography variant="body1">
-              <strong>Bus :</strong>{" "}
-              {ticket.trip?.bus?.registration_number || "—"}
+              <strong>Arrivée :</strong> {ticket.trip?.arrival_time || "Non défini"}
+            </Typography>
+            <Typography variant="body1">
+              <strong>Bus :</strong> {ticket.trip?.bus?.plate_number || "—"}
             </Typography>
           </Stack>
 
@@ -89,13 +120,7 @@ export default function Show({ ticket }) {
               Retour
             </Button>
 
-            <Button
-              variant="contained"
-              color="success"
-              onClick={() =>
-                Inertia.visit(route("ticket.edit", ticket.id))
-              }
-            >
+            <Button variant="contained" color="success" onClick={handleEdit}>
               Modifier
             </Button>
           </Box>

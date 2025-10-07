@@ -167,15 +167,51 @@ class TicketController extends Controller
                          ->with('success', 'Ticket supprimé avec succès ✅');
     }
 
-    public function show($id)
-    {
-        $ticket = Ticket::with(['trip.route', 'trip.bus', 'user'])
-            ->findOrFail($id);
-    
-        return Inertia::render('Tickets/Show', [
-            'ticket' => $ticket,
-        ]);
-    }
-    
+public function show($id)
+{
+    $ticket = Ticket::with([
+        'trip.route.departureCity',
+        'trip.route.arrivalCity',
+        'trip.bus',
+        'user'
+    ])->findOrFail($id);
+
+    return Inertia::render('Tickets/Show', [
+        'ticket' => [
+            'id' => $ticket->id,
+            'seat_number' => $ticket->seat_number,
+            'client_name' => $ticket->client_name,
+            'client_nina' => $ticket->client_nina,
+            'status' => $ticket->status,
+            'price' => $ticket->price,
+            'user' => $ticket->user ? [
+                'id' => $ticket->user->id,
+                'name' => $ticket->user->name,
+                'email' => $ticket->user->email,
+            ] : null,
+            'trip' => $ticket->trip ? [
+                'id' => $ticket->trip->id,
+                'departure_time' => $ticket->trip->departure_at
+                    ? \Carbon\Carbon::parse($ticket->trip->departure_at)->format('d/m/Y H:i')
+                    : null,
+                'arrival_time' => $ticket->trip->arrival_at
+                    ? \Carbon\Carbon::parse($ticket->trip->arrival_at)->format('d/m/Y H:i')
+                    : null,
+                'bus' => $ticket->trip->bus ? [
+                    'id' => $ticket->trip->bus->id,
+                    'plate_number' => $ticket->trip->bus->registration_number,
+                ] : null,
+                'route' => $ticket->trip->route ? [
+                    'id' => $ticket->trip->route->id,
+                    'departureCity' => $ticket->trip->route->departureCity?->name,
+                    'arrivalCity' => $ticket->trip->route->arrivalCity?->name,
+                ] : null,
+            ] : null,
+        ],
+    ]);
+}
+
+
+
 
 }

@@ -51,6 +51,7 @@ export default function Index({ initialRoutes, initialFilters }) {
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
+        {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4">Routes</Typography>
           <Button
@@ -63,6 +64,7 @@ export default function Index({ initialRoutes, initialFilters }) {
           </Button>
         </Stack>
 
+        {/* Filtrage */}
         <Stack direction="row" spacing={2} alignItems="center" mb={2}>
           <TextField
             label="Par page"
@@ -77,6 +79,7 @@ export default function Index({ initialRoutes, initialFilters }) {
           </Button>
         </Stack>
 
+        {/* Tableau */}
         <TableContainer component={Paper}>
           <Table>
             <TableHead sx={{ bgcolor: '#1976d2' }}>
@@ -84,6 +87,8 @@ export default function Index({ initialRoutes, initialFilters }) {
                 <TableCell>ID</TableCell>
                 <TableCell>Ville de départ</TableCell>
                 <TableCell>Ville d'arrivée</TableCell>
+                <TableCell>Prix (FCFA)</TableCell>
+                <TableCell>Distance (km)</TableCell>
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -93,6 +98,8 @@ export default function Index({ initialRoutes, initialFilters }) {
                   <TableCell>{routeItem.id}</TableCell>
                   <TableCell>{routeItem.departureCity?.name || '-'}</TableCell>
                   <TableCell>{routeItem.arrivalCity?.name || '-'}</TableCell>
+                  <TableCell>{routeItem.price || '-'}</TableCell>
+                  <TableCell>{routeItem.distance || '-'}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
                       <IconButton

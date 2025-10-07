@@ -28,4 +28,9 @@ class Route extends Model
     {
         return $this->belongsTo(City::class, 'arrival_city_id');
     }
+
+    public function stops()
+{
+    return $this->hasMany(RouteStop::class)->orderBy('order');
+}
 }

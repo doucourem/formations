@@ -69,52 +69,58 @@ class TripController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'route_id' => ['required', 'exists:routes,id'],
-            'bus_id' => ['required', 'exists:buses,id'],
-            'departure_at' => ['required', 'date', 'after_or_equal:today'],
-            'arrival_at' => ['required', 'date', 'after:departure_at'],
-            'base_price' => ['required', 'numeric', 'min:0'],
-            'seats_available' => ['required', 'integer', 'min:0'],
-            'stops' => ['nullable', 'array'],
-            'stops.*.city_id' => ['nullable', 'exists:cities,id'],
-            'stops.*.distance_from_start' => ['nullable', 'numeric', 'min:0'],
-            'stops.*.partial_price' => ['nullable', 'numeric', 'min:0'],
+
+
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'route_id' => ['required', 'exists:routes,id'],
+        'bus_id' => ['required', 'exists:buses,id'],
+        'departure_at' => ['required', 'date', 'after_or_equal:today'],
+        'arrival_at' => ['required', 'date', 'after:departure_at'],
+        'base_price' => ['required', 'numeric', 'min:0'],
+        'seats_available' => ['required', 'integer', 'min:0'],
+        'stops' => ['nullable', 'array'],
+        'stops.*.city_id' => ['nullable', 'exists:cities,id'],
+        'stops.*.distance_from_start' => ['nullable', 'numeric', 'min:0'],
+        'stops.*.partial_price' => ['nullable', 'numeric', 'min:0'],
+    ]);
+
+    DB::beginTransaction();
+
+    try {
+        $trip = Trip::create([
+            'route_id' => $validated['route_id'],
+            'bus_id' => $validated['bus_id'],
+            'departure_at' => $validated['departure_at'],
+            'arrival_at' => $validated['arrival_at'],
+            'base_price' => $validated['base_price'],
+            'seats_available' => $validated['seats_available'],
         ]);
 
-        DB::beginTransaction();
-        try {
-            $trip = Trip::create([
-                'route_id' => $validated['route_id'],
-                'bus_id' => $validated['bus_id'],
-                'departure_at' => $validated['departure_at'],
-                'arrival_at' => $validated['arrival_at'],
-                'base_price' => $validated['base_price'],
-                'seats_available' => $validated['seats_available'],
-            ]);
-
-            if (!empty($validated['stops'])) {
-                foreach ($validated['stops'] as $stop) {
-                    if (!empty($stop['city_id'])) {
-                        TripStop::create([
-                            'trip_id' => $trip->id,
-                            'city_id' => $stop['city_id'],
-                            'distance_from_start' => $stop['distance_from_start'] ?? 0,
-                            'partial_price' => $stop['partial_price'] ?? 0,
-                        ]);
-                    }
+        if (!empty($validated['stops'])) {
+            foreach ($validated['stops'] as $stop) {
+                if (!empty($stop['city_id'])) {
+                    TripStop::create([
+                        'trip_id' => $trip->id,
+                        'city_id' => $stop['city_id'],
+                        'distance_from_start' => $stop['distance_from_start'] ?? 0,
+                        'partial_price' => $stop['partial_price'] ?? 0,
+                    ]);
                 }
             }
-
-            DB::commit();
-            return Redirect::route('trips.index')->with('success', 'Voyage créé avec succès.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return Redirect::back()->with('error', 'Erreur : ' . $e->getMessage())->withInput();
         }
+
+        DB::commit();
+        return Redirect::route('trips.index')->with('success', 'Voyage créé avec succès.');
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        return Redirect::back()
+            ->with('error', 'Erreur lors de la création du voyage : ' . $e->getMessage())
+            ->withInput();
     }
+}
+
 
     public function edit(Trip $trip)
     {

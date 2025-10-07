@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Route;
+use App\Models\RouteStop;
 use App\Models\City;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class RouteController extends Controller
 {
-    // Afficher la liste des routes
+    // Liste des routes
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 20);
@@ -19,7 +21,6 @@ class RouteController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        // Générer l'URL d'édition et s'assurer que les villes ne sont pas null
         $routes->getCollection()->transform(function ($r) {
             $r->edit_url = route('routes.edit', $r->id);
             $r->departureCity = $r->departureCity ?? (object)['name' => '-'];
@@ -37,11 +38,13 @@ class RouteController extends Controller
     public function create()
     {
         $cities = City::orderBy('name')->get();
+
         return Inertia::render('Routes/Create', [
             'cities' => $cities,
         ]);
     }
 
+    // Enregistrer une nouvelle route + stops
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -49,18 +52,45 @@ class RouteController extends Controller
             'arrival_city_id' => 'required|exists:cities,id',
             'distance' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
+            'stops' => 'array',
+            'stops.*.city_id' => 'required|exists:cities,id',
+            'stops.*.order' => 'required|integer|min:1',
+            'stops.*.distance_from_start' => 'nullable|numeric|min:0',
+            'stops.*.partial_price' => 'nullable|numeric|min:0',
         ]);
-    
-        Route::create($validated);
-    
-        return redirect()->route('routes.index')->with('success', 'Trajet créé avec succès.');
+
+        DB::transaction(function () use ($validated) {
+            // Créer la route principale
+            $route = Route::create([
+                'departure_city_id' => $validated['departure_city_id'],
+                'arrival_city_id' => $validated['arrival_city_id'],
+                'distance' => $validated['distance'],
+                'price' => $validated['price'],
+            ]);
+
+            // Créer les arrêts s’ils existent
+            if (!empty($validated['stops'])) {
+                foreach ($validated['stops'] as $stop) {
+                    RouteStop::create([
+                        'route_id' => $route->id,
+                        'city_id' => $stop['city_id'],
+                        'order' => $stop['order'],
+                        'distance_from_start' => $stop['distance_from_start'] ?? null,
+                        'partial_price' => $stop['partial_price'] ?? null,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('routes.index')->with('success', 'Itinéraire créé avec succès ✅');
     }
-    
 
     // Formulaire d'édition
     public function edit(Route $route)
     {
         $cities = City::orderBy('name')->get();
+
+        $route->load('stops.city');
 
         return Inertia::render('Routes/Edit', [
             'routeData' => $route,
@@ -68,27 +98,49 @@ class RouteController extends Controller
         ]);
     }
 
-    // Mettre à jour une route
+    // Mise à jour d'une route + stops
     public function update(Request $request, $id)
-{
-    $validated = $request->validate([
-        'departure_city_id' => 'required|exists:cities,id|different:arrival_city_id',
-        'arrival_city_id' => 'required|exists:cities,id',
-        'distance' => 'required|numeric|min:0',
-        'price' => 'required|numeric|min:0',
-    ]);
+    {
+        $validated = $request->validate([
+            'departure_city_id' => 'required|exists:cities,id|different:arrival_city_id',
+            'arrival_city_id' => 'required|exists:cities,id',
+            'distance' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+            'stops' => 'array',
+            'stops.*.city_id' => 'required|exists:cities,id',
+            'stops.*.order' => 'required|integer|min:1',
+            'stops.*.distance_from_start' => 'nullable|numeric|min:0',
+            'stops.*.partial_price' => 'nullable|numeric|min:0',
+        ]);
 
-    $route = Route::findOrFail($id);
-    $route->update($validated);
+        DB::transaction(function () use ($validated, $id) {
+            $route = Route::findOrFail($id);
+            $route->update($validated);
 
-    return redirect()->route('routes.index')->with('success', 'Trajet mis à jour avec succès.');
-}
+            // Supprimer les anciens arrêts
+            $route->stops()->delete();
 
+            // Recréer les nouveaux arrêts
+            if (!empty($validated['stops'])) {
+                foreach ($validated['stops'] as $stop) {
+                    RouteStop::create([
+                        'route_id' => $route->id,
+                        'city_id' => $stop['city_id'],
+                        'order' => $stop['order'],
+                        'distance_from_start' => $stop['distance_from_start'] ?? null,
+                        'partial_price' => $stop['partial_price'] ?? null,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('routes.index')->with('success', 'Itinéraire mis à jour avec succès ✅');
+    }
 
     // Supprimer une route
     public function destroy(Route $route)
     {
         $route->delete();
-        return redirect()->route('routes.index')->with('success', 'Route supprimée ✅');
+        return redirect()->route('routes.index')->with('success', 'Itinéraire supprimé ✅');
     }
 }

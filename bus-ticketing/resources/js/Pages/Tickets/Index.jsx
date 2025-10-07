@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import GuestLayout from '@/Layouts/GuestLayout';
 import {
@@ -14,6 +14,11 @@ import {
   Typography,
   IconButton,
   Tooltip,
+  Select,
+  MenuItem,
+  TextField,
+  Stack,
+  Chip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -21,6 +26,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 
 export default function Index({ tickets }) {
   const [currentTickets, setCurrentTickets] = useState(tickets || { data: [], meta: {}, links: [] });
+  const [filterStatus, setFilterStatus] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handlePage = (url) => {
     if (!url) return;
@@ -28,15 +35,6 @@ export default function Index({ tickets }) {
       preserveState: true,
       onSuccess: page => setCurrentTickets(page.props.tickets || { data: [], meta: {}, links: [] }),
     });
-  };
-
-  const translateStatus = (status) => {
-    switch(status) {
-      case 'reserved': return 'Réservé';
-      case 'paid': return 'Payé';
-      case 'canceled': return 'Annulé';
-      default: return status;
-    }
   };
 
   const handleDelete = (id) => {
@@ -52,20 +50,57 @@ export default function Index({ tickets }) {
     }
   };
 
+  const translateStatus = (status) => {
+    switch(status) {
+      case 'reserved': return 'Réservé';
+      case 'paid': return 'Payé';
+      case 'cancelled': return 'Annulé';
+      default: return status;
+    }
+  };
+
+  // Filtrage et recherche
+  const filteredTickets = useMemo(() => {
+    return (currentTickets.data || []).filter(ticket => {
+      const matchesStatus = filterStatus ? ticket.status === filterStatus : true;
+      const matchesSearch = searchQuery
+        ? ticket.client_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      return matchesStatus && matchesSearch;
+    });
+  }, [currentTickets.data, filterStatus, searchQuery]);
+
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h4">Tickets</Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => Inertia.get(route('ticket.create'))}
-          >
+          <Button variant="contained" color="primary" onClick={() => Inertia.get(route('ticket.create'))}>
             Créer un ticket
           </Button>
-        </Box>
+        </Stack>
+
+        {/* Filtres */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
+          <TextField
+            label="Recherche client"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            variant="outlined"
+            size="small"
+          />
+          <Select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            displayEmpty
+            size="small"
+          >
+            <MenuItem value="">Tous statuts</MenuItem>
+            <MenuItem value="reserved">Réservé</MenuItem>
+            <MenuItem value="paid">Payé</MenuItem>
+            <MenuItem value="cancelled">Annulé</MenuItem>
+          </Select>
+        </Stack>
 
         {/* Table */}
         <TableContainer component={Paper}>
@@ -81,9 +116,8 @@ export default function Index({ tickets }) {
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
-
             <TableBody>
-              {(currentTickets.data || []).map(ticket => (
+              {filteredTickets.map(ticket => (
                 <TableRow key={ticket.id}>
                   <TableCell>{ticket.id}</TableCell>
                   <TableCell>
@@ -96,39 +130,35 @@ export default function Index({ tickets }) {
                   </TableCell>
                   <TableCell>{ticket.seat_number || '-'}</TableCell>
                   <TableCell>{ticket.price || '-'}</TableCell>
-                  <TableCell>{translateStatus(ticket.status)}</TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Tooltip title="Voir le voyage">
-                        <IconButton
-                          color="info"
-                          size="small"
-                          onClick={() => Inertia.get(route('ticket.show', ticket.id))}
-                        >
+                    <Chip
+                      label={translateStatus(ticket.status)}
+                      color={
+                        ticket.status === 'paid' ? 'success' :
+                        ticket.status === 'cancelled' ? 'error' :
+                        'warning'
+                      }
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={1}>
+                      <Tooltip title="Voir le ticket">
+                        <IconButton color="info" size="small" onClick={() => Inertia.get(route('ticket.show', ticket.id))}>
                           <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
-
                       <Tooltip title="Éditer">
-                        <IconButton
-                          color="primary"
-                          size="small"
-                          onClick={() => Inertia.get(route('ticket.edit', ticket.id))}
-                        >
+                        <IconButton color="primary" size="small" onClick={() => Inertia.get(route('ticket.edit', ticket.id))}>
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
-
                       <Tooltip title="Supprimer">
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => handleDelete(ticket.id)}
-                        >
+                        <IconButton color="error" size="small" onClick={() => handleDelete(ticket.id)}>
                           <DeleteIcon />
                         </IconButton>
                       </Tooltip>
-                    </Box>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}

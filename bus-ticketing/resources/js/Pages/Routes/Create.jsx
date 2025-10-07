@@ -10,7 +10,10 @@ import {
   FormControl,
   InputLabel,
   Select,
+  IconButton,
+  Stack,
 } from "@mui/material";
+import { Add, Delete } from "@mui/icons-material";
 
 export default function Create({ cities }) {
   const [form, setForm] = useState({
@@ -18,6 +21,7 @@ export default function Create({ cities }) {
     arrival_city_id: "",
     distance: "",
     price: "",
+    stops: [], // Liste des arrêts intermédiaires
   });
 
   const handleChange = (e) => {
@@ -28,6 +32,27 @@ export default function Create({ cities }) {
     });
   };
 
+  const handleAddStop = () => {
+    setForm({
+      ...form,
+      stops: [
+        ...form.stops,
+        { city_id: "", order: form.stops.length + 1, distance_from_start: "", partial_price: "" },
+      ],
+    });
+  };
+
+  const handleStopChange = (index, field, value) => {
+    const updatedStops = [...form.stops];
+    updatedStops[index][field] = field === "order" ? Number(value) : value;
+    setForm({ ...form, stops: updatedStops });
+  };
+
+  const handleRemoveStop = (index) => {
+    const updatedStops = form.stops.filter((_, i) => i !== index);
+    setForm({ ...form, stops: updatedStops });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     Inertia.post(route("routes.store"), form);
@@ -35,9 +60,9 @@ export default function Create({ cities }) {
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 3, maxWidth: 500, mx: "auto" }}>
+      <Box sx={{ p: 3, maxWidth: 700, mx: "auto" }}>
         <Typography variant="h4" gutterBottom>
-          Créer un trajet
+          Créer un itinéraire
         </Typography>
 
         <Box
@@ -83,9 +108,9 @@ export default function Create({ cities }) {
             </Select>
           </FormControl>
 
-          {/* Distance */}
+          {/* Distance totale */}
           <TextField
-            label="Distance (km)"
+            label="Distance totale (km)"
             name="distance"
             type="number"
             value={form.distance}
@@ -94,9 +119,9 @@ export default function Create({ cities }) {
             inputProps={{ min: 0 }}
           />
 
-          {/* Prix */}
+          {/* Prix total */}
           <TextField
-            label="Prix (FCFA)"
+            label="Prix total (FCFA)"
             name="price"
             type="number"
             value={form.price}
@@ -105,8 +130,81 @@ export default function Create({ cities }) {
             inputProps={{ min: 0 }}
           />
 
+          {/* Arrêts intermédiaires */}
+          <Typography variant="h6" mt={2}>
+            Arrêts intermédiaires
+          </Typography>
+
+          {form.stops.map((stop, index) => (
+            <Box
+              key={index}
+              sx={{
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <FormControl sx={{ flex: 1, minWidth: 150 }}>
+                <InputLabel id={`city-${index}`}>Ville</InputLabel>
+                <Select
+                  labelId={`city-${index}`}
+                  value={stop.city_id}
+                  label="Ville"
+                  onChange={(e) => handleStopChange(index, "city_id", e.target.value)}
+                  required
+                >
+                  {cities.map((city) => (
+                    <MenuItem key={city.id} value={city.id}>
+                      {city.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                label="Ordre"
+                type="number"
+                value={stop.order}
+                onChange={(e) => handleStopChange(index, "order", e.target.value)}
+                sx={{ width: 90 }}
+              />
+
+              <TextField
+                label="Distance (km)"
+                type="number"
+                value={stop.distance_from_start}
+                onChange={(e) => handleStopChange(index, "distance_from_start", e.target.value)}
+                sx={{ width: 120 }}
+              />
+
+              <TextField
+                label="Prix partiel (FCFA)"
+                type="number"
+                value={stop.partial_price}
+                onChange={(e) => handleStopChange(index, "partial_price", e.target.value)}
+                sx={{ width: 150 }}
+              />
+
+              <IconButton color="error" onClick={() => handleRemoveStop(index)}>
+                <Delete />
+              </IconButton>
+            </Box>
+          ))}
+
+          <Stack direction="row" justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<Add />}
+              onClick={handleAddStop}
+            >
+              Ajouter un arrêt
+            </Button>
+          </Stack>
+
           <Button type="submit" variant="contained" color="primary">
-            Créer
+            Enregistrer l'itinéraire
           </Button>
         </Box>
       </Box>

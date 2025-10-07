@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   TextField,
-  MenuItem,
   Table,
   TableBody,
   TableCell,
@@ -21,14 +20,13 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-export default function Index({ buses, filters, agencies }) {
+export default function Index({ buses, filters }) {
   const [parPage, setParPage] = useState(filters?.per_page || 20);
-  const [agenceId, setAgenceId] = useState(filters?.agency_id || '');
 
   const handleFilter = () => {
     Inertia.get(
       route('buses.index'),
-      { per_page: parPage, agency_id: agenceId },
+      { per_page: parPage },
       { preserveState: true }
     );
   };
@@ -42,7 +40,7 @@ export default function Index({ buses, filters, agencies }) {
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
-        {/* Header avec titre + bouton créer */}
+        {/* Header */}
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           justifyContent="space-between"
@@ -62,22 +60,7 @@ export default function Index({ buses, filters, agencies }) {
 
         {/* Filtrage */}
         <Paper sx={{ p: 2, mb: 3 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              select
-              label="Agence"
-              value={agenceId}
-              onChange={(e) => setAgenceId(e.target.value)}
-              sx={{ minWidth: 200 }}
-            >
-              <MenuItem value="">Toutes les agences</MenuItem>
-              {agencies?.map((agency) => (
-                <MenuItem key={agency.id} value={agency.id}>
-                  {agency.name}
-                </MenuItem>
-              ))}
-            </TextField>
-
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
             <TextField
               label="Par page"
               type="number"
@@ -86,7 +69,6 @@ export default function Index({ buses, filters, agencies }) {
               onChange={(e) => setParPage(e.target.value)}
               sx={{ width: 120 }}
             />
-
             <Button variant="contained" color="primary" onClick={handleFilter}>
               Filtrer
             </Button>
@@ -99,9 +81,9 @@ export default function Index({ buses, filters, agencies }) {
             <TableHead sx={{ bgcolor: '#1976d2' }}>
               <TableRow>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Modèle</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Places</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Agence</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nom </TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nombre de places</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Immatriculation</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -116,8 +98,8 @@ export default function Index({ buses, filters, agencies }) {
                 >
                   <TableCell>{bus.id}</TableCell>
                   <TableCell>{bus.model}</TableCell>
-                  <TableCell>{bus.seats}</TableCell>
-                  <TableCell>{bus.agency?.name ?? '-'}</TableCell>
+                  <TableCell>{bus.capacity}</TableCell>
+                  <TableCell>{bus.registration_number || '-'}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
                       <IconButton

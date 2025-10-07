@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
-import GuestLayout from '@/Layouts/GuestLayout';
+import React, { useState, useEffect } from "react";
+import { Inertia } from "@inertiajs/inertia";
+import GuestLayout from "@/Layouts/GuestLayout";
 import {
   Box,
   Button,
@@ -10,46 +10,59 @@ import {
   FormControl,
   InputLabel,
   Select,
-} from '@mui/material';
+} from "@mui/material";
 
 export default function TicketForm({ ticket, trips }) {
   const [form, setForm] = useState({
-    trip_id: ticket?.trip_id || '',
-    client_name: ticket?.client_name || '',
-    client_nina: ticket?.client_nina || '',
-    seat_number: ticket?.seat_number || '',
-    price: ticket?.price || '',
-    status: ticket?.status || 'booked',
+    trip_id: ticket?.trip_id || "",
+    stop_id: ticket?.stop_id || "",
+    client_name: ticket?.client_name || "",
+    client_nina: ticket?.client_nina || "",
+    seat_number: ticket?.seat_number || "",
+    price: ticket?.price || "",
+    status: ticket?.status || "booked",
   });
+
+  const [stops, setStops] = useState([]); // stops pour le voyage sélectionné
+
+  // Quand le voyage change → charger ses arrêts
+  useEffect(() => {
+    const selectedTrip = trips.find((t) => t.id === form.trip_id);
+    if (selectedTrip && selectedTrip.route?.stops) {
+      setStops(selectedTrip.route.stops);
+    } else {
+      setStops([]);
+    }
+  }, [form.trip_id, trips]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     setForm({
       ...form,
-      [name]: type === 'number' ? Number(value) : value,
+      [name]: type === "number" ? Number(value) : value,
     });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (ticket?.id) {
-      Inertia.put(route('ticket.update', ticket.id), form);
+      Inertia.put(route("ticket.update", ticket.id), form);
     } else {
-      Inertia.post(route('ticket.store'), form);
+      Inertia.post(route("ticket.store"), form);
     }
   };
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 3, maxWidth: 500, mx: 'auto' }}>
+      <Box sx={{ p: 3, maxWidth: 500, mx: "auto" }}>
         <Typography variant="h4" gutterBottom>
-          {ticket?.id ? `Éditer le ticket #${ticket.id}` : 'Créer un ticket'}
+          {ticket?.id ? `Éditer le ticket #${ticket.id}` : "Créer un ticket"}
         </Typography>
 
         <Box
           component="form"
           onSubmit={handleSubmit}
-          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
           {/* Voyage */}
           <FormControl fullWidth>
@@ -57,19 +70,41 @@ export default function TicketForm({ ticket, trips }) {
             <Select
               labelId="trip-label"
               name="trip_id"
-              value={form.trip_id || ''}
+              value={form.trip_id || ""}
               label="Voyage"
               onChange={handleChange}
               required
             >
               {trips.map((t) => (
                 <MenuItem key={t.id} value={t.id}>
-                  {(t.route?.departureCity?.name || '-') +
-                    ' → ' +
-                    (t.route?.arrivalCity?.name || '-') +
+                  {(t.route?.departureCity?.name || "-") +
+                    " → " +
+                    (t.route?.arrivalCity?.name || "-") +
                     ` (${t.departure_at})`}
                 </MenuItem>
               ))}
+            </Select>
+          </FormControl>
+
+          {/* Point d'arrêt */}
+          <FormControl fullWidth disabled={!form.trip_id}>
+            <InputLabel id="stop-label">Point d’arrêt</InputLabel>
+            <Select
+              labelId="stop-label"
+              name="stop_id"
+              value={form.stop_id || ""}
+              label="Point d’arrêt"
+              onChange={handleChange}
+            >
+              {stops.length > 0 ? (
+                stops.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {s.city?.name || "—"} ({s.distance_from_start} km)
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem disabled>Aucun arrêt disponible</MenuItem>
+              )}
             </Select>
           </FormControl>
 
@@ -122,7 +157,7 @@ export default function TicketForm({ ticket, trips }) {
           </FormControl>
 
           <Button type="submit" variant="contained" color="success">
-            {ticket?.id ? 'Mettre à jour' : 'Créer'}
+            {ticket?.id ? "Mettre à jour" : "Créer"}
           </Button>
         </Box>
       </Box>
