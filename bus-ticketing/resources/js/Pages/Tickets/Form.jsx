@@ -13,26 +13,21 @@ import {
 } from "@mui/material";
 
 export default function TicketForm({ ticket, trips }) {
-  // 🌟 Initialisation du formulaire
   const [form, setForm] = useState({
     trip_id: ticket?.trip_id || "",
-    stop_id: ticket?.stop_id || "", // 🔹 initialisé
+    stop_id: ticket?.stop_id || "",
     client_name: ticket?.client_name || "",
-    client_nina: ticket?.client_nina || "",
     seat_number: ticket?.seat_number || "",
-    price: ticket?.price || "",
-    status: ticket?.status || "booked",
+    status: ticket?.status || "reserved",
   });
 
-  const [stops, setStops] = useState([]); // stops pour le voyage sélectionné
+  const [stops, setStops] = useState([]);
 
-  // 🌟 Charger les stops quand le trip change ou au montage
   useEffect(() => {
     const selectedTrip = trips.find((t) => t.id === form.trip_id);
     setStops(selectedTrip?.route?.stops || []);
   }, [form.trip_id, trips]);
 
-  // 🌟 Gestion des champs
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     setForm({
@@ -41,7 +36,6 @@ export default function TicketForm({ ticket, trips }) {
     });
   };
 
-  // 🌟 Soumission
   const handleSubmit = (e) => {
     e.preventDefault();
     if (ticket?.id) {
@@ -107,7 +101,7 @@ export default function TicketForm({ ticket, trips }) {
             </Select>
           </FormControl>
 
-          {/* Infos client */}
+          {/* Nom du client */}
           <TextField
             label="Nom du client"
             name="client_name"
@@ -116,27 +110,12 @@ export default function TicketForm({ ticket, trips }) {
             required
           />
 
-          <TextField
-            label="NINA"
-            name="client_nina"
-            value={form.client_nina}
-            onChange={handleChange}
-          />
-
+          {/* Siège */}
           <TextField
             label="Siège"
             name="seat_number"
             value={form.seat_number}
             onChange={handleChange}
-          />
-
-          <TextField
-            label="Prix"
-            name="price"
-            type="number"
-            value={form.price}
-            onChange={handleChange}
-            required
           />
 
           {/* Statut */}

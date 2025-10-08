@@ -87,7 +87,7 @@ class TripController extends Controller
 
     public function edit(Trip $trip)
     {
-        $routes = TripRoute::with(['departureCity', 'arrivalCity'])
+        $routes = TripRoute::with(['departureCity:id,name', 'arrivalCity:id,name'])
             ->get()
             ->map(fn($route) => [
                 'id' => $route->id,
