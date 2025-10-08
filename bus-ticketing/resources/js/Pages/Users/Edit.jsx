@@ -13,13 +13,15 @@ import {
 } from "@mui/material";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Edit({ user }) {
+export default function Edit({ user, agences }) {
   const [form, setForm] = useState({
+    prenom: user.prenom || "",
     name: user.name || "",
     email: user.email || "",
     password: "",
     password_confirmation: "",
     role: user.role || "",
+    agence_id: user.agence_id || "",
   });
 
   const handleChange = (e) =>
@@ -47,6 +49,16 @@ export default function Edit({ user }) {
           </Typography>
 
           <form onSubmit={handleSubmit}>
+            <TextField
+              label="Prénom"
+              name="prenom"
+              value={form.prenom}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+            />
+
             <TextField
               label="Nom"
               name="name"
@@ -103,6 +115,25 @@ export default function Edit({ user }) {
                 <MenuItem value="manager">Manager</MenuItem>
                 <MenuItem value="agent">Agent</MenuItem>
                 <MenuItem value="chauffeur">Chauffeur</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* Sélecteur d'agence */}
+            <FormControl fullWidth margin="normal" required>
+              <InputLabel id="agence-label">Agence</InputLabel>
+              <Select
+                labelId="agence-label"
+                name="agence_id"
+                value={form.agence_id}
+                label="Agence"
+                onChange={handleChange}
+              >
+                <MenuItem value="">Sélectionner une agence</MenuItem>
+                {agences.map((agence) => (
+                  <MenuItem key={agence.id} value={agence.id}>
+                    {agence.name}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
 

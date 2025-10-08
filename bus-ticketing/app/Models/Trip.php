@@ -14,8 +14,6 @@ class Trip extends Model
         'bus_id',
         'departure_at',
         'arrival_at',
-        'base_price',
-        'seats_available',
     ];
 
     protected $casts = [
@@ -39,12 +37,6 @@ class Trip extends Model
     public function tickets()
     {
         return $this->hasMany(Ticket::class);
-    }
-
-    // 🛑 Relation avec les arrêts intermédiaires
-    public function stops()
-    {
-        return $this->hasMany(TripStop::class);
     }
 
     // 🕒 Formattage automatique des dates

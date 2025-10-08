@@ -131,8 +131,8 @@ export default function Index({ initialTrips, initialFilters, buses = [], routes
                   <TableCell>{trip.bus?.model || '-'}</TableCell>
                   <TableCell>{formatDateFR(trip.departure_at)}</TableCell>
                   <TableCell>{formatDateFR(trip.arrival_at)}</TableCell>
-                  <TableCell>{trip.base_price} FCFA</TableCell>
-                  <TableCell>{trip.seats_available}</TableCell>
+                  <TableCell>{trip.route?.price} FCFA</TableCell>
+                  <TableCell>{trip.bus?.capacity}</TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={1} justifyContent="center">
                       {/* Voir détails */}

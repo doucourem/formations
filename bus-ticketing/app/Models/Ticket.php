@@ -28,4 +28,12 @@ class Ticket extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+
+ public function stop()
+{
+    return $this->belongsTo(RouteStop::class, 'stop_id');
+}
+
+
 }
