@@ -69,12 +69,13 @@ export default function TicketForm({ ticket, trips }) {
               required
             >
               {trips.map((t) => (
-                <MenuItem key={t.id} value={t.id}>
-                  {(t.route?.departureCity?.name || "-") +
-                    " → " +
-                    (t.route?.arrivalCity?.name || "-") +
-                    ` (${t.departure_at})`}
-                </MenuItem>
+              <MenuItem key={t.id} value={t.id}>
+  {(t.route?.departureCity?.name || "-") +
+    " → " +
+    (t.route?.arrivalCity?.name || "-") +
+    ` (Départ : ${t.departure_at}, Arrivée : ${t.arrival_at})`}
+</MenuItem>
+
               ))}
             </Select>
           </FormControl>

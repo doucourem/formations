@@ -17,27 +17,41 @@ import { Inertia } from "@inertiajs/inertia";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import GuestLayout from "@/Layouts/GuestLayout";
+
+// Icônes
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import RouteIcon from "@mui/icons-material/Route";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { TripPDFDownload } from "@/Components/TripPDF";
 
-export default function Show({ trip }) {
+export default function TripShow({ trip }) {
   if (!trip) {
-    return <Typography>Chargement du trajet...</Typography>;
+    return (
+      <GuestLayout>
+        <Typography sx={{ p: 3 }}>Chargement du trajet...</Typography>
+      </GuestLayout>
+    );
   }
 
   const formatDateFR = (date) => {
     if (!date) return "-";
-    return format(new Date(date), "EEEE dd MMMM yyyy 'à' HH:mm", { locale: fr });
+    try {
+      return format(new Date(date), "EEEE dd MMMM yyyy 'à' HH:mm", { locale: fr });
+    } catch {
+      return date;
+    }
   };
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 3, maxWidth: 900, mx: "auto" }}>
+      <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
+        {/* En-tête */}
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-          <Typography variant="h4">Détails du trajet #{trip.id}</Typography>
+          <Typography variant="h4" fontWeight="bold">
+            Détails du trajet #{trip.id}
+          </Typography>
           <Button
             variant="outlined"
             startIcon={<ArrowBackIcon />}
@@ -47,18 +61,21 @@ export default function Show({ trip }) {
           </Button>
         </Stack>
 
+        {/* Informations principales */}
         <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 2, mb: 3 }}>
           <Stack spacing={2}>
             <Typography variant="h6" sx={{ display: "flex", alignItems: "center" }}>
               <RouteIcon sx={{ mr: 1, color: "primary.main" }} />
-              Route : {trip.route?.departureCity?.name || "-"} → {trip.route?.arrivalCity?.name || "-"}
+              Route : {trip.route?.departureCity?.name || "-"} →{" "}
+              {trip.route?.arrivalCity?.name || "-"}
             </Typography>
 
             <Divider />
 
             <Typography variant="h6" sx={{ display: "flex", alignItems: "center" }}>
               <DirectionsBusIcon sx={{ mr: 1, color: "primary.main" }} />
-              Bus : {trip.bus?.model || "-"} ({trip.bus?.registration_number || "N/A"})
+              Bus : {trip.bus?.model || "-"} (
+              {trip.bus?.registration_number || "N/A"})
             </Typography>
 
             <Divider />
@@ -77,42 +94,52 @@ export default function Show({ trip }) {
 
             <Typography variant="h6" sx={{ display: "flex", alignItems: "center" }}>
               <MonetizationOnIcon sx={{ mr: 1, color: "green" }} />
-              Prix de base : <strong>{trip.base_price} FCFA</strong>
+              Prix de base : <strong>{trip.route?.price} FCFA</strong>
             </Typography>
 
             <Typography variant="h6">
-              Places disponibles : <strong>{trip.seats_available}</strong>
+              Places disponibles :{" "}
+              <strong>{trip.bus?.capacity ?? "N/A"}</strong>
             </Typography>
           </Stack>
         </Paper>
 
         {/* Section Billets */}
         <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 2 }}>
-          <Typography variant="h5" gutterBottom>
-            Billets vendus
-          </Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h5" fontWeight="bold">
+              Billets vendus
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => Inertia.get(route("tickets.create", { trip_id: trip.id }))}
+            >
+              Nouveau billet
+            </Button>
+            <TripPDFDownload trip={trip} />
+          </Stack>
 
           {trip.tickets?.length > 0 ? (
-            <TableContainer>
-              <Table>
-                <TableHead>
+            <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+              <Table stickyHeader>
+                <TableHead sx={{ bgcolor: "primary.main" }}>
                   <TableRow>
-                    <TableCell>Client</TableCell>
-                    <TableCell>NINA</TableCell>
-                    <TableCell>Siège</TableCell>
-                    <TableCell>Prix (FCFA)</TableCell>
-                    <TableCell>Statut</TableCell>
+                    <TableCell sx={{ color: "#fff" }}>Client</TableCell>
+  
+                    <TableCell sx={{ color: "#fff" }}>Siège</TableCell>
+                    <TableCell sx={{ color: "#fff" }}>Prix (FCFA)</TableCell>
+                    <TableCell sx={{ color: "#fff" }}>Statut</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {trip.tickets.map((ticket) => (
-                    <TableRow key={ticket.id}>
+                    <TableRow key={ticket.id} hover>
                       <TableCell>{ticket.client_name}</TableCell>
-                      <TableCell>{ticket.client_nina || "-"}</TableCell>
                       <TableCell>{ticket.seat_number || "-"}</TableCell>
-                      <TableCell>{ticket.price}</TableCell>
+                      <TableCell>{ticket.price?.toLocaleString() || "-"}</TableCell>
                       <TableCell
-                        style={{
+                        sx={{
                           color:
                             ticket.status === "paid"
                               ? "green"
@@ -120,6 +147,7 @@ export default function Show({ trip }) {
                               ? "red"
                               : "orange",
                           fontWeight: 600,
+                          textTransform: "capitalize",
                         }}
                       >
                         {ticket.status === "paid"
@@ -134,14 +162,17 @@ export default function Show({ trip }) {
               </Table>
             </TableContainer>
           ) : (
-            <Typography>Aucun billet vendu pour ce trajet.</Typography>
+            <Typography sx={{ mt: 2, textAlign: "center" }}>
+              Aucun billet vendu pour ce trajet.
+            </Typography>
           )}
         </Paper>
 
+        {/* Bouton modifier */}
         <Box sx={{ mt: 3, textAlign: "right" }}>
           <Button
             variant="contained"
-            color="primary"
+            color="secondary"
             onClick={() => Inertia.get(route("trips.edit", trip.id))}
           >
             Modifier le trajet

@@ -139,25 +139,45 @@ class TripController extends Controller
         }
     }
 
-    public function show($id)
-    {
-        $trip = Trip::with(['route.departureCity', 'route.arrivalCity', 'bus'])
-            ->findOrFail($id);
+ public function show($id)
+{
+    $trip = Trip::with([
+        'route.departureCity',
+        'route.arrivalCity',
+        'bus',
+        'tickets', // si chaque ticket a un client
+    ])->findOrFail($id);
 
-        $tripData = [
-            'id' => $trip->id,
-            'departure_at' => $trip->departure_at,
-            'arrival_at' => $trip->arrival_at,
-            'bus' => $trip->bus,
-            'route' => [
-                'id' => $trip->route->id ?? null,
-                'departureCity' => $trip->route->departureCity ?? null,
-                'arrivalCity' => $trip->route->arrivalCity ?? null,
-            ],
-        ];
+    $tripData = [
+        'id' => $trip->id,
+        'departure_at' => $trip->departure_at,
+        'arrival_at' => $trip->arrival_at,
+        'bus' => [
+            'id' => $trip->bus->id ?? null,
+            'registration_number' => $trip->bus->registration_number ?? null,
+            'capacity' => $trip->bus->capacity ?? null,
+        ],
+        'route' => [
+            'id' => $trip->route->id ?? null,
+            'departureCity' => $trip->route->departureCity ?? null,
+            'arrivalCity' => $trip->route->arrivalCity ?? null,
+            'price' => $trip->route->price ?? 0,
+        ],
+        'tickets' => $trip->tickets->map(function ($ticket) {
+            return [
+                'id' => $ticket->id,
+                'client_name' => $ticket->client_name,
+                'seat_number' => $ticket->seat_number,
+                'price' => $ticket->price,
+                'status' => $ticket->status,
+                'created_at' => $ticket->created_at->format('d/m/Y H:i'),
+            ];
+        }),
+    ];
 
-        return Inertia::render('Trips/Show', [
-            'trip' => $tripData,
-        ]);
-    }
+    return Inertia::render('Trips/Show', [
+        'trip' => $tripData,
+    ]);
+}
+
 }

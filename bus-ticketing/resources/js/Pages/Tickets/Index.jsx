@@ -1,41 +1,21 @@
 import React, { useState, useMemo } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import GuestLayout from '@/Layouts/GuestLayout';
-import {
-  Box,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
-  IconButton,
-  Tooltip,
-  Select,
-  MenuItem,
-  TextField,
-  Stack,
-  Chip,
-} from '@mui/material';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import DataTablePro from '@/Components/DataTablePro';
 
-export default function Index({ tickets }) {
-  const [currentTickets, setCurrentTickets] = useState(tickets || { data: [], meta: {}, links: [] });
+export default function TicketsIndex({ tickets }) {
+  const [currentTickets, setCurrentTickets] = useState(tickets || { data: [], links: [], current_page: 1 });
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-
-  const handlePage = (url) => {
-    if (!url) return;
-    Inertia.get(url, {}, {
-      preserveState: true,
-      onSuccess: page => setCurrentTickets(page.props.tickets || { data: [], meta: {}, links: [] }),
-    });
-  };
 
   const handleDelete = (id) => {
     if (confirm('Voulez-vous vraiment supprimer ce ticket ?')) {
@@ -43,143 +23,103 @@ export default function Index({ tickets }) {
         onSuccess: () => {
           setCurrentTickets(prev => ({
             ...prev,
-            data: prev.data.filter(ticket => ticket.id !== id)
+            data: prev.data.filter(t => t.id !== id)
           }));
         }
       });
     }
   };
 
-  const translateStatus = (status) => {
-    switch(status) {
-      case 'reserved': return 'Réservé';
-      case 'paid': return 'Payé';
-      case 'cancelled': return 'Annulé';
-      default: return status;
-    }
-  };
-
-  // Filtrage et recherche
+  // Filtrage local pour recherche et statut
   const filteredTickets = useMemo(() => {
     return (currentTickets.data || []).filter(ticket => {
       const matchesStatus = filterStatus ? ticket.status === filterStatus : true;
-      const matchesSearch = searchQuery
-        ? ticket.client_name?.toLowerCase().includes(searchQuery.toLowerCase())
-        : true;
+      const matchesSearch = searchQuery ? ticket.client_name?.toLowerCase().includes(searchQuery.toLowerCase()) : true;
       return matchesStatus && matchesSearch;
     });
   }, [currentTickets.data, filterStatus, searchQuery]);
 
+  // Colonnes du tableau
+  const columns = [
+    { field: 'id', label: 'ID' },
+    { field: 'trip', label: 'Voyage', render: (_, row) => `${row.trip?.route?.departure_city || '-'} → ${row.trip?.route?.arrival_city || '-'}` },
+    { field: 'client', label: 'Client', render: (_, row) => `${row.client_name}` },
+    { field: 'seat_number', label: 'Siège' },
+    { field: 'price', label: 'Prix', render: (_, row) => `${row.trip?.route?.price || '-'}` },
+    { field: 'status', label: 'Statut', render: (_, row) => (
+      <Chip
+        label={row.status === 'reserved' ? 'Réservé' : row.status === 'paid' ? 'Payé' : 'Annulé'}
+        color={row.status === 'paid' ? 'success' : row.status === 'cancelled' ? 'error' : 'warning'}
+        size="small"
+      />
+    )},
+  ];
+
+  // Actions sur chaque ligne
+  const actions = [
+    { label: 'Voir', icon: <VisibilityIcon />, color: 'info', onClick: row => Inertia.get(route('ticket.show', row.id)) },
+    { label: 'Éditer', icon: <EditIcon />, color: 'primary', onClick: row => Inertia.get(route('ticket.edit', row.id)) },
+    { label: 'Supprimer', icon: <DeleteIcon />, color: 'error', onClick: row => handleDelete(row.id) },
+  ];
+
+  // Limiter la pagination à 5 pages visibles
+  const maxVisiblePages = 5;
+  const filteredLinks = (currentTickets.links || []).filter(link => {
+    if (link.label === '&laquo;' || link.label === '&raquo;') return true;
+    const pageNumber = parseInt(link.label.replace(/[^0-9]/g, ''), 10);
+    const currentPage = currentTickets.current_page || 1;
+    const start = Math.max(currentPage - 2, 1);
+    const end = start + maxVisiblePages - 1;
+    return pageNumber >= start && pageNumber <= end;
+  });
+
   return (
     <GuestLayout>
-      <Box sx={{ p: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h4">Tickets</Typography>
-          <Button variant="contained" color="primary" onClick={() => Inertia.get(route('ticket.create'))}>
-            Créer un ticket
-          </Button>
-        </Stack>
+      {/* En-tête */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h4">Tickets</Typography>
+        <Button variant="contained" color="primary" onClick={() => Inertia.get(route('ticket.create'))}>
+          Ajouter un ticket
+        </Button>
+      </Stack>
 
-        {/* Filtres */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
-          <TextField
-            label="Recherche client"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            variant="outlined"
-            size="small"
-          />
-          <Select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            displayEmpty
-            size="small"
-          >
-            <MenuItem value="">Tous statuts</MenuItem>
-            <MenuItem value="reserved">Réservé</MenuItem>
-            <MenuItem value="paid">Payé</MenuItem>
-            <MenuItem value="cancelled">Annulé</MenuItem>
-          </Select>
-        </Stack>
+      {/* Barre de recherche et filtre */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }} alignItems="center">
+        <TextField
+          label="Rechercher par client"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          size="small"
+          sx={{ width: 250 }}
+        />
+        <TextField
+          label="Filtrer par statut"
+          select
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          size="small"
+          sx={{ width: 200 }}
+        >
+          <MenuItem value="">Tous</MenuItem>
+          <MenuItem value="reserved">Réservé</MenuItem>
+          <MenuItem value="paid">Payé</MenuItem>
+          <MenuItem value="cancelled">Annulé</MenuItem>
+        </TextField>
+      </Stack>
 
-        {/* Table */}
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead sx={{ bgcolor: '#1976d2' }}>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Voyage</TableCell>
-                <TableCell>Client</TableCell>
-                <TableCell>Siège</TableCell>
-                <TableCell>Prix</TableCell>
-                <TableCell>Statut</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredTickets.map(ticket => (
-                <TableRow key={ticket.id}>
-                  <TableCell>{ticket.id}</TableCell>
-                  <TableCell>
-                    {ticket.trip?.route?.departure_city || '-'} → {ticket.trip?.route?.arrival_city || '-'}
-                  </TableCell>
-                  <TableCell>
-                    {ticket.client_name}<br/>
-                    {ticket.client_phone}<br/>
-                    {ticket.client_email}
-                  </TableCell>
-                  <TableCell>{ticket.seat_number || '-'}</TableCell>
-                  <TableCell>{ticket.price || '-'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={translateStatus(ticket.status)}
-                      color={
-                        ticket.status === 'paid' ? 'success' :
-                        ticket.status === 'cancelled' ? 'error' :
-                        'warning'
-                      }
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1}>
-                      <Tooltip title="Voir le ticket">
-                        <IconButton color="info" size="small" onClick={() => Inertia.get(route('ticket.show', ticket.id))}>
-                          <VisibilityIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Éditer">
-                        <IconButton color="primary" size="small" onClick={() => Inertia.get(route('ticket.edit', ticket.id))}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Supprimer">
-                        <IconButton color="error" size="small" onClick={() => handleDelete(ticket.id)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {/* Pagination */}
-        <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
-          {(currentTickets.links || []).map((link, i) => (
-            <Button
-              key={i}
-              disabled={!link.url}
-              onClick={() => handlePage(link.url)}
-              dangerouslySetInnerHTML={{ __html: link.label }}
-              variant={link.active ? "contained" : "outlined"}
-              size="small"
-            />
-          ))}
-        </Box>
-      </Box>
+      {/* Tableau */}
+      <DataTablePro
+        columns={columns}
+        data={filteredTickets}
+        actions={actions}
+        links={filteredLinks}
+        onPageChange={url =>
+          Inertia.get(url, {}, {
+            preserveState: true,
+            onSuccess: page => setCurrentTickets(page.props.tickets)
+          })
+        }
+      />
     </GuestLayout>
   );
 }

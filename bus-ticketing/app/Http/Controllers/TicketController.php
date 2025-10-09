@@ -7,7 +7,7 @@ use App\Models\Trip;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
-
+use Carbon\Carbon;
 class TicketController extends Controller
 {
     // 🧾 Liste des tickets
@@ -36,6 +36,7 @@ class TicketController extends Controller
                         'arrival_city' => $ticket->trip->route->arrivalCity->name ?? '-',
                         'departure_at' => $ticket->trip->departure_at,
                         'arrival_at' => $ticket->trip->arrival_at,
+                        'price' => $ticket->trip->route->price,
                     ] : null,
                 ] : null,
                 'stop' => $ticket->stop ? [
@@ -70,34 +71,48 @@ class TicketController extends Controller
     }
 
     // ➕ Formulaire de création
-    public function create()
-    {
-        $trips = Trip::with([
-            'route.departureCity',
-            'route.arrivalCity',
-            'route.stops.city',
-        ])->get()->map(function ($t) {
-            return [
-                'id' => $t->id,
-                'departure_at' => $t->departure_at,
-                'route' => [
-                    'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
-                    'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
-                    'stops' => $t->route->stops->map(function ($s) {
-                        return [
-                            'id' => $s->id,
-                            'distance_from_start' => $s->distance_from_start,
-                            'city' => $s->city ? ['name' => $s->city->name] : null,
-                        ];
-                    }),
-                ]
-            ];
-        });
 
-        return Inertia::render('Tickets/Form', [
-            'trips' => $trips,
-        ]);
-    }
+public function create()
+{
+    // Définir la locale en français
+    Carbon::setLocale('fr');
+
+    $today = Carbon::now();
+
+    $trips = Trip::with([
+        'route.departureCity',
+        'route.arrivalCity',
+        'route.stops.city',
+    ])
+    // Filtrer les voyages dont la date de départ >= aujourd'hui
+    ->whereDate('departure_at', '>=', $today)
+    ->get()
+    ->map(function ($t) {
+        return [
+            'id' => $t->id,
+            // Formater la date de départ en français : exemple "mercredi 9 octobre 2025 14:30"
+            'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
+
+            'route' => [
+                'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
+                'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
+                'stops' => $t->route->stops->map(function ($s) {
+                    return [
+                        'id' => $s->id,
+                        'distance_from_start' => $s->distance_from_start,
+                        'city' => $s->city ? ['name' => $s->city->name] : null,
+                    ];
+                }),
+            ],
+        ];
+    });
+
+    return Inertia::render('Tickets/Form', [
+        'trips' => $trips,
+    ]);
+}
+
+
 public function store(Request $request)
 {
     $data = $request->validate([
@@ -154,14 +169,21 @@ public function update(Request $request, Ticket $ticket)
     // ✏️ Formulaire d’édition
     public function edit(Ticket $ticket)
     {
-        $trips = Trip::with([
-            'route.departureCity',
-            'route.arrivalCity',
-            'route.stops.city',
-        ])->get()->map(function ($t) {
+
+         $today = Carbon::now();
+
+    $trips = Trip::with([
+        'route.departureCity',
+        'route.arrivalCity',
+        'route.stops.city',
+    ])
+    // Filtrer les voyages dont la date de départ >= aujourd'hui
+    ->whereDate('departure_at', '>=', $today)
+    ->get()->map(function ($t) {
             return [
                 'id' => $t->id,
-                'departure_at' => $t->departure_at,
+                'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
+
                 'route' => $t->route ? [
                     'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
                     'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
@@ -231,6 +253,7 @@ public function update(Request $request, Ticket $ticket)
                     'route' => $ticket->trip->route ? [
                         'departureCity' => $ticket->trip->route->departureCity?->name,
                         'arrivalCity' => $ticket->trip->route->arrivalCity?->name,
+                        'price' => $ticket->trip->route->price,
                     ] : null,
                 ] : null,
             ],

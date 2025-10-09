@@ -207,26 +207,31 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                               </IconButton>
                             </Tooltip>
 
-                            <Tooltip title="Modifier">
-                              <IconButton
-                                color="primary"
-                                size="small"
-                                component={Link}
-                                href={trip.edit_url || route("trips.edit", trip.id)}
-                              >
-                                <EditIcon />
-                              </IconButton>
-                            </Tooltip>
+                            {/* Afficher Modifier et Supprimer seulement si départ >= aujourd'hui */}
+                            {new Date(trip.departure_at) >= new Date() && (
+                              <>
+                                <Tooltip title="Modifier">
+                                  <IconButton
+                                    color="primary"
+                                    size="small"
+                                    component={Link}
+                                    href={trip.edit_url || route("trips.edit", trip.id)}
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
 
-                            <Tooltip title="Supprimer">
-                              <IconButton
-                                color="error"
-                                size="small"
-                                onClick={() => handleDelete(trip.id)}
-                              >
-                                <DeleteIcon />
-                              </IconButton>
-                            </Tooltip>
+                                <Tooltip title="Supprimer">
+                                  <IconButton
+                                    color="error"
+                                    size="small"
+                                    onClick={() => handleDelete(trip.id)}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
                           </Stack>
                         </TableCell>
                       </TableRow>
