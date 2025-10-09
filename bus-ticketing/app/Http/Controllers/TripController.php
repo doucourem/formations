@@ -15,38 +15,53 @@ use Carbon\Carbon;
 class TripController extends Controller
 {
     public function index(Request $request)
-    {
-        $perPage = (int) $request->input('per_page', 20);
-        $busId = $request->input('bus_id');
-        $routeId = $request->input('route_id');
+{
+    $perPage = (int) $request->input('per_page', 20);
+    $busId = $request->input('bus_id');
+    $routeId = $request->input('route_id');
 
-        $trips = Trip::with(['bus', 'route.departureCity', 'route.arrivalCity'])
-            ->when($busId, fn($q) => $q->where('bus_id', $busId))
-            ->when($routeId, fn($q) => $q->where('route_id', $routeId))
-            ->orderBy('departure_at')
-            ->paginate($perPage)
-            ->withQueryString();
+    // 🔹 Récupération des trajets filtrés
+    $trips = Trip::with(['bus', 'route.departureCity', 'route.arrivalCity'])
+        ->when($busId, fn($q) => $q->where('bus_id', $busId))
+        ->when($routeId, fn($q) => $q->where('route_id', $routeId))
+        ->orderBy('departure_at')
+        ->paginate($perPage)
+        ->withQueryString();
 
-        $trips->getCollection()->transform(function ($t) {
-            $t->edit_url = route('trips.edit', $t->id);
-            $t->route = $t->route ?? (object)[
-                'departureCity' => (object)['name' => '-'],
-                'arrivalCity' => (object)['name' => '-'],
-            ];
-            $t->route->departureCity = $t->route->departureCity ?? (object)['name' => '-'];
-            $t->route->arrivalCity = $t->route->arrivalCity ?? (object)['name' => '-'];
-            return $t;
-        });
+    $trips->getCollection()->transform(function ($t) {
+        $t->edit_url = route('trips.edit', $t->id);
+        $t->route = $t->route ?? (object)[
+            'departureCity' => (object)['name' => '-'],
+            'arrivalCity' => (object)['name' => '-'],
+        ];
+        $t->route->departureCity = $t->route->departureCity ?? (object)['name' => '-'];
+        $t->route->arrivalCity = $t->route->arrivalCity ?? (object)['name' => '-'];
+        return $t;
+    });
 
-        return Inertia::render('Trips/Index', [
-            'initialTrips' => $trips,
-            'initialFilters' => [
-                'bus_id' => $busId,
-                'route_id' => $routeId,
-                'per_page' => $perPage,
-            ],
-        ]);
-    }
+    // 🔹 Récupération des bus (pour le filtre)
+    $buses = \App\Models\Bus::select('id', 'model', 'registration_number')
+        ->orderBy('model')
+        ->get();
+
+    // 🔹 Récupération des routes (pour le filtre)
+    $routes = \App\Models\Route::with(['departureCity:id,name', 'arrivalCity:id,name'])
+        ->select('id', 'departure_city_id', 'arrival_city_id')
+        ->orderBy('id', 'desc')
+        ->get();
+
+    return Inertia::render('Trips/Index', [
+        'initialTrips' => $trips,
+        'initialFilters' => [
+            'bus_id' => $busId,
+            'route_id' => $routeId,
+            'per_page' => $perPage,
+        ],
+        'buses' => $buses,
+        'routes' => $routes,
+    ]);
+}
+
 
     public function create()
     {
