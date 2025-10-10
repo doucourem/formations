@@ -21,15 +21,26 @@ import {
 } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
 
+const transactionTypes = [
+  { label: "Crédit (Entrée)", value: "CREDIT" },
+  { label: "Débit (Sortie)", value: "DEBIT" },
+  { label: "Vente UV", value: "SALE_UV" },
+  { label: "Dépôt cash", value: "DEPOSIT" },
+  { label: "Retrait cash", value: "WITHDRAW" },
+  { label: "Transfert", value: "TRANSFER" },
+];
+
 const CashesList = () => {
   const [user, setUser] = useState(null);
   const [cashes, setCashes] = useState([]);
   const [kiosks, setKiosks] = useState([]);
+  const [users, setUsers] = useState([]);
 
   const [openCashDialog, setOpenCashDialog] = useState(false);
   const [editingCash, setEditingCash] = useState(null);
   const [formData, setFormData] = useState({
     kioskId: null,
+    cashierId: null,
     name: "",
     balance: 0,
     closed: false,
@@ -50,9 +61,9 @@ const CashesList = () => {
   // =====================
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const { data, error } = await supabase.auth.getUser();
       if (error) Alert.alert("Erreur Auth", error.message);
-      else setUser(user);
+      else setUser(data.user);
     };
     getUser();
   }, []);
@@ -69,10 +80,23 @@ const CashesList = () => {
       .from("kiosks")
       .select("id, name")
       .eq("owner_id", user.id);
-
     if (error) console.error(error);
     else setKiosks(data || []);
   };
+
+  // =====================
+  // Fetch users (caissiers)
+  // =====================
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, full_name, email");
+      if (error) console.error(error);
+      else setUsers(data || []);
+    };
+    fetchUsers();
+  }, []);
 
   // =====================
   // Fetch cashes
@@ -87,12 +111,12 @@ const CashesList = () => {
       .from("cashes")
       .select("*")
       .in("kiosk_id", kioskIds);
-
     if (error) console.error(error);
     else {
       const enriched = (data || []).map((c) => ({
         ...c,
         kiosk_name: kiosks.find((k) => k.id === c.kiosk_id)?.name || c.kiosk_id,
+        cashier_name: users.find((u) => u.id === c.cashier_id)?.full_name || "—",
         balance: c.balance !== null ? Number(c.balance) : 0,
       }));
       setCashes(enriched);
@@ -108,7 +132,6 @@ const CashesList = () => {
       .select("*")
       .eq("cash_id", cashId)
       .order("created_at", { ascending: true });
-
     if (error) console.error(error);
     else setTransactions(data || []);
   };
@@ -128,26 +151,28 @@ const CashesList = () => {
       setEditingCash(cash);
       setFormData({
         kioskId: cash.kiosk_id,
+        cashierId: cash.cashier_id,
         name: cash.name,
         balance: cash.balance ?? 0,
         closed: cash.closed || false,
       });
     } else {
       setEditingCash(null);
-      setFormData({ kioskId: null, name: "", balance: 0, closed: false });
+      setFormData({ kioskId: null, cashierId: null, name: "", balance: 0, closed: false });
     }
     setOpenCashDialog(true);
   };
 
   const saveCash = async () => {
-    const { kioskId, name, balance, closed } = formData;
-    if (!kioskId || !name) {
+    const { kioskId, cashierId, name, balance, closed } = formData;
+    if (!kioskId || !name || !cashierId) {
       Alert.alert("Avertissement", "Veuillez remplir tous les champs obligatoires");
       return;
     }
 
     const payload = {
       kiosk_id: kioskId,
+      cashier_id: cashierId,
       name,
       balance: Number(balance) || 0,
       closed,
@@ -160,10 +185,9 @@ const CashesList = () => {
       } else {
         ({ error } = await supabase.from("cashes").insert([payload]));
       }
-
       if (error) throw error;
 
-      setFormData({ kioskId: null, name: "", balance: 0, closed: false });
+      setFormData({ kioskId: null, cashierId: null, name: "", balance: 0, closed: false });
       setEditingCash(null);
       setOpenCashDialog(false);
       fetchCashes();
@@ -224,9 +248,9 @@ const CashesList = () => {
       }]);
       if (insertError) throw insertError;
 
-      const newBalance = type === "CREDIT"
-        ? selectedCash.balance + newAmount
-        : selectedCash.balance - newAmount;
+      let newBalance = selectedCash.balance;
+      if (["CREDIT", "DEPOSIT", "SALE_UV"].includes(type)) newBalance += newAmount;
+      else newBalance -= newAmount;
 
       const { error: updateError } = await supabase
         .from("cashes")
@@ -293,12 +317,15 @@ const CashesList = () => {
   // Render item
   // =====================
   const renderItem = ({ item }) => {
+    const cashierLabel = item.cashier_name || "—";
+
     if (isSmallScreen) {
       return (
         <Card style={styles.card}>
           <Card.Content>
             <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
-            <Text>Kiosque: {item.kiosk_name}</Text>
+            <Text>Client: {item.kiosk_name}</Text>
+            <Text>Caissier: {cashierLabel}</Text>
             <Text>Solde: {formatCFA(item.balance)}</Text>
             <Text style={{ color: item.closed ? "red" : "green", fontWeight: "bold" }}>
               Clôturée : {item.closed ? "Oui" : "Non"}
@@ -324,6 +351,7 @@ const CashesList = () => {
         <Card.Content style={styles.row}>
           <Text style={{ flex: 1 }}>{item.name}</Text>
           <Text style={{ flex: 1 }}>{item.kiosk_name}</Text>
+          <Text style={{ flex: 1 }}>{cashierLabel}</Text>
           <Text style={{ flex: 1 }}>{formatCFA(item.balance)}</Text>
           <Text style={{ flex: 1, color: item.closed ? "red" : "green", fontWeight: "bold" }}>
             {item.closed ? "Clôturée" : "Ouverte"}
@@ -371,9 +399,16 @@ const CashesList = () => {
             <Dialog.Content>
               <RNPickerSelect
                 onValueChange={(val) => setFormData({ ...formData, kioskId: val })}
-                value={formData.kioskId}
-                placeholder={{ label: "Sélectionner un kiosque", value: null }}
+                value={formData.kioskId || ""}
+                placeholder={{ label: "Sélectionner un Client", value: "" }}
                 items={kiosks.map((k) => ({ label: k.name, value: k.id }))}
+              />
+              <RNPickerSelect
+                onValueChange={(val) => setFormData({ ...formData, cashierId: val })}
+                value={formData.cashierId || ""}
+                placeholder={{ label: "Sélectionner un Caissier", value: "" }}
+                items={users.map((u) => ({ label: u.full_name || u.email, value: u.id }))}
+                style={{ marginTop: 12 }}
               />
               <TextInput
                 label="Nom"
@@ -398,24 +433,23 @@ const CashesList = () => {
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setOpenCashDialog(false)}>Annuler</Button>
-              <Button onPress={saveCash} mode="contained">{editingCash ? "Enregistrer" : "Créer"}</Button>
+              <Button onPress={saveCash} mode="contained">
+                {editingCash ? "Enregistrer" : "Créer"}
+              </Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
 
         {/* Dialog Transactions */}
         <Portal>
-          <Dialog
-            visible={openTransactionDialog}
-            onDismiss={() => setOpenTransactionDialog(false)}
-          >
+          <Dialog visible={openTransactionDialog} onDismiss={() => setOpenTransactionDialog(false)}>
             <Dialog.Title>Transactions - {selectedCash?.name}</Dialog.Title>
             <Dialog.Content>
               {(transactions || []).map((t) => (
                 <List.Item
                   key={t.id}
                   title={`${t.type} - ${formatCFA(t.amount)}`}
-                  description={`Date: ${new Date(t.created_at).toLocaleString()}`}
+                  description={`Date: ${t.created_at ? new Date(t.created_at).toLocaleString() : "—"}`}
                   left={() => <List.Icon icon="currency-usd" />}
                   right={() => (
                     <View style={{ flexDirection: "row" }}>
@@ -437,11 +471,9 @@ const CashesList = () => {
               />
               <RNPickerSelect
                 onValueChange={(val) => setType(val)}
-                value={type}
-                items={[
-                  { label: "Crédit", value: "CREDIT" },
-                  { label: "Débit", value: "DEBIT" },
-                ]}
+                value={type || "CREDIT"}
+                placeholder={{ label: "Sélectionner le type", value: "CREDIT" }}
+                items={transactionTypes}
               />
             </Dialog.Content>
             <Dialog.Actions>

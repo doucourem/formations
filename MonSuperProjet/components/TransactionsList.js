@@ -34,7 +34,8 @@ export default function TransactionsList() {
   const [cashId, setCashId] = useState(null);
   const [cashQuery, setCashQuery] = useState("");
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState("CREDIT");
+  const [type, setType] = useState("CREDIT"); // Entrée ou Sortie
+  const [transactionType, setTransactionType] = useState("Vente UV"); // Nouveau type détaillé
 
   // =====================
   // Récupérer utilisateur
@@ -114,7 +115,13 @@ export default function TransactionsList() {
     if (!cashId || !amount)
       return Alert.alert("Avertissement", "Veuillez remplir tous les champs !");
     const { error } = await supabase.from("transactions").insert([
-      { cash_id: cashId, amount: parseFloat(amount), type },
+      {
+        cash_id: cashId,
+        amount: parseFloat(amount),
+        type, // Entrée/Sortie pour calcul du solde
+        transaction_type: transactionType, // nouveau champ détaillé
+        created_at: new Date(),
+      },
     ]);
     if (error) return Alert.alert("Erreur", error.message);
 
@@ -122,6 +129,7 @@ export default function TransactionsList() {
     setCashQuery("");
     setAmount("");
     setType("CREDIT");
+    setTransactionType("Vente UV");
     setOpen(false);
     fetchTransactions();
   };
@@ -160,7 +168,7 @@ export default function TransactionsList() {
       <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
         <Card.Content style={isSmallScreen ? {} : styles.row}>
           <Text style={{ flex: 1, color: theme.colors.onSurface }}>
-            {isCredit ? "Crédit" : "Débit"}
+            {item.transaction_type} ({isCredit ? "Entrée" : "Sortie"})
           </Text>
           <Text style={{ flex: 1, color: theme.colors.onSurface }}>
             {item.cash_name}
@@ -206,7 +214,7 @@ export default function TransactionsList() {
 
         {!isSmallScreen && (
           <View style={styles.headerRow}>
-            {["Type", "Caisse", "Montant", "Kiosque", "Date", "Solde après"].map((h, i) => (
+            {["Type de transaction", "Caisse", "Montant", "Kiosque", "Date", "Solde après"].map((h, i) => (
               <Text key={i} style={{ flex: 1, fontWeight: "bold", color: theme.colors.onSurface }}>
                 {h}
               </Text>
@@ -287,21 +295,36 @@ export default function TransactionsList() {
                 textColor={theme.colors.onSurface}
               />
 
-              {/* TYPE */}
+              {/* TYPE ENTRÉE / SORTIE */}
               <View style={{ flexDirection: "row", marginBottom: 12 }}>
                 <Button
                   mode={type === "CREDIT" ? "contained" : "outlined"}
                   onPress={() => setType("CREDIT")}
                   style={{ marginRight: 8 }}
                 >
-                  Crédit
+                  Entrée
                 </Button>
                 <Button
                   mode={type === "DEBIT" ? "contained" : "outlined"}
                   onPress={() => setType("DEBIT")}
                 >
-                  Débit
+                  Sortie
                 </Button>
+              </View>
+
+              {/* TYPE DE TRANSACTION */}
+              <Text style={{ marginBottom: 4 }}>Type de transaction</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 12 }}>
+                {["Vente UV", "Dépôt cash", "Retrait cash", "Transfert", "Autre"].map((t) => (
+                  <Button
+                    key={t}
+                    mode={transactionType === t ? "contained" : "outlined"}
+                    onPress={() => setTransactionType(t)}
+                    style={{ marginRight: 8, marginBottom: 4 }}
+                  >
+                    {t}
+                  </Button>
+                ))}
               </View>
             </Dialog.Content>
 
