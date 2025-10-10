@@ -1,513 +1,187 @@
 import React, { useEffect, useState } from "react";
-import supabase from "../supabaseClient";
-import {
-  StyleSheet,
-  View,
-  FlatList,
-  Alert,
-  TouchableOpacity,
-  useWindowDimensions,
-} from "react-native";
-import {
-  Button,
-  Dialog,
-  Portal,
-  TextInput,
-  Text,
-  Provider as PaperProvider,
-  Card,
-  List,
-  Switch,
-} from "react-native-paper";
+import { View, FlatList, StyleSheet, Dimensions } from "react-native";
+import { Text, Button, Dialog, Portal, TextInput, Card } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
+import { supabase } from "../supabaseClient";
 
-const transactionTypes = [
-  { label: "Crédit (Entrée)", value: "CREDIT" },
-  { label: "Débit (Sortie)", value: "DEBIT" },
-  { label: "Vente UV", value: "SALE_UV" },
-  { label: "Dépôt cash", value: "DEPOSIT" },
-  { label: "Retrait cash", value: "WITHDRAW" },
-  { label: "Transfert", value: "TRANSFER" },
-];
-
-const CashesList = () => {
-  const [user, setUser] = useState(null);
+export default function CashesList({ user }) {
   const [cashes, setCashes] = useState([]);
   const [kiosks, setKiosks] = useState([]);
   const [users, setUsers] = useState([]);
-
-  const [openCashDialog, setOpenCashDialog] = useState(false);
-  const [editingCash, setEditingCash] = useState(null);
+  const [visible, setVisible] = useState(false);
   const [formData, setFormData] = useState({
-    kioskId: null,
-    cashierId: null,
+    id: null,
     name: "",
+    kioskId: "",
     balance: 0,
     closed: false,
+    cashierId: "",
   });
 
-  const [transactions, setTransactions] = useState([]);
-  const [selectedCash, setSelectedCash] = useState(null);
-  const [openTransactionDialog, setOpenTransactionDialog] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [type, setType] = useState("CREDIT");
-  const [editingTransaction, setEditingTransaction] = useState(null);
+  const screenWidth = Dimensions.get("window").width;
 
-  const { width } = useWindowDimensions();
-  const isSmallScreen = width < 600;
-
-  // =====================
-  // Fetch user
-  // =====================
   useEffect(() => {
-    const getUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) Alert.alert("Erreur Auth", error.message);
-      else setUser(data.user);
-    };
-    getUser();
-  }, []);
-
-  // =====================
-  // Fetch kiosks
-  // =====================
-  useEffect(() => {
-    if (user) fetchKiosks();
+    if (user) {
+      fetchCashes();
+      fetchKiosks();
+      fetchUsers();
+    }
   }, [user]);
 
+  // 🔹 Charger les caisses
+  const fetchCashes = async () => {
+    const { data, error } = await supabase
+      .from("cashes")
+      .select("*, kiosks(name), users(full_name, email)")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) setCashes(data);
+  };
+
+  // 🔹 Charger les kiosks
   const fetchKiosks = async () => {
     const { data, error } = await supabase
       .from("kiosks")
       .select("id, name")
-      .eq("owner_id", user.id);
-    if (error) console.error(error);
-    else setKiosks(data || []);
+      .order("name", { ascending: true });
+    if (!error && data) setKiosks(data);
   };
 
-  // =====================
-  // Fetch users (caissiers)
-  // =====================
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, full_name, email");
-      if (error) console.error(error);
-      else setUsers(data || []);
-    };
-    fetchUsers();
-  }, []);
-
-  // =====================
-  // Fetch cashes
-  // =====================
-  useEffect(() => {
-    if (kiosks.length > 0) fetchCashes();
-  }, [kiosks]);
-
-  const fetchCashes = async () => {
-    const kioskIds = kiosks.map((k) => k.id);
-    const { data, error } = await supabase
-      .from("cashes")
-      .select("*")
-      .in("kiosk_id", kioskIds);
-    if (error) console.error(error);
-    else {
-      const enriched = (data || []).map((c) => ({
-        ...c,
-        kiosk_name: kiosks.find((k) => k.id === c.kiosk_id)?.name || c.kiosk_id,
-        cashier_name: users.find((u) => u.id === c.cashier_id)?.full_name || "—",
-        balance: c.balance !== null ? Number(c.balance) : 0,
-      }));
-      setCashes(enriched);
-    }
+  // 🔹 Charger les utilisateurs (caissiers)
+  const fetchUsers = async () => {
+    const { data, error } = await supabase.from("users").select("id, full_name, email");
+    if (!error && data) setUsers(data);
   };
 
-  // =====================
-  // Fetch transactions
-  // =====================
-  const fetchTransactions = async (cashId) => {
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("cash_id", cashId)
-      .order("created_at", { ascending: true });
-    if (error) console.error(error);
-    else setTransactions(data || []);
+  // 🔹 Ouvrir le dialogue pour ajouter une caisse
+  const openAddDialog = () => {
+    setFormData({
+      id: null,
+      name: "",
+      kioskId: "",
+      balance: 0,
+      closed: false,
+      cashierId: "",
+    });
+    setVisible(true);
   };
 
-  const formatCFA = (value) =>
-    new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "XOF",
-      minimumFractionDigits: 0,
-    }).format(value);
-
-  // =====================
-  // CRUD Cash
-  // =====================
-  const openEditDialog = (cash = null) => {
-    if (cash) {
-      setEditingCash(cash);
-      setFormData({
-        kioskId: cash.kiosk_id,
-        cashierId: cash.cashier_id,
-        name: cash.name,
-        balance: cash.balance ?? 0,
-        closed: cash.closed || false,
-      });
-    } else {
-      setEditingCash(null);
-      setFormData({ kioskId: null, cashierId: null, name: "", balance: 0, closed: false });
-    }
-    setOpenCashDialog(true);
-  };
-
+  // 🔹 Enregistrer la caisse
   const saveCash = async () => {
-    const { kioskId, cashierId, name, balance, closed } = formData;
-    if (!kioskId || !name || !cashierId) {
-      Alert.alert("Avertissement", "Veuillez remplir tous les champs obligatoires");
+    if (!formData.name || !formData.kioskId || !formData.cashierId) {
+      alert("Veuillez remplir tous les champs obligatoires.");
       return;
     }
 
     const payload = {
-      kiosk_id: kioskId,
-      cashier_id: cashierId,
-      name,
-      balance: Number(balance) || 0,
-      closed,
+      name: formData.name,
+      kiosk_id: formData.kioskId,
+      balance: Number(formData.balance) || 0,
+      closed: false,
+      cashier_id: formData.cashierId,
     };
 
-    try {
-      let error;
-      if (editingCash) {
-        ({ error } = await supabase.from("cashes").update(payload).eq("id", editingCash.id));
-      } else {
-        ({ error } = await supabase.from("cashes").insert([payload]));
-      }
-      if (error) throw error;
-
-      setFormData({ kioskId: null, cashierId: null, name: "", balance: 0, closed: false });
-      setEditingCash(null);
-      setOpenCashDialog(false);
+    const { error } = await supabase.from("cashes").insert(payload);
+    if (error) {
+      alert("Erreur : " + error.message);
+    } else {
+      setVisible(false);
       fetchCashes();
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Erreur", err.message);
     }
   };
 
-  const deleteCash = async (id) => {
-    Alert.alert(
-      "Confirmation",
-      "Voulez-vous vraiment supprimer cette caisse ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          onPress: async () => {
-            const { error } = await supabase.from("cashes").delete().eq("id", id);
-            if (error) Alert.alert("Erreur", error.message);
-            else fetchCashes();
-          },
-        },
-      ],
-      { cancelable: true }
-    );
-  };
-
-  // =====================
-  // CRUD Transactions
-  // =====================
-  const openTransactionsDialog = (cash) => {
-    setSelectedCash(cash);
-    fetchTransactions(cash.id);
-    setEditingTransaction(null);
-    setAmount("");
-    setType("CREDIT");
-    setOpenTransactionDialog(true);
-  };
-
-  const createTransaction = async () => {
-    if (!selectedCash || !amount) {
-      Alert.alert("Avertissement", "Veuillez remplir le montant !");
-      return;
-    }
-
-    const newAmount = parseFloat(amount);
-    if (isNaN(newAmount)) {
-      Alert.alert("Avertissement", "Montant invalide");
-      return;
-    }
-
-    try {
-      const { error: insertError } = await supabase.from("transactions").insert([{
-        cash_id: selectedCash.id,
-        amount: newAmount,
-        type,
-      }]);
-      if (insertError) throw insertError;
-
-      let newBalance = selectedCash.balance;
-      if (["CREDIT", "DEPOSIT", "SALE_UV"].includes(type)) newBalance += newAmount;
-      else newBalance -= newAmount;
-
-      const { error: updateError } = await supabase
-        .from("cashes")
-        .update({ balance: newBalance })
-        .eq("id", selectedCash.id);
-      if (updateError) throw updateError;
-
-      fetchCashes();
-      fetchTransactions(selectedCash.id);
-      setAmount("");
-      setType("CREDIT");
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Erreur", "Impossible de créer la transaction");
-    }
-  };
-
-  const handleDeleteTransaction = async (id) => {
-    Alert.alert(
-      "Confirmation",
-      "Supprimer cette transaction ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          onPress: async () => {
-            const { error } = await supabase.from("transactions").delete().eq("id", id);
-            if (error) Alert.alert("Erreur", error.message);
-            else fetchTransactions(selectedCash.id);
-          },
-        },
-      ]
-    );
-  };
-
-  const handleEditTransaction = (transaction) => {
-    setEditingTransaction(transaction);
-    setAmount(transaction.amount.toString());
-    setType(transaction.type);
-  };
-
-  const saveEditedTransaction = async () => {
-    if (!editingTransaction) return;
-    const newAmount = parseFloat(amount);
-    if (isNaN(newAmount)) return Alert.alert("Montant invalide");
-
-    try {
-      const { error } = await supabase
-        .from("transactions")
-        .update({ amount: newAmount, type })
-        .eq("id", editingTransaction.id);
-      if (error) throw error;
-
-      fetchTransactions(selectedCash.id);
-      setEditingTransaction(null);
-      setAmount("");
-      setType("CREDIT");
-    } catch (err) {
-      Alert.alert("Erreur", err.message);
-    }
-  };
-
-  // =====================
-  // Render item
-  // =====================
-  const renderItem = ({ item }) => {
-    const cashierLabel = item.cashier_name || "—";
-
-    if (isSmallScreen) {
-      return (
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
-            <Text>Client: {item.kiosk_name}</Text>
-            <Text>Caissier: {cashierLabel}</Text>
-            <Text>Solde: {formatCFA(item.balance)}</Text>
-            <Text style={{ color: item.closed ? "red" : "green", fontWeight: "bold" }}>
-              Clôturée : {item.closed ? "Oui" : "Non"}
-            </Text>
-            <View style={styles.actionsRow}>
-              <TouchableOpacity onPress={() => openEditDialog(item)} style={[styles.btn, styles.edit]}>
-                <Text style={styles.btnText}>Modifier</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => deleteCash(item.id)} style={[styles.btn, styles.delete]}>
-                <Text style={styles.btnText}>Supprimer</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => openTransactionsDialog(item)} style={[styles.btn, styles.tx]}>
-                <Text style={styles.btnText}>Transactions</Text>
-              </TouchableOpacity>
-            </View>
-          </Card.Content>
-        </Card>
-      );
-    }
-
-    return (
-      <Card style={styles.card}>
-        <Card.Content style={styles.row}>
-          <Text style={{ flex: 1 }}>{item.name}</Text>
-          <Text style={{ flex: 1 }}>{item.kiosk_name}</Text>
-          <Text style={{ flex: 1 }}>{cashierLabel}</Text>
-          <Text style={{ flex: 1 }}>{formatCFA(item.balance)}</Text>
-          <Text style={{ flex: 1, color: item.closed ? "red" : "green", fontWeight: "bold" }}>
-            {item.closed ? "Clôturée" : "Ouverte"}
-          </Text>
-          <View style={styles.actionsRow}>
-            <TouchableOpacity onPress={() => openEditDialog(item)} style={[styles.btn, styles.edit]}>
-              <Text style={styles.btnText}>Modifier</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => deleteCash(item.id)} style={[styles.btn, styles.delete]}>
-              <Text style={styles.btnText}>Supprimer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => openTransactionsDialog(item)} style={[styles.btn, styles.tx]}>
-              <Text style={styles.btnText}>Transactions</Text>
-            </TouchableOpacity>
-          </View>
-        </Card.Content>
-      </Card>
-    );
-  };
-
-  // =====================
-  // Render
-  // =====================
   return (
-    <PaperProvider>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text variant="headlineMedium">Caisses</Text>
-          <Button mode="contained" onPress={() => openEditDialog()}>
-            Créer une caisse
-          </Button>
-        </View>
+    <View style={styles.container}>
+      {/* 🔹 Bouton désactivé */}
+      <Button
+        mode="contained"
+        disabled
+        style={[styles.addButton, { opacity: 0.6 }]}
+      >
+        + Nouvelle Caisse (désactivé)
+      </Button>
 
-        <FlatList
-          data={cashes}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
-        />
+      <FlatList
+        data={cashes}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => {
+          const kiosk = kiosks.find((k) => k.id === item.kiosk_id);
+          const cashier = users.find((u) => u.id === item.cashier_id);
 
-        {/* Dialog Cash */}
-        <Portal>
-          <Dialog visible={openCashDialog} onDismiss={() => setOpenCashDialog(false)}>
-            <Dialog.Title>{editingCash ? "Modifier caisse" : "Créer une caisse"}</Dialog.Title>
-            <Dialog.Content>
-              <RNPickerSelect
-                onValueChange={(val) => setFormData({ ...formData, kioskId: val })}
-                value={formData.kioskId || ""}
-                placeholder={{ label: "Sélectionner un Client", value: "" }}
-                items={kiosks.map((k) => ({ label: k.name, value: k.id }))}
-              />
-              <RNPickerSelect
-                onValueChange={(val) => setFormData({ ...formData, cashierId: val })}
-                value={formData.cashierId || ""}
-                placeholder={{ label: "Sélectionner un Caissier", value: "" }}
-                items={users.map((u) => ({ label: u.full_name || u.email, value: u.id }))}
-                style={{ marginTop: 12 }}
-              />
-              <TextInput
-                label="Nom"
-                value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
-                style={{ marginTop: 12 }}
-              />
-              <TextInput
-                label="Balance initiale"
-                value={formData.balance.toString()}
-                onChangeText={(text) => setFormData({ ...formData, balance: text })}
-                keyboardType="numeric"
-                style={{ marginTop: 12 }}
-              />
-              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12 }}>
-                <Text>Clôturée</Text>
-                <Switch
-                  value={formData.closed}
-                  onValueChange={(val) => setFormData({ ...formData, closed: val })}
-                />
-              </View>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setOpenCashDialog(false)}>Annuler</Button>
-              <Button onPress={saveCash} mode="contained">
-                {editingCash ? "Enregistrer" : "Créer"}
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
+          return (
+            <Card style={[styles.card, { width: screenWidth - 20 }]}>
+              <Card.Title title={item.name} subtitle={`Kiosque : ${kiosk?.name || "—"}`} />
+              <Card.Content>
+                <Text style={styles.text}>💰 Solde : {item.balance} FCFA</Text>
+                <Text style={styles.text}>
+                  👤 Caissier : {cashier?.full_name || cashier?.email || "—"}
+                </Text>
+                <Text style={styles.text}>
+                  📦 État : {item.closed ? "Clôturée" : "Ouverte"}
+                </Text>
+              </Card.Content>
+            </Card>
+          );
+        }}
+      />
 
-        {/* Dialog Transactions */}
-        <Portal>
-          <Dialog visible={openTransactionDialog} onDismiss={() => setOpenTransactionDialog(false)}>
-            <Dialog.Title>Transactions - {selectedCash?.name}</Dialog.Title>
-            <Dialog.Content>
-              {(transactions || []).map((t) => (
-                <List.Item
-                  key={t.id}
-                  title={`${t.type} - ${formatCFA(t.amount)}`}
-                  description={`Date: ${t.created_at ? new Date(t.created_at).toLocaleString() : "—"}`}
-                  left={() => <List.Icon icon="currency-usd" />}
-                  right={() => (
-                    <View style={{ flexDirection: "row" }}>
-                      <Button compact onPress={() => handleEditTransaction(t)}>Modifier</Button>
-                      <Button compact textColor="red" onPress={() => handleDeleteTransaction(t.id)}>Supprimer</Button>
-                    </View>
-                  )}
-                />
-              ))}
-              <Text style={{ marginTop: 12, fontWeight: "bold" }}>
-                {editingTransaction ? "Modifier transaction" : "Nouvelle transaction"}
-              </Text>
-              <TextInput
-                label="Montant"
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="numeric"
-                style={{ marginTop: 8 }}
-              />
-              <RNPickerSelect
-                onValueChange={(val) => setType(val)}
-                value={type || "CREDIT"}
-                placeholder={{ label: "Sélectionner le type", value: "CREDIT" }}
-                items={transactionTypes}
-              />
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setOpenTransactionDialog(false)}>Fermer</Button>
-              {editingTransaction ? (
-                <Button onPress={saveEditedTransaction}>Enregistrer</Button>
-              ) : (
-                <Button onPress={createTransaction}>Ajouter</Button>
-              )}
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
-      </View>
-    </PaperProvider>
+      {/* 🔹 Dialogue d’ajout (resté prêt à l’emploi mais non accessible car bouton désactivé) */}
+      <Portal>
+        <Dialog visible={visible} onDismiss={() => setVisible(false)}>
+          <Dialog.Title>Nouvelle Caisse</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Nom de la caisse"
+              value={formData.name}
+              onChangeText={(t) => setFormData({ ...formData, name: t })}
+              style={styles.input}
+            />
+
+            <RNPickerSelect
+              onValueChange={(val) => setFormData({ ...formData, kioskId: val })}
+              value={formData.kioskId || ""}
+              placeholder={{ label: "Sélectionner un kiosque", value: "" }}
+              items={kiosks.map((k) => ({ label: k.name, value: k.id }))}
+            />
+
+            <RNPickerSelect
+              onValueChange={(val) => setFormData({ ...formData, cashierId: val })}
+              value={formData.cashierId || ""}
+              placeholder={{ label: "Sélectionner un caissier", value: "" }}
+              items={users.map((u) => ({
+                label: u.full_name || u.email,
+                value: u.id,
+              }))}
+            />
+
+            <TextInput
+              label="Solde initial"
+              value={String(formData.balance)}
+              keyboardType="numeric"
+              onChangeText={(t) => setFormData({ ...formData, balance: t })}
+              style={styles.input}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setVisible(false)}>Annuler</Button>
+            <Button onPress={saveCash}>Enregistrer</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </View>
   );
-};
-
-export default CashesList;
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5", padding: 16 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
+  container: { flex: 1, padding: 10 },
+  card: {
+    marginVertical: 6,
+    padding: 10,
+    borderRadius: 10,
+    elevation: 3,
+    backgroundColor: "#fff",
   },
-  list: { paddingBottom: 20 },
-  card: { marginBottom: 12, elevation: 3, borderRadius: 8 },
-  row: { flexDirection: "row", alignItems: "center" },
-  actionsRow: { flexDirection: "row", marginTop: 8, gap: 8 },
-  btn: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6 },
-  edit: { backgroundColor: "blue" },
-  delete: { backgroundColor: "red" },
-  tx: { backgroundColor: "green" },
-  btnText: { color: "white", fontSize: 12 },
+  text: { fontSize: 16, marginVertical: 3 },
+  input: { marginBottom: 10, backgroundColor: "#fff" },
+  addButton: { marginVertical: 10 },
 });
