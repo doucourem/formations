@@ -73,7 +73,7 @@ export default function TicketForm({ ticket, trips }) {
   {(t.route?.departureCity?.name || "-") +
     " → " +
     (t.route?.arrivalCity?.name || "-") +
-    ` (Départ : ${t.departure_at}, Arrivée : ${t.arrival_at})`}
+    ` (Départ : ${t.departure_at})`}
 </MenuItem>
 
               ))}

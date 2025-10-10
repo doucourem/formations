@@ -14,17 +14,17 @@ use Carbon\Carbon;
 
 class TripController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
 {
     $perPage = (int) $request->input('per_page', 20);
     $busId = $request->input('bus_id');
     $routeId = $request->input('route_id');
 
-    // 🔹 Récupération des trajets filtrés
+    // 🔹 Récupération des trajets filtrés (triés par date de départ décroissante)
     $trips = Trip::with(['bus', 'route.departureCity', 'route.arrivalCity'])
         ->when($busId, fn($q) => $q->where('bus_id', $busId))
         ->when($routeId, fn($q) => $q->where('route_id', $routeId))
-        ->orderBy('departure_at')
+        ->orderByDesc('departure_at') // ✅ tri décroissant
         ->paginate($perPage)
         ->withQueryString();
 
@@ -61,6 +61,7 @@ class TripController extends Controller
         'routes' => $routes,
     ]);
 }
+
 
 
     public function create()
