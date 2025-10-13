@@ -5,89 +5,107 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use Database\Seeders\TicketsTableSeeder; // ✅ Import du seeder de tickets
+use Database\Seeders\TicketsTableSeeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         // ----------------------
         // 1. Villes
         // ----------------------
-        $cities = [
-            ['name' => 'Bamako'],
-            ['name' => 'Sikasso'],
-            ['name' => 'Segou'],
-            ['name' => 'Kayes'],
+        $cityNames = [
+            'Bamako',
+            'Kita',
+            'Kenieba',
+            'Tabakoto',
+            'Sakola Bada',
+            'Djidian',
+            'Kofing',
+            'Sitakily',
+            'Dialafara',
+            'Bourdala',
         ];
-        DB::table('cities')->insert($cities);
+
+        DB::table('cities')->insert(array_map(fn($name) => ['name' => $name], $cityNames));
 
         // ----------------------
         // 2. Agences
         // ----------------------
-        $agencies = [
-            ['name' => 'Agence Bamako', 'city_id' => 1, 'address' => 'Rue du marché'],
-            ['name' => 'Agence Sikasso', 'city_id' => 2, 'address' => 'Avenue principale'],
-            ['name' => 'Agence Segou', 'city_id' => 3, 'address' => 'Place centrale'],
-        ];
+        $agencies = [];
+        foreach ($cityNames as $index => $name) {
+            $agencies[] = [
+                'name' => 'Agence ' . $name,
+                'city_id' => $index + 1,
+                'address' => 'Centre-ville de ' . $name,
+            ];
+        }
         DB::table('agencies')->insert($agencies);
 
         // ----------------------
-        // 3. Buses
+        // 3. Bus
         // ----------------------
         $buses = [
-            ['registration_number' => 'ML-1234-AB', 'model' => 'Toyota Coaster', 'capacity' => 30, 'status' => 'available', 'agency_id' => 1],
-            ['registration_number' => 'ML-5678-CD', 'model' => 'Hyundai County', 'capacity' => 40, 'status' => 'available', 'agency_id' => 2],
-            ['registration_number' => 'ML-9012-EF', 'model' => 'Mercedes Sprinter', 'capacity' => 20, 'status' => 'maintenance', 'agency_id' => 3],
+            ['registration_number' => 'BUS1', 'model' => 'Toyota Coaster', 'capacity' => 30, 'status' => 'available', 'agency_id' => 1],
+            ['registration_number' => 'BUS2', 'model' => 'Hyundai County', 'capacity' => 40, 'status' => 'available', 'agency_id' => 2],
+            ['registration_number' => 'BUS3', 'model' => 'Mercedes Sprinter', 'capacity' => 20, 'status' => 'maintenance', 'agency_id' => 3],
         ];
         DB::table('buses')->insert($buses);
 
         // ----------------------
-        // 4. Routes
+        // 4. Routes avec prix + distance
         // ----------------------
-        $routes = [
-            ['departure_city_id' => 1, 'arrival_city_id' => 2], // Bamako → Sikasso
-            ['departure_city_id' => 2, 'arrival_city_id' => 3], // Sikasso → Segou
-            ['departure_city_id' => 1, 'arrival_city_id' => 3], // Bamako → Segou
+        $routes = [];
+
+        // Distances estimées Bamako ↔ autres villes (en km)
+        $distancesFromBamako = [
+            2 => 180, // Bamako - Kita
+            3 => 420, // Bamako - Kenieba
+            4 => 450, // Bamako - Tabakoto
+            5 => 460, // Bamako - Sakola Bada
+            6 => 470, // Bamako - Djidian
+            7 => 480, // Bamako - Kofing
+            8 => 490, // Bamako - Sitakily
+            9 => 500, // Bamako - Dialafara
+            10 => 510, // Bamako - Bourdala
         ];
+
+        // Prix = distance * 25 FCFA/km (moyenne)
+        foreach ($distancesFromBamako as $arrival => $distance) {
+            $routes[] = [
+                'departure_city_id' => 1,
+                'arrival_city_id' => $arrival,
+                'distance' => $distance,
+                'price' => $distance * 25,
+            ];
+        }
+
+        // Distances estimées Kenieba ↔ autres villes
+        $distancesFromKenieba = [
+            1 => 420, // Kenieba - Bamako
+            2 => 240, // Kenieba - Kita
+            4 => 40,  // Kenieba - Tabakoto
+            5 => 50,
+            6 => 60,
+            7 => 70,
+            8 => 80,
+            9 => 90,
+            10 => 100,
+        ];
+
+        foreach ($distancesFromKenieba as $arrival => $distance) {
+            $routes[] = [
+                'departure_city_id' => 3,
+                'arrival_city_id' => $arrival,
+                'distance' => $distance,
+                'price' => $distance * 25,
+            ];
+        }
+
         DB::table('routes')->insert($routes);
 
         // ----------------------
-        // 5. Trips
-        // ----------------------
-        $trips = [
-            [
-                'route_id' => 1,
-                'bus_id' => 1,
-                'departure_at' => Carbon::now()->addHours(3),
-                'arrival_at' => Carbon::now()->addHours(8),
-                'base_price' => 5000,
-                'seats_available' => 30,
-            ],
-            [
-                'route_id' => 2,
-                'bus_id' => 2,
-                'departure_at' => Carbon::now()->addHours(5),
-                'arrival_at' => Carbon::now()->addHours(10),
-                'base_price' => 4000,
-                'seats_available' => 40,
-            ],
-            [
-                'route_id' => 3,
-                'bus_id' => 3,
-                'departure_at' => Carbon::now()->addHours(2),
-                'arrival_at' => Carbon::now()->addHours(7),
-                'base_price' => 6000,
-                'seats_available' => 20,
-            ],
-        ];
-        DB::table('trips')->insert($trips);
-
-        // ----------------------
-        // 6. Admin User
+        // 5. Admin user
         // ----------------------
         DB::table('users')->insert([
             'name' => 'Admin',
@@ -99,10 +117,8 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ----------------------
-        // 7. Tickets Seeder
+        // 6. Tickets seeder
         // ----------------------
-        $this->call([
-            TicketsTableSeeder::class,
-        ]);
+    
     }
 }

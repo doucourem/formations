@@ -8,18 +8,19 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+
 class TicketController extends Controller
 {
     // 🧾 Liste des tickets
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 20);
+        $perPage = $request->input('per_page', 10);
 
         $tickets = Ticket::with([
             'trip.route.departureCity',
             'trip.route.arrivalCity',
             'stop.city',
-            'user'
+            'user.agency', // 🔹 Inclure l'agence de l'utilisateur
         ])
         ->where('user_id', Auth::id())
         ->orderBy('created_at', 'desc')
@@ -36,20 +37,26 @@ class TicketController extends Controller
                         'arrival_city' => $ticket->trip->route->arrivalCity->name ?? '-',
                         'departure_at' => $ticket->trip->departure_at,
                         'arrival_at' => $ticket->trip->arrival_at,
-                        'price' => $ticket->trip->route->price,
+                        'price' => $ticket->stop ? $ticket->stop->price : $ticket->trip->route->price,
                     ] : null,
                 ] : null,
                 'stop' => $ticket->stop ? [
+                    'id' => $ticket->stop->id,
                     'city_name' => $ticket->stop->city?->name,
                     'distance_from_start' => $ticket->stop->distance_from_start,
+                    'price' => $ticket->stop->price,
                 ] : null,
                 'client_name' => $ticket->client_name,
                 'seat_number' => $ticket->seat_number,
                 'status' => $ticket->status,
+                 'price' => $ticket->price,
                 'created_at' => $ticket->created_at->format('Y-m-d H:i:s'),
                 'user' => $ticket->user ? [
                     'name' => $ticket->user->name,
                     'email' => $ticket->user->email,
+                    'agency' => $ticket->user->agency ? [
+                        'name' => $ticket->user->agency->name
+                    ] : null,
                 ] : null,
             ];
         });
@@ -64,126 +71,115 @@ class TicketController extends Controller
                     'total' => $tickets->total(),
                 ],
             ],
-            'filters' => [
-                'per_page' => $perPage,
-            ],
+            'filters' => ['per_page' => $perPage],
         ]);
     }
 
     // ➕ Formulaire de création
-
-public function create()
-{
-    // Définir la locale en français
-    Carbon::setLocale('fr');
-
-    $today = Carbon::now();
-
-    $trips = Trip::with([
-        'route.departureCity',
-        'route.arrivalCity',
-        'route.stops.city',
-    ])
-    // Filtrer les voyages dont la date de départ >= aujourd'hui
-    ->whereDate('departure_at', '>=', $today)
-    ->get()
-    ->map(function ($t) {
-        return [
-            'id' => $t->id,
-            // Formater la date de départ en français : exemple "mercredi 9 octobre 2025 14:30"
-            'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
-
-            'route' => [
-                'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
-                'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
-                'stops' => $t->route->stops->map(function ($s) {
-                    return [
-                        'id' => $s->id,
-                        'distance_from_start' => $s->distance_from_start,
-                        'city' => $s->city ? ['name' => $s->city->name] : null,
-                    ];
-                }),
-            ],
-        ];
-    });
-
-    return Inertia::render('Tickets/Form', [
-        'trips' => $trips,
-    ]);
-}
-
-
-public function store(Request $request)
-{
-    $data = $request->validate([
-        'trip_id' => 'required|exists:trips,id',
-        'stop_id' => 'nullable|exists:route_stops,id',
-        'client_name' => 'required|string|max:255',
-        'client_nina' => 'nullable|string|max:255',
-        'seat_number' => 'nullable|string|max:10',
-        'status' => 'required|in:reserved,paid,cancelled',
-    ]);
-
-    // 🔹 Récupérer le trajet avec sa route
-    $trip = \App\Models\Trip::with('route')->findOrFail($data['trip_id']);
-
-    // 🔹 Définir automatiquement le prix depuis la route
-    $data['price'] = $trip->route->price ?? 0;
-
-    $data['user_id'] = Auth::id();
-
-    Ticket::create($data);
-
-    return redirect()->route('ticket.index')
-        ->with('success', 'Ticket créé avec succès ✅');
-}
-
-public function update(Request $request, Ticket $ticket)
-{
-    $data = $request->validate([
-        'trip_id' => 'required|exists:trips,id',
-        'stop_id' => 'nullable|exists:route_stops,id',
-        'client_name' => 'required|string|max:255',
-        'client_nina' => 'nullable|string|max:255',
-        'seat_number' => 'nullable|string|max:10',
-        'status' => 'required|in:reserved,paid,cancelled',
-    ]);
-
-    // 🔹 Récupérer le trajet et route associée
-    $trip = \App\Models\Trip::with('route')->findOrFail($data['trip_id']);
-
-    // 🔹 Mettre à jour le prix automatiquement depuis la route
-    $data['price'] = $trip->route->price ?? 2000;
-
-    $data['user_id'] = Auth::id();
-
-    $ticket->update($data);
-
-    return redirect()->route('ticket.index')
-        ->with('success', 'Ticket mis à jour avec succès ✅');
-}
-
-    // 💾 Enregistrement
-   
-
-    // ✏️ Formulaire d’édition
-    public function edit(Ticket $ticket)
+    public function create()
     {
+        Carbon::setLocale('fr');
+        $today = Carbon::now();
 
-         $today = Carbon::now();
-
-    $trips = Trip::with([
-        'route.departureCity',
-        'route.arrivalCity',
-        'route.stops.city',
-    ])
-    // Filtrer les voyages dont la date de départ >= aujourd'hui
-    ->whereDate('departure_at', '>=', $today)
-    ->get()->map(function ($t) {
+        $trips = Trip::with([
+            'route.departureCity',
+            'route.arrivalCity',
+            'route.stops.city',
+        ])
+        ->whereDate('departure_at', '>=', $today)
+        ->get()
+        ->map(function ($t) {
             return [
                 'id' => $t->id,
                 'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
+                'route' => [
+                    'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
+                    'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
+                    'stops' => $t->route->stops->map(function ($s) {
+                        return [
+                            'id' => $s->id,
+                            'distance_from_start' => $s->distance_from_start,
+                            'price' => $s->price,
+                            'city' => $s->city ? ['name' => $s->city->name] : null,
+                        ];
+                    }),
+                ],
+            ];
+        });
 
+        return Inertia::render('Tickets/Form', ['trips' => $trips]);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'trip_id' => 'required|exists:trips,id',
+            'stop_id' => 'nullable|exists:route_stops,id',
+            'client_name' => 'required|string|max:255',
+            'client_nina' => 'nullable|string|max:255',
+            'seat_number' => 'nullable|string|max:10',
+            'status' => 'required|in:reserved,paid,cancelled',
+        ]);
+
+        $trip = Trip::with('route', 'route.stops')->findOrFail($data['trip_id']);
+
+        // 🔹 Prix selon stop ou route
+        if (!empty($data['stop_id'])) {
+            $stop = $trip->route->stops->where('id', $data['stop_id'])->first();
+            $data['price'] = $stop->price ?? $trip->route->price ?? 0;
+        } else {
+            $data['price'] = $trip->route->price ?? 0;
+        }
+
+        $data['user_id'] = Auth::id();
+
+        Ticket::create($data);
+
+        return redirect()->route('ticket.index')->with('success', 'Ticket créé avec succès ✅');
+    }
+
+    public function update(Request $request, Ticket $ticket)
+    {
+        $data = $request->validate([
+            'trip_id' => 'required|exists:trips,id',
+            'stop_id' => 'nullable|exists:route_stops,id',
+            'client_name' => 'required|string|max:255',
+            'client_nina' => 'nullable|string|max:255',
+            'seat_number' => 'nullable|string|max:10',
+            'status' => 'required|in:reserved,paid,cancelled',
+        ]);
+
+        $trip = Trip::with('route', 'route.stops')->findOrFail($data['trip_id']);
+
+        // 🔹 Prix selon stop ou route
+        if (!empty($data['stop_id'])) {
+            $stop = $trip->route->stops->where('id', $data['stop_id'])->first();
+            $data['price'] = $stop->price ?? $trip->route->price ?? 0;
+        } else {
+            $data['price'] = $trip->route->price ?? 0;
+        }
+
+        $data['user_id'] = Auth::id();
+
+        $ticket->update($data);
+
+        return redirect()->route('ticket.index')->with('success', 'Ticket mis à jour avec succès ✅');
+    }
+
+    public function edit(Ticket $ticket)
+    {
+        $today = Carbon::now();
+
+        $trips = Trip::with([
+            'route.departureCity',
+            'route.arrivalCity',
+            'route.stops.city',
+        ])
+        ->whereDate('departure_at', '>=', $today)
+        ->get()->map(function ($t) {
+            return [
+                'id' => $t->id,
+                'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
                 'route' => $t->route ? [
                     'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
                     'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
@@ -191,6 +187,7 @@ public function update(Request $request, Ticket $ticket)
                         return [
                             'id' => $s->id,
                             'distance_from_start' => $s->distance_from_start,
+                            'price' => $s->price,
                             'city' => $s->city ? ['name' => $s->city->name] : null,
                         ];
                     }),
@@ -198,24 +195,15 @@ public function update(Request $request, Ticket $ticket)
             ];
         });
 
-        return Inertia::render('Tickets/Form', [
-            'ticket' => $ticket,
-            'trips' => $trips,
-        ]);
+        return Inertia::render('Tickets/Form', ['ticket' => $ticket, 'trips' => $trips]);
     }
 
-    // 🔄 Mise à jour
-    
-
-    // ❌ Suppression
     public function destroy(Ticket $ticket)
     {
         $ticket->delete();
-        return redirect()->route('ticket.index')
-                         ->with('success', 'Ticket supprimé avec succès ✅');
+        return redirect()->route('ticket.index')->with('success', 'Ticket supprimé avec succès ✅');
     }
 
-    // 👁️ Affichage d’un ticket
     public function show($id)
     {
         $ticket = Ticket::with([
@@ -223,7 +211,7 @@ public function update(Request $request, Ticket $ticket)
             'trip.route.arrivalCity',
             'trip.bus',
             'stop.city',
-            'user'
+            'user.agency',
         ])->findOrFail($id);
 
         return Inertia::render('Tickets/Show', [
@@ -235,17 +223,19 @@ public function update(Request $request, Ticket $ticket)
                 'stop' => $ticket->stop ? [
                     'city_name' => $ticket->stop->city?->name,
                     'distance_from_start' => $ticket->stop->distance_from_start,
+                    'price' => $ticket->stop->price,
                 ] : null,
                 'user' => $ticket->user ? [
                     'name' => $ticket->user->name,
                     'email' => $ticket->user->email,
+                    'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
                 ] : null,
                 'trip' => $ticket->trip ? [
                     'departure_time' => optional($ticket->trip->departure_at)
-                        ? \Carbon\Carbon::parse($ticket->trip->departure_at)->format('d/m/Y H:i')
+                        ? Carbon::parse($ticket->trip->departure_at)->format('d/m/Y H:i')
                         : null,
                     'arrival_time' => optional($ticket->trip->arrival_at)
-                        ? \Carbon\Carbon::parse($ticket->trip->arrival_at)->format('d/m/Y H:i')
+                        ? Carbon::parse($ticket->trip->arrival_at)->format('d/m/Y H:i')
                         : null,
                     'bus' => $ticket->trip->bus ? [
                         'plate_number' => $ticket->trip->bus->registration_number,

@@ -46,7 +46,6 @@ export default function AuthenticatedLayout({ children }) {
 
   // Menu latéral (visible selon le rôle)
   const menuItems = [
-    { text: "Dashboard", icon: <DashboardIcon />, route: route("dashboard") },
     { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
     { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
     { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") },

@@ -11,11 +11,12 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name',          // Nom de famille
-        'prenom',        // Prénom
+        'name',       // Nom de famille
+        'prenom',     // Prénom
         'email',
         'password',
-        'agence_id',     // Agence de l'utilisateur
+        'agence_id',  // Agence de l'utilisateur
+        'role',       // Nouveau champ rôle
     ];
 
     protected $hidden = [
@@ -33,4 +34,10 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Agency::class);
     }
+
+    public function agency()
+{
+    return $this->belongsTo(Agency::class);
+}
+
 }

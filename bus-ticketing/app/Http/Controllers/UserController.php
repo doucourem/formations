@@ -13,7 +13,7 @@ class UserController extends Controller
     // Liste des utilisateurs
     public function index(Request $request)
     {
-        $perPage = (int) $request->input('per_page', 20);
+        $perPage = (int) $request->input('per_page', 10);
         $role = $request->input('role');
 
         $users = User::when($role, fn($q) => $q->where('role', $role))

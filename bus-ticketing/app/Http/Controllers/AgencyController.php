@@ -14,7 +14,7 @@ class AgencyController extends Controller
      */
     public function index(Request $request)
     {
-        $perPage = (int) $request->input('per_page', 20);
+        $perPage = (int) $request->input('per_page', 10);
         $cityId = $request->input('city_id');
 
         $agencies = Agency::with('city')

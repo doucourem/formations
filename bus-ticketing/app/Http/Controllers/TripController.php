@@ -16,7 +16,7 @@ class TripController extends Controller
 {
 public function index(Request $request)
 {
-    $perPage = (int) $request->input('per_page', 20);
+    $perPage = (int) $request->input('per_page', 10);
     $busId = $request->input('bus_id');
     $routeId = $request->input('route_id');
 

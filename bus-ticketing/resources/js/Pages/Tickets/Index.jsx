@@ -45,7 +45,7 @@ export default function TicketsIndex({ tickets }) {
     { field: 'trip', label: 'Voyage', render: (_, row) => `${row.trip?.route?.departure_city || '-'} → ${row.trip?.route?.arrival_city || '-'}` },
     { field: 'client', label: 'Client', render: (_, row) => `${row.client_name}` },
     { field: 'seat_number', label: 'Siège' },
-    { field: 'price', label: 'Prix', render: (_, row) => `${row.trip?.route?.price || '-'}` },
+    { field: 'price', label: 'Prix', render: (_, row) => `${row.price || '-'}` },
     { field: 'status', label: 'Statut', render: (_, row) => (
       <Chip
         label={row.status === 'reserved' ? 'Réservé' : row.status === 'paid' ? 'Payé' : 'Annulé'}

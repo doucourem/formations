@@ -13,7 +13,7 @@ class CityController extends Controller
      */
     public function index()
     {
-        $cities = City::orderBy('name')->paginate(20);
+        $cities = City::orderBy('name')->paginate(10);
 
         return Inertia::render('Cities/Index', [
             'cities' => $cities, // directement accessible en props côté React

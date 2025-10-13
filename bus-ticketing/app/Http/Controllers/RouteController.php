@@ -14,7 +14,7 @@ class RouteController extends Controller
     // Liste des routes
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 20);
+        $perPage = $request->input('per_page', 10);
 
         $routes = Route::with(['departureCity', 'arrivalCity'])
             ->orderBy('id')

@@ -17,6 +17,7 @@ class Ticket extends Model
         'seat_number',
         'price',
         'status',
+        'stop_id',
     ];
 
     public function trip()
