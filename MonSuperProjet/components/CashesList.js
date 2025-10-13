@@ -1,122 +1,128 @@
 import React, { useEffect, useState } from "react";
-import { View, FlatList, StyleSheet, Dimensions } from "react-native";
-import { Text, Button, Dialog, Portal, TextInput, Card } from "react-native-paper";
-import RNPickerSelect from "react-native-picker-select";
-import { supabase } from "../supabaseClient";
+import {
+  View,
+  FlatList,
+  Alert,
+  StyleSheet,
+  useWindowDimensions,
+  ScrollView,
+} from "react-native";
+import { Card, Text, Button, IconButton, TextInput } from "react-native-paper";
+import supabase from "../supabaseClient";
 
-export default function CashesList({ user }) {
+export default function CashesList({ navigation }) {
+  const { width: screenWidth } = useWindowDimensions();
   const [cashes, setCashes] = useState([]);
   const [kiosks, setKiosks] = useState([]);
   const [users, setUsers] = useState([]);
-  const [visible, setVisible] = useState(false);
-  const [formData, setFormData] = useState({
-    id: null,
-    name: "",
-    kioskId: "",
-    balance: 0,
-    closed: false,
-    cashierId: "",
-  });
-
-  const screenWidth = Dimensions.get("window").width;
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (user) {
-      fetchCashes();
-      fetchKiosks();
-      fetchUsers();
-    }
-  }, [user]);
+    const unsubscribe = navigation.addListener("focus", fetchAll);
+    return unsubscribe;
+  }, [navigation]);
 
-  // 🔹 Charger les caisses
+  const fetchAll = async () => {
+    await fetchCashes();
+    await fetchKiosks();
+    await fetchUsers();
+  };
+
   const fetchCashes = async () => {
-    const { data, error } = await supabase
-      .from("cashes")
-      .select("*, kiosks(name), users(full_name, email)")
-      .order("created_at", { ascending: false });
-
-    if (!error && data) setCashes(data);
+    const { data, error } = await supabase.from("cashes").select("*");
+    if (error) Alert.alert("Erreur", error.message);
+    else setCashes(data || []);
   };
 
-  // 🔹 Charger les kiosks
   const fetchKiosks = async () => {
-    const { data, error } = await supabase
-      .from("kiosks")
-      .select("id, name")
-      .order("name", { ascending: true });
-    if (!error && data) setKiosks(data);
+    const { data, error } = await supabase.from("kiosks").select("id, name");
+    if (!error) setKiosks(data || []);
   };
 
-  // 🔹 Charger les utilisateurs (caissiers)
   const fetchUsers = async () => {
-    const { data, error } = await supabase.from("users").select("id, full_name, email");
-    if (!error && data) setUsers(data);
+    const { data, error } = await supabase.from("users").select("id, full_name, email, role");
+      if (!error) setUsers(data || []); // plus de filtre sur role
   };
 
-  // 🔹 Ouvrir le dialogue pour ajouter une caisse
-  const openAddDialog = () => {
-    setFormData({
-      id: null,
-      name: "",
-      kioskId: "",
-      balance: 0,
-      closed: false,
-      cashierId: "",
-    });
-    setVisible(true);
+  const deleteCash = async (id) => {
+    Alert.alert("Supprimer", "Confirmer la suppression ?", [
+      { text: "Annuler" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          const { error } = await supabase.from("cashes").delete().eq("id", id);
+          if (error) Alert.alert("Erreur", error.message);
+          else fetchCashes();
+        },
+      },
+    ]);
   };
 
-  // 🔹 Enregistrer la caisse
-  const saveCash = async () => {
-    if (!formData.name || !formData.kioskId || !formData.cashierId) {
-      alert("Veuillez remplir tous les champs obligatoires.");
-      return;
-    }
-
-    const payload = {
-      name: formData.name,
-      kiosk_id: formData.kioskId,
-      balance: Number(formData.balance) || 0,
-      closed: false,
-      cashier_id: formData.cashierId,
-    };
-
-    const { error } = await supabase.from("cashes").insert(payload);
-    if (error) {
-      alert("Erreur : " + error.message);
-    } else {
-      setVisible(false);
-      fetchCashes();
-    }
-  };
+  const filteredCashes = cashes.filter(cash => {
+    const kiosk = kiosks.find(k => k.id === cash.kiosk_id);
+    const cashier = users.find(u => u.id === cash.cashier_id);
+    return (
+      cash.name.toLowerCase().includes(search.toLowerCase()) ||
+      (kiosk?.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (cashier?.full_name || cashier?.email || "").toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   return (
     <View style={styles.container}>
-      {/* 🔹 Bouton désactivé */}
+      <TextInput
+        placeholder="Rechercher une caisse, client ou caissier..."
+        value={search}
+        onChangeText={setSearch}
+        style={styles.searchInput}
+      />
+
       <Button
+        icon="plus"
         mode="contained"
-        disabled
-        style={[styles.addButton, { opacity: 0.6 }]}
+        onPress={() => navigation.navigate("AddCash")}
+        style={[styles.addButton, { width: screenWidth * 0.9, alignSelf: "center" }]}
       >
-        + Nouvelle Caisse (désactivé)
+        Ajouter une caisse
       </Button>
 
       <FlatList
-        data={cashes}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        data={filteredCashes}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
-          const kiosk = kiosks.find((k) => k.id === item.kiosk_id);
-          const cashier = users.find((u) => u.id === item.cashier_id);
+          const kiosk = kiosks.find(k => k.id === item.kiosk_id);
+          const cashier = users.find(u => u.id === item.cashier_id);
 
           return (
-            <Card style={[styles.card, { width: screenWidth - 20 }]}>
-              <Card.Title title={item.name} subtitle={`Kiosque : ${kiosk?.name || "—"}`} />
+            <Card style={[styles.card, { width: screenWidth * 0.95, alignSelf: "center" }]}>
+              <Card.Title
+                title={item.name}
+                subtitle={`Client: ${kiosk?.name || "—"}`}
+                right={(props) => (
+                  <View style={{ flexDirection: "row" }}>
+                    <IconButton
+                      {...props}
+                      icon="pencil"
+                      size={20}
+                      onPress={() => navigation.navigate("EditCash", { cash: item })}
+                    />
+                    <IconButton
+                      {...props}
+                      icon="delete"
+                      size={20}
+                      onPress={() => deleteCash(item.id)}
+                    />
+                  </View>
+                )}
+              />
               <Card.Content>
                 <Text style={styles.text}>💰 Solde : {item.balance} FCFA</Text>
                 <Text style={styles.text}>
                   👤 Caissier : {cashier?.full_name || cashier?.email || "—"}
                 </Text>
-                <Text style={styles.text}>
+                <Text style={[styles.text, { color: item.closed ? "#EF4444" : "#10B981" }]}>
                   📦 État : {item.closed ? "Clôturée" : "Ouverte"}
                 </Text>
               </Card.Content>
@@ -124,64 +130,14 @@ export default function CashesList({ user }) {
           );
         }}
       />
-
-      {/* 🔹 Dialogue d’ajout (resté prêt à l’emploi mais non accessible car bouton désactivé) */}
-      <Portal>
-        <Dialog visible={visible} onDismiss={() => setVisible(false)}>
-          <Dialog.Title>Nouvelle Caisse</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Nom de la caisse"
-              value={formData.name}
-              onChangeText={(t) => setFormData({ ...formData, name: t })}
-              style={styles.input}
-            />
-
-            <RNPickerSelect
-              onValueChange={(val) => setFormData({ ...formData, kioskId: val })}
-              value={formData.kioskId || ""}
-              placeholder={{ label: "Sélectionner un kiosque", value: "" }}
-              items={kiosks.map((k) => ({ label: k.name, value: k.id }))}
-            />
-
-            <RNPickerSelect
-              onValueChange={(val) => setFormData({ ...formData, cashierId: val })}
-              value={formData.cashierId || ""}
-              placeholder={{ label: "Sélectionner un caissier", value: "" }}
-              items={users.map((u) => ({
-                label: u.full_name || u.email,
-                value: u.id,
-              }))}
-            />
-
-            <TextInput
-              label="Solde initial"
-              value={String(formData.balance)}
-              keyboardType="numeric"
-              onChangeText={(t) => setFormData({ ...formData, balance: t })}
-              style={styles.input}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setVisible(false)}>Annuler</Button>
-            <Button onPress={saveCash}>Enregistrer</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  card: {
-    marginVertical: 6,
-    padding: 10,
-    borderRadius: 10,
-    elevation: 3,
-    backgroundColor: "#fff",
-  },
-  text: { fontSize: 16, marginVertical: 3 },
-  input: { marginBottom: 10, backgroundColor: "#fff" },
+  container: { flex: 1, paddingVertical: 10 },
+  searchInput: { marginHorizontal: 16, marginBottom: 10 },
+  card: { marginVertical: 6, borderRadius: 12, paddingVertical: 6 },
+  text: { fontSize: 14, marginVertical: 2 },
   addButton: { marginVertical: 10 },
 });

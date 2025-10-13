@@ -85,71 +85,77 @@ export default function UsersList() {
   };
 
   const handleSubmit = async () => {
-  if (!formData.email || !formData.full_name || (!editingUser && !formData.password)) {
-    setError("Veuillez remplir tous les champs obligatoires.");
-    return;
-  }
+    if (
+      !formData.email ||
+      !formData.full_name ||
+      (!editingUser && !formData.password)
+    ) {
+      setError("Veuillez remplir tous les champs obligatoires.");
+      return;
+    }
 
-  if (editingUser) {
-    // Mise à jour d'un utilisateur existant
-    const { error } = await supabase
-      .from("users")
-      .update({ email: formData.email, full_name: formData.full_name, role: formData.role })
-      .eq("id", editingUser.id);
-    if (error) Alert.alert("Erreur", error.message);
-    else {
-      Alert.alert("Succès", "Utilisateur mis à jour.");
+    const emailTrimmed = formData.email.trim().toLowerCase();
+
+    if (editingUser) {
+      // Mise à jour existante
+      const { error } = await supabase
+        .from("users")
+        .update({
+          email: emailTrimmed,
+          full_name: formData.full_name,
+          role: formData.role,
+        })
+        .eq("id", editingUser.id);
+
+      if (error) Alert.alert("Erreur", error.message);
+      else {
+        Alert.alert("Succès", "Utilisateur mis à jour.");
+        setOpenDialog(false);
+        fetchUsers();
+      }
+    } else {
+      // Création nouvel utilisateur
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: emailTrimmed,
+        password: formData.password,
+      });
+
+      if (signUpError) {
+        Alert.alert("Erreur Auth", signUpError.message);
+        return;
+      }
+
+      if (!authData.user?.id) {
+        Alert.alert("Erreur", "Impossible de récupérer l'id de l'utilisateur Auth.");
+        return;
+      }
+
+      // Insertion dans table users
+      const { error: insertError } = await supabase.from("users").insert([
+        {
+          id: authData.user.id,
+          auth_id: authData.user.id,
+          email: emailTrimmed,
+          full_name: formData.full_name,
+          role: formData.role,
+          is_active: true,
+          created_by: null,
+        },
+      ]);
+
+      if (insertError) {
+        Alert.alert("Erreur table users", insertError.message);
+        return;
+      }
+
+      Alert.alert(
+        "Succès",
+        "Utilisateur créé avec succès ! Vérifiez votre email pour confirmation."
+      );
       setOpenDialog(false);
       fetchUsers();
     }
-  } else {
-    // Création d'un nouvel utilisateur
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
-          full_name: formData.full_name,
-          role: formData.role,
-        },
-      },
-    });
-
-    if (signUpError) {
-      Alert.alert("Erreur Auth", signUpError.message);
-      return;
-    }
-
-    // Vérifier que l'utilisateur Auth a bien été créé
-    if (!authData.user?.id) {
-      Alert.alert("Erreur", "Impossible de récupérer l'id de l'utilisateur Auth.");
-      return;
-    }
-
-    // Insertion dans la table users
-    const { error: insertError } = await supabase.from("users").insert([
-      {
-        id: authData.user.id, 
-        auth_id: authData.user.id,           // clé unique liée à Auth
-        email: formData.email,
-        full_name: formData.full_name,
-        role: formData.role,
-        is_active: true,
-        created_by: null                     // tu peux mettre l'ID de l'admin si besoin
-      },
-    ]);
-
-    if (insertError) {
-      Alert.alert("Erreur table users", insertError.message);
-      return;
-    }
-
-    Alert.alert("Succès", "Utilisateur créé avec succès ! Vérifiez votre email pour confirmation.");
-    setOpenDialog(false);
-    fetchUsers();
-  }
-};
-
+  };
 
   const renderItem = ({ item }) => (
     <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
@@ -162,7 +168,9 @@ export default function UsersList() {
           right={() => (
             <View style={styles.actions}>
               <TouchableOpacity onPress={() => openForm(item)}>
-                <Text style={[styles.actionText, { color: theme.colors.primary }]}>Modifier</Text>
+                <Text style={[styles.actionText, { color: theme.colors.primary }]}>
+                  Modifier
+                </Text>
               </TouchableOpacity>
               <View style={styles.rolePicker}>
                 <RNPickerSelect
@@ -170,8 +178,16 @@ export default function UsersList() {
                   items={roles}
                   value={item.role || roles[0].value}
                   style={{
-                    inputIOS: { ...pickerSelectStyles.inputIOS, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
-                    inputAndroid: { ...pickerSelectStyles.inputAndroid, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                    inputIOS: {
+                      ...pickerSelectStyles.inputIOS,
+                      backgroundColor: theme.colors.surface,
+                      color: theme.colors.onSurface,
+                    },
+                    inputAndroid: {
+                      ...pickerSelectStyles.inputAndroid,
+                      backgroundColor: theme.colors.surface,
+                      color: theme.colors.onSurface,
+                    },
                   }}
                 />
               </View>
@@ -185,7 +201,10 @@ export default function UsersList() {
   return (
     <PaperProvider theme={theme}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
+        <Text
+          variant="headlineMedium"
+          style={[styles.title, { color: theme.colors.onSurface }]}
+        >
           Gestion des utilisateurs
         </Text>
         <Button
@@ -203,7 +222,17 @@ export default function UsersList() {
             <Text style={{ color: theme.colors.onSurface }}>Chargement...</Text>
           </View>
         )}
-        {error && <Text style={{ color: theme.colors.error, textAlign: "center", marginBottom: 20 }}>{error}</Text>}
+        {error && (
+          <Text
+            style={{
+              color: theme.colors.error,
+              textAlign: "center",
+              marginBottom: 20,
+            }}
+          >
+            {error}
+          </Text>
+        )}
 
         {!loading && !error && (
           <FlatList
@@ -216,7 +245,9 @@ export default function UsersList() {
 
         <Portal>
           <Dialog visible={openDialog} onDismiss={() => setOpenDialog(false)}>
-            <Dialog.Title>{editingUser ? "Modifier utilisateur" : "Ajouter utilisateur"}</Dialog.Title>
+            <Dialog.Title>
+              {editingUser ? "Modifier utilisateur" : "Ajouter utilisateur"}
+            </Dialog.Title>
             <Dialog.Content>
               <TextInput
                 label="Email"
@@ -249,15 +280,27 @@ export default function UsersList() {
                   items={roles}
                   value={formData.role || roles[0].value}
                   style={{
-                    inputIOS: { ...pickerSelectStyles.inputIOS, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
-                    inputAndroid: { ...pickerSelectStyles.inputAndroid, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
+                    inputIOS: {
+                      ...pickerSelectStyles.inputIOS,
+                      backgroundColor: theme.colors.surface,
+                      color: theme.colors.onSurface,
+                    },
+                    inputAndroid: {
+                      ...pickerSelectStyles.inputAndroid,
+                      backgroundColor: theme.colors.surface,
+                      color: theme.colors.onSurface,
+                    },
                   }}
                 />
               </View>
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setOpenDialog(false)}>Annuler</Button>
-              <Button onPress={handleSubmit} mode="contained" buttonColor={theme.colors.primary}>
+              <Button
+                onPress={handleSubmit}
+                mode="contained"
+                buttonColor={theme.colors.primary}
+              >
                 {editingUser ? "Modifier" : "Créer"}
               </Button>
             </Dialog.Actions>
@@ -272,7 +315,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   title: { textAlign: "center", marginBottom: 20, fontWeight: "bold" },
   addButton: { marginBottom: 20 },
-  loadingContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 20 },
+  loadingContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
   card: { marginBottom: 12, elevation: 4 },
   actions: { flexDirection: "column", alignItems: "flex-end" },
   actionText: { marginBottom: 5 },
@@ -282,6 +330,22 @@ const styles = StyleSheet.create({
 });
 
 const pickerSelectStyles = StyleSheet.create({
-  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: "gray", borderRadius: 4, paddingRight: 30 },
-  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: "gray", borderRadius: 8, paddingRight: 30 },
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "gray",
+    borderRadius: 4,
+    paddingRight: 30,
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 0.5,
+    borderColor: "gray",
+    borderRadius: 8,
+    paddingRight: 30,
+  },
 });
