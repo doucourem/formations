@@ -38,7 +38,7 @@ export default function RoutesIndex({ initialRoutes, initialFilters }) {
     setSortField(field);
     setSortDirection(direction);
 
-    Inertia.get(route('routes.index'), {
+    Inertia.get(route('busroutes.index'), {
       per_page: parPage,
       sort_field: field,
       sort_direction: direction,
@@ -46,12 +46,12 @@ export default function RoutesIndex({ initialRoutes, initialFilters }) {
   };
 
   const filtrer = () => {
-    Inertia.get(route('routes.index'), { per_page: parPage }, { preserveState: true, onSuccess: page => setRoutes(page.props.routes) });
+    Inertia.get(route('busroutes.index'), { per_page: parPage }, { preserveState: true, onSuccess: page => setRoutes(page.props.routes) });
   };
 
   const handleDelete = (id) => {
     if (confirm("Voulez-vous vraiment supprimer cette route ?")) {
-      Inertia.delete(route('routes.destroy', id), { preserveState: true });
+      Inertia.delete(route('busroutes.destroy', id), { preserveState: true });
     }
   };
 

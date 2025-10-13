@@ -49,7 +49,7 @@ export default function AuthenticatedLayout({ children }) {
     { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
     { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
     { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") },
-    { text: "Trajets", icon: <RouteIcon />, route: route("routes.index") },
+    { text: "Trajets", icon: <RouteIcon />, route: route("busroutes.index") },
     { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
     { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
   ];

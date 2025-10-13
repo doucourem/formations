@@ -48,7 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('buses', BusController::class);
 
     // Routes (trajets) CRUD
-    Route::resource('routes', TripRouteController::class);
+    //Route::resource('routes', TripRouteController::class);
+    Route::resource('busroutes', TripRouteController::class);
 
     // Voyages CRUD
     Route::resource('trips', TripController::class);

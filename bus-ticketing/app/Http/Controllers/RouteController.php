@@ -22,7 +22,7 @@ class RouteController extends Controller
             ->withQueryString();
 
         $routes->getCollection()->transform(function ($r) {
-            $r->edit_url = route('routes.edit', $r->id);
+            $r->edit_url = route('busroutes.edit', $r->id);
             $r->departureCity = $r->departureCity ?? (object)['name' => '-'];
             $r->arrivalCity = $r->arrivalCity ?? (object)['name' => '-'];
             return $r;
@@ -86,17 +86,35 @@ class RouteController extends Controller
     }
 
     // Formulaire d'édition
-    public function edit(Route $route)
-    {
-        $cities = City::orderBy('name')->get();
+public function edit(\App\Models\Route $busroute)
+{
+    $cities = City::orderBy('name')->get();
+    $busroute->load('stops.city');
 
-        $route->load('stops.city');
+    $stops = $busroute->stops->map(function ($stop, $index) {
+        return [
+            'id' => $stop->id,
+            'city_id' => $stop->city_id,
+            'order' => $stop->order ?? $index + 1,
+            'distance_from_start' => $stop->distance_from_start ?? 0,
+            'partial_price' => $stop->partial_price ?? 0,
+        ];
+    });
 
-        return Inertia::render('Routes/Edit', [
-            'routeData' => $route,
-            'cities' => $cities,
-        ]);
-    }
+    return Inertia::render('Routes/Edit', [
+        'routeData' => [
+            'id' => $busroute->id,
+            'departure_city_id' => $busroute->departure_city_id,
+            'arrival_city_id' => $busroute->arrival_city_id,
+            'distance' => $busroute->distance,
+            'price' => $busroute->price,
+            'stops' => $stops,
+        ],
+        'cities' => $cities,
+    ]);
+}
+
+
 
     // Mise à jour d'une route + stops
     public function update(Request $request, $id)

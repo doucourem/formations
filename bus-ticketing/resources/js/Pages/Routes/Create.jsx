@@ -55,7 +55,7 @@ export default function Create({ cities }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.post(route("routes.store"), form);
+    Inertia.post(route("busroutes.store"), form);
   };
 
   return (

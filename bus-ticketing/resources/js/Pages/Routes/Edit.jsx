@@ -63,7 +63,7 @@ export default function Edit({ routeData, cities }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.put(route("routes.update", routeData.id), form);
+    Inertia.put(route("busroutes.update", routeData.id), form);
   };
 
   return (
