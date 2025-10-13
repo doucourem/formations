@@ -19,7 +19,6 @@ import {
   Tooltip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import DashboardIcon from "@mui/icons-material/Dashboard";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import LocationCityIcon from "@mui/icons-material/LocationCity";
 import PeopleIcon from "@mui/icons-material/People";
@@ -36,15 +35,15 @@ const drawerWidth = 240;
 export default function AuthenticatedLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+
+  const { auth, url } = usePage().props;
+  const user = auth?.user || {};
+
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
-  // Récupération de l'utilisateur connecté via Inertia
-  const { auth } = usePage().props;
-  const user = auth?.user || {};
-
-  // Menu latéral (visible selon le rôle)
+  // Items du menu
   const menuItems = [
     { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
     { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
@@ -54,16 +53,22 @@ export default function AuthenticatedLayout({ children }) {
     { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
   ];
 
-  // Si admin, ajoute la gestion utilisateurs
   if (user.role === "admin") {
     menuItems.push({ text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") });
   }
 
   const drawerContent = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <List sx={{ flexGrow: 1 }}>
+      <Toolbar />
+      <List sx={{ flexGrow: 1, overflowY: "auto" }}>
         {menuItems.map((item) => (
-          <ListItem key={item.text} button component={Link} href={item.route}>
+          <ListItem
+            key={item.text}
+            button
+            component={Link}
+            href={item.route}
+            selected={url === item.route}
+          >
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText primary={item.text} />
           </ListItem>
@@ -76,7 +81,7 @@ export default function AuthenticatedLayout({ children }) {
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <CssBaseline />
 
-      {/* --- BARRE SUPÉRIEURE --- */}
+      {/* AppBar */}
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <IconButton
@@ -96,7 +101,7 @@ export default function AuthenticatedLayout({ children }) {
             Gestion Billets
           </Typography>
 
-          {/* Menu utilisateur à droite */}
+          {/* Menu utilisateur */}
           <Tooltip title="Compte utilisateur">
             <IconButton color="inherit" onClick={handleMenuOpen}>
               <Avatar sx={{ bgcolor: "#1976d2" }}>
@@ -110,6 +115,7 @@ export default function AuthenticatedLayout({ children }) {
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
             <MenuItem disabled>
               <Typography variant="subtitle1">
@@ -127,19 +133,19 @@ export default function AuthenticatedLayout({ children }) {
         </Toolbar>
       </AppBar>
 
-      {/* --- MENU LATÉRAL --- */}
+      {/* Drawer permanent desktop */}
       <Drawer
         variant="permanent"
         sx={{
           display: { xs: "none", sm: "block" },
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box" },
+          "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
         }}
         open
       >
-        <Toolbar />
         {drawerContent}
       </Drawer>
 
+      {/* Drawer temporaire mobile */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -147,13 +153,13 @@ export default function AuthenticatedLayout({ children }) {
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: "block", sm: "none" },
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box" },
+          "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
         }}
       >
         {drawerContent}
       </Drawer>
 
-      {/* --- CONTENU PRINCIPAL --- */}
+      {/* Contenu principal */}
       <Box
         component="main"
         sx={{
