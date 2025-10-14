@@ -193,7 +193,7 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                         <TableCell>{formatDateFR(trip.departure_at)}</TableCell>
                         <TableCell>{formatDateFR(trip.arrival_at)}</TableCell>
                         <TableCell>{trip.route?.price} FCFA</TableCell>
-                        <TableCell>{trip.bus?.capacity}</TableCell>
+                        <TableCell>{trip.places_dispo}</TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={1}>
                             <Tooltip title="Voir le trajet">

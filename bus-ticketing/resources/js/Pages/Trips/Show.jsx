@@ -66,16 +66,15 @@ export default function TripShow({ trip }) {
           <Stack spacing={2}>
             <Typography variant="h6" sx={{ display: "flex", alignItems: "center" }}>
               <RouteIcon sx={{ mr: 1, color: "primary.main" }} />
-              Route : {trip.route?.departureCity?.name || "-"} →{" "}
-              {trip.route?.arrivalCity?.name || "-"}
+              Route : {trip.route?.departureCity|| "-"} →{" "}
+              {trip.route?.arrivalCity || "-"}
             </Typography>
 
             <Divider />
 
             <Typography variant="h6" sx={{ display: "flex", alignItems: "center" }}>
               <DirectionsBusIcon sx={{ mr: 1, color: "primary.main" }} />
-              Bus : {trip.bus?.model || "-"} (
-              {trip.bus?.registration_number || "N/A"})
+              Bus : {trip.bus?.model || "-"} ({trip.bus?.registration_number || "N/A"})
             </Typography>
 
             <Divider />
@@ -98,8 +97,7 @@ export default function TripShow({ trip }) {
             </Typography>
 
             <Typography variant="h6">
-              Places disponibles :{" "}
-              <strong>{trip.bus?.capacity ?? "N/A"}</strong>
+              Places disponibles : <strong>{trip.bus?.capacity ?? "N/A"}</strong>
             </Typography>
           </Stack>
         </Paper>
@@ -110,13 +108,6 @@ export default function TripShow({ trip }) {
             <Typography variant="h5" fontWeight="bold">
               Billets vendus
             </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => Inertia.get(route("tickets.create", { trip_id: trip.id }))}
-            >
-              Nouveau billet
-            </Button>
             <TripPDFDownload trip={trip} />
           </Stack>
 
@@ -125,17 +116,20 @@ export default function TripShow({ trip }) {
               <Table stickyHeader>
                 <TableHead sx={{ bgcolor: "primary.main" }}>
                   <TableRow>
-                    <TableCell sx={{ color: "#fff" }}>Client</TableCell>
-  
-                    <TableCell sx={{ color: "#fff" }}>Siège</TableCell>
-                    <TableCell sx={{ color: "#fff" }}>Prix (FCFA)</TableCell>
-                    <TableCell sx={{ color: "#fff" }}>Statut</TableCell>
+                    <TableCell >Client</TableCell>
+                    <TableCell >Agence</TableCell>
+                       <TableCell >Vendeur</TableCell>
+                    <TableCell >Siège</TableCell>
+                    <TableCell >Prix (FCFA)</TableCell>
+                    <TableCell >Statut</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {trip.tickets.map((ticket) => (
                     <TableRow key={ticket.id} hover>
                       <TableCell>{ticket.client_name}</TableCell>
+                      <TableCell>{ticket.user?.agency?.name || "-"}</TableCell>
+                       <TableCell>{ticket.user?.name }</TableCell>
                       <TableCell>{ticket.seat_number || "-"}</TableCell>
                       <TableCell>{ticket.price?.toLocaleString() || "-"}</TableCell>
                       <TableCell
@@ -170,13 +164,7 @@ export default function TripShow({ trip }) {
 
         {/* Bouton modifier */}
         <Box sx={{ mt: 3, textAlign: "right" }}>
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={() => Inertia.get(route("trips.edit", trip.id))}
-          >
-            Modifier le trajet
-          </Button>
+        
         </Box>
       </Box>
     </GuestLayout>

@@ -1,73 +1,129 @@
 import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import {
-  TextField,
-  Button,
-  Container,
-  Typography,
   Box,
+  Button,
+  TextField,
+  Typography,
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Card,
+  CardHeader,
+  CardContent,
+  Stack,
+  CircularProgress,
 } from "@mui/material";
+import BusinessIcon from "@mui/icons-material/Business";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Create({ cities }) {
+export default function Create({ cities = [] }) {
   const [form, setForm] = useState({
     name: "",
     city_id: "",
   });
 
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.post(route("agencies.store"), form);
+
+    let validationErrors = {};
+    if (!form.name) validationErrors.name = "Le nom de l’agence est obligatoire.";
+    if (!form.city_id) validationErrors.city_id = "La ville est obligatoire.";
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setLoading(true);
+    Inertia.post(route("agencies.store"), form, {
+      onFinish: () => setLoading(false),
+    });
   };
 
   return (
     <GuestLayout>
-      <Container maxWidth="sm">
-        <Box sx={{ mt: 4, p: 3, boxShadow: 2, borderRadius: 2, bgcolor: "white" }}>
-          <Typography variant="h5" gutterBottom>
-            Créer une Agence
-          </Typography>
-
-          <form onSubmit={handleSubmit}>
-            <TextField
-              label="Nom de l'agence"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-              required
-            />
-
-            <FormControl fullWidth margin="normal" required>
-              <InputLabel>Ville</InputLabel>
-              <Select
-                name="city_id"
-                value={form.city_id}
-                onChange={handleChange}
+      <Box sx={{ p: 3, maxWidth: 700, mx: "auto" }}>
+        <Card elevation={3} sx={{ borderRadius: 3 }}>
+          <CardHeader
+            title={
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <BusinessIcon color="primary" />
+                <Typography variant="h5">Créer une Agence</Typography>
+              </Stack>
+            }
+            action={
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddCircleOutlineIcon />}
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               >
-                {cities.map((city) => (
-                  <MenuItem key={city.id} value={city.id}>
-                    {city.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                Formulaire
+              </Button>
+            }
+          />
+          <CardContent>
+            <Box
+              component="form"
+              onSubmit={handleSubmit}
+              sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+            >
+              {/* Nom */}
+              <TextField
+                label="Nom de l’agence"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                fullWidth
+                required
+                error={!!errors.name}
+                helperText={errors.name}
+              />
 
-            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
-              Créer
-            </Button>
-          </form>
-        </Box>
-      </Container>
+              {/* Ville */}
+              <FormControl fullWidth required error={!!errors.city_id}>
+                <InputLabel>Ville</InputLabel>
+                <Select name="city_id" value={form.city_id} onChange={handleChange}>
+                  <MenuItem value="">Choisir une ville</MenuItem>
+                  {cities.map((city) => (
+                    <MenuItem key={city.id} value={city.id}>
+                      {city.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.city_id && (
+                  <Typography color="error" variant="caption">
+                    {errors.city_id}
+                  </Typography>
+                )}
+              </FormControl>
+
+              {/* Bouton */}
+              <Button
+                type="submit"
+                variant="contained"
+                color="success"
+                sx={{ mt: 2 }}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} color="inherit" /> : "Créer l’agence"}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
     </GuestLayout>
   );
 }

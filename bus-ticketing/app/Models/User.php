@@ -10,34 +10,34 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    // Champs autorisés à la création/modification
     protected $fillable = [
-        'name',       // Nom de famille
+        'name',       // Nom
         'prenom',     // Prénom
         'email',
         'password',
-        'agence_id',  // Agence de l'utilisateur
-        'role',       // Nouveau champ rôle
+        'agence_id',  // Agence associée
+        'role',       // Rôle de l'utilisateur
     ];
 
+    // Champs masqués lors de la sérialisation
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
+    // Casting des attributs
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
 
-    // Relation avec l'agence
-    public function agence()
-    {
-        return $this->belongsTo(Agency::class);
-    }
-
+    /**
+     * Relation avec l'agence.
+     * Un utilisateur appartient à une seule agence.
+     */
     public function agency()
-{
-    return $this->belongsTo(Agency::class);
-}
-
+    {
+        return $this->belongsTo(Agency::class, 'agence_id');
+    }
 }

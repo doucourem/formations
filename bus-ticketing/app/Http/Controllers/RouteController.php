@@ -82,7 +82,7 @@ class RouteController extends Controller
             }
         });
 
-        return redirect()->route('routes.index')->with('success', 'Itinéraire créé avec succès ✅');
+        return redirect()->route('busroutes.index')->with('success', 'Itinéraire créé avec succès ✅');
     }
 
     // Formulaire d'édition
@@ -152,13 +152,13 @@ public function edit(\App\Models\Route $busroute)
             }
         });
 
-        return redirect()->route('routes.index')->with('success', 'Itinéraire mis à jour avec succès ✅');
+        return redirect()->route('busroutes.index')->with('success', 'Itinéraire mis à jour avec succès ✅');
     }
 
     // Supprimer une route
     public function destroy(Route $route)
     {
         $route->delete();
-        return redirect()->route('routes.index')->with('success', 'Itinéraire supprimé ✅');
+        return redirect()->route('busroutes.index')->with('success', 'Itinéraire supprimé ✅');
     }
 }

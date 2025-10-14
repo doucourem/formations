@@ -14,9 +14,11 @@ import {
   Typography,
   Pagination,
   IconButton,
+  Button,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 
 export default function Index({ agencies, filters }) {
   const [parPage, setParPage] = useState(filters?.per_page || 10);
@@ -38,9 +40,19 @@ export default function Index({ agencies, filters }) {
 
   return (
     <GuestLayout>
-      <Typography variant="h4" gutterBottom>
-        Agences
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h4">Agences</Typography>
+
+        {/* ✅ Bouton Créer */}
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={<AddIcon />}
+          onClick={() => Inertia.get(route('agencies.create'))}
+        >
+          Créer une agence
+        </Button>
+      </Box>
 
       {/* Filtres */}
       <Box display="flex" gap={2} mb={3} alignItems="flex-end">
@@ -60,20 +72,14 @@ export default function Index({ agencies, filters }) {
           size="small"
           sx={{ width: 120 }}
         />
-        <Box
-          component="button"
+        <Button
+          variant="contained"
+          color="primary"
           onClick={filtrer}
-          sx={{
-            backgroundColor: '#1976d2',
-            color: 'white',
-            border: 'none',
-            padding: '6px 16px',
-            borderRadius: 1,
-            cursor: 'pointer',
-          }}
+          sx={{ height: 40 }}
         >
           Filtrer
-        </Box>
+        </Button>
       </Box>
 
       {/* Tableau */}

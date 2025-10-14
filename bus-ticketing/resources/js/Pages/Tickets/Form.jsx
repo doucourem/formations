@@ -4,36 +4,53 @@ import GuestLayout from "@/Layouts/GuestLayout";
 import {
   Box,
   Button,
-  TextField,
   MenuItem,
   Typography,
   FormControl,
   InputLabel,
   Select,
+  TextField,
 } from "@mui/material";
 
-export default function TicketForm({ ticket, trips }) {
+export default function TicketForm({ ticket = null, trips = [], tickets = [] }) {
   const [form, setForm] = useState({
     trip_id: ticket?.trip_id || "",
     stop_id: ticket?.stop_id || "",
     client_name: ticket?.client_name || "",
+    client_nina: ticket?.client_nina || "",
     seat_number: ticket?.seat_number || "",
-    status: ticket?.status || "reserved",
+    status: ticket?.status || "booked",
   });
 
   const [stops, setStops] = useState([]);
+  const [occupiedSeats, setOccupiedSeats] = useState([]);
+  const [availableSeats, setAvailableSeats] = useState([]);
 
+  // Met à jour stops et sièges lorsque le voyage change
   useEffect(() => {
     const selectedTrip = trips.find((t) => t.id === form.trip_id);
     setStops(selectedTrip?.route?.stops || []);
-  }, [form.trip_id, trips]);
+
+    // Récupère les sièges déjà occupés pour ce voyage (hors ticket en édition)
+    const seatsTaken = (tickets || [])
+      .filter((t) => t.trip_id === form.trip_id && t.id !== ticket?.id)
+      .map((t) => t.seat_number);
+
+    setOccupiedSeats(seatsTaken);
+
+    // Génère la liste des sièges disponibles
+    const busCapacity = selectedTrip?.bus?.capacity || 0;
+    const seats = [];
+    for (let i = 1; i <= busCapacity; i++) {
+      seats.push(i.toString());
+    }
+    const freeSeats = seats.filter((s) => !seatsTaken.includes(s));
+    setAvailableSeats(freeSeats);
+  }, [form.trip_id, trips, tickets, ticket]);
 
   const handleChange = (e) => {
-    const { name, value, type } = e.target;
-    setForm({
-      ...form,
-      [name]: type === "number" ? Number(value) : value,
-    });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
   };
 
   const handleSubmit = (e) => {
@@ -69,13 +86,12 @@ export default function TicketForm({ ticket, trips }) {
               required
             >
               {trips.map((t) => (
-              <MenuItem key={t.id} value={t.id}>
-  {(t.route?.departureCity?.name || "-") +
-    " → " +
-    (t.route?.arrivalCity?.name || "-") +
-    ` (Départ : ${t.departure_at})`}
-</MenuItem>
-
+                <MenuItem key={t.id} value={t.id}>
+                  {(t.route?.departureCity?.name || "-") +
+                    " → " +
+                    (t.route?.arrivalCity?.name || "-") +
+                    ` (Départ : ${t.departure_at})`}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -108,16 +124,41 @@ export default function TicketForm({ ticket, trips }) {
             name="client_name"
             value={form.client_name}
             onChange={handleChange}
+            fullWidth
             required
           />
 
-          {/* Siège */}
+          {/* NINA */}
           <TextField
-            label="Siège"
-            name="seat_number"
-            value={form.seat_number}
+            label="NINA"
+            name="client_nina"
+            value={form.client_nina}
             onChange={handleChange}
+            fullWidth
           />
+
+          {/* Siège */}
+          <FormControl fullWidth>
+            <InputLabel id="seat-label">Siège</InputLabel>
+            <Select
+              labelId="seat-label"
+              name="seat_number"
+              value={form.seat_number}
+              onChange={handleChange}
+              required
+            >
+              {availableSeats.map((s) => (
+                <MenuItem key={s} value={s}>
+                  {s}
+                </MenuItem>
+              ))}
+              {occupiedSeats.map((s) => (
+                <MenuItem key={s} value={s} disabled>
+                  {s} (déjà réservé)
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           {/* Statut */}
           <FormControl fullWidth>
@@ -130,7 +171,7 @@ export default function TicketForm({ ticket, trips }) {
               onChange={handleChange}
               required
             >
-              <MenuItem value="reserved">Réservé</MenuItem>
+              <MenuItem value="booked">Réservé</MenuItem>
               <MenuItem value="paid">Payé</MenuItem>
               <MenuItem value="cancelled">Annulé</MenuItem>
             </Select>
@@ -140,6 +181,12 @@ export default function TicketForm({ ticket, trips }) {
             {ticket?.id ? "Mettre à jour" : "Créer"}
           </Button>
         </Box>
+
+        {occupiedSeats.length > 0 && (
+          <Typography sx={{ mt: 2, fontStyle: "italic" }}>
+            Sièges déjà réservés : {occupiedSeats.join(", ")}
+          </Typography>
+        )}
       </Box>
     </GuestLayout>
   );

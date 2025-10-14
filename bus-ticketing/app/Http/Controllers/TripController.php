@@ -7,62 +7,64 @@ use Inertia\Inertia;
 use App\Models\Trip;
 use App\Models\Bus;
 use App\Models\Route as TripRoute;
-use App\Models\City;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class TripController extends Controller
 {
-public function index(Request $request)
-{
-    $perPage = (int) $request->input('per_page', 10);
-    $busId = $request->input('bus_id');
-    $routeId = $request->input('route_id');
+    public function index(Request $request)
+    {
+        $perPage = (int) $request->input('per_page', 10);
+        $busId = $request->input('bus_id');
+        $routeId = $request->input('route_id');
 
-    // 🔹 Récupération des trajets filtrés (triés par date de départ décroissante)
-    $trips = Trip::with(['bus', 'route.departureCity', 'route.arrivalCity'])
-        ->when($busId, fn($q) => $q->where('bus_id', $busId))
-        ->when($routeId, fn($q) => $q->where('route_id', $routeId))
-        ->orderByDesc('departure_at') // ✅ tri décroissant
-        ->paginate($perPage)
-        ->withQueryString();
+        // Récupération des trajets filtrés avec le nombre de tickets vendus
+        $trips = Trip::with(['bus', 'route.departureCity', 'route.arrivalCity'])
+            ->withCount('tickets')
+            ->when($busId, fn($q) => $q->where('bus_id', $busId))
+            ->when($routeId, fn($q) => $q->where('route_id', $routeId))
+            ->orderByDesc('departure_at')
+            ->paginate($perPage)
+            ->withQueryString();
 
-    $trips->getCollection()->transform(function ($t) {
-        $t->edit_url = route('trips.edit', $t->id);
-        $t->route = $t->route ?? (object)[
-            'departureCity' => (object)['name' => '-'],
-            'arrivalCity' => (object)['name' => '-'],
-        ];
-        $t->route->departureCity = $t->route->departureCity ?? (object)['name' => '-'];
-        $t->route->arrivalCity = $t->route->arrivalCity ?? (object)['name' => '-'];
-        return $t;
-    });
+        $trips->getCollection()->transform(function ($t) {
+            $t->edit_url = route('trips.edit', $t->id);
 
-    // 🔹 Récupération des bus (pour le filtre)
-    $buses = \App\Models\Bus::select('id', 'model', 'registration_number')
-        ->orderBy('model')
-        ->get();
+            $t->route = $t->route ?? (object)[
+                'departureCity' => (object)['name' => '-'],
+                'arrivalCity' => (object)['name' => '-'],
+                'price' => 0,
+            ];
 
-    // 🔹 Récupération des routes (pour le filtre)
-    $routes = \App\Models\Route::with(['departureCity:id,name', 'arrivalCity:id,name'])
-        ->select('id', 'departure_city_id', 'arrival_city_id')
-        ->orderBy('id', 'desc')
-        ->get();
+            $t->route->departureCity = $t->route->departureCity ?? (object)['name' => '-'];
+            $t->route->arrivalCity = $t->route->arrivalCity ?? (object)['name' => '-'];
 
-    return Inertia::render('Trips/Index', [
-        'initialTrips' => $trips,
-        'initialFilters' => [
-            'bus_id' => $busId,
-            'route_id' => $routeId,
-            'per_page' => $perPage,
-        ],
-        'buses' => $buses,
-        'routes' => $routes,
-    ]);
-}
+            // Calcul des places disponibles
+            $t->places_dispo = max(($t->bus->capacity ?? 0) - $t->tickets_count, 0);
 
+            return $t;
+        });
 
+        $buses = Bus::select('id', 'model', 'registration_number', 'capacity')
+            ->orderBy('model')
+            ->get();
+
+        $routes = TripRoute::with(['departureCity:id,name', 'arrivalCity:id,name'])
+            ->select('id', 'departure_city_id', 'arrival_city_id', 'price')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return Inertia::render('Trips/Index', [
+            'initialTrips' => $trips,
+            'initialFilters' => [
+                'bus_id' => $busId,
+                'route_id' => $routeId,
+                'per_page' => $perPage,
+            ],
+            'buses' => $buses,
+            'routes' => $routes,
+        ]);
+    }
 
     public function create()
     {
@@ -155,45 +157,47 @@ public function index(Request $request)
         }
     }
 
- public function show($id)
-{
-    $trip = Trip::with([
-        'route.departureCity',
-        'route.arrivalCity',
-        'bus',
-        'tickets', // si chaque ticket a un client
-    ])->findOrFail($id);
+    public function show($id)
+    {
+        $trip = Trip::with([
+            'route.departureCity',
+            'route.arrivalCity',
+            'bus',
+            'tickets.user.agency', // tickets liés à leurs utilisateurs et agences
+        ])->findOrFail($id);
 
-    $tripData = [
-        'id' => $trip->id,
-        'departure_at' => $trip->departure_at,
-        'arrival_at' => $trip->arrival_at,
-        'bus' => [
-            'id' => $trip->bus->id ?? null,
-            'registration_number' => $trip->bus->registration_number ?? null,
-            'capacity' => $trip->bus->capacity ?? null,
-        ],
-        'route' => [
-            'id' => $trip->route->id ?? null,
-            'departureCity' => $trip->route->departureCity ?? null,
-            'arrivalCity' => $trip->route->arrivalCity ?? null,
-            'price' => $trip->route->price ?? 0,
-        ],
-        'tickets' => $trip->tickets->map(function ($ticket) {
-            return [
+        $tripData = [
+            'id' => $trip->id,
+            'departure_at' => $trip->departure_at,
+            'arrival_at' => $trip->arrival_at,
+            'bus' => $trip->bus ? [
+                'id' => $trip->bus->id,
+                'registration_number' => $trip->bus->registration_number,
+                'capacity' => $trip->bus->capacity,
+            ] : null,
+            'route' => $trip->route ? [
+                'id' => $trip->route->id,
+                'departureCity' => $trip->route->departureCity?->name ?? '-',
+                'arrivalCity' => $trip->route->arrivalCity?->name ?? '-',
+                'price' => $trip->route->price ?? 0,
+            ] : null,
+            'tickets' => $trip->tickets->map(fn($ticket) => [
                 'id' => $ticket->id,
                 'client_name' => $ticket->client_name,
                 'seat_number' => $ticket->seat_number,
                 'price' => $ticket->price,
                 'status' => $ticket->status,
                 'created_at' => $ticket->created_at->format('d/m/Y H:i'),
-            ];
-        }),
-    ];
+                'user' => $ticket->user ? [
+                    'name' => $ticket->user->name,
+                    'email' => $ticket->user->email,
+                    'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
+                ] : null,
+            ]),
+        ];
 
-    return Inertia::render('Trips/Show', [
-        'trip' => $tripData,
-    ]);
-}
-
+        return Inertia::render('Trips/Show', [
+            'trip' => $tripData,
+        ]);
+    }
 }

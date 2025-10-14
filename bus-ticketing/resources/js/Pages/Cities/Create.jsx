@@ -1,64 +1,97 @@
-import React, { useState } from 'react';
-import { Inertia } from '@inertiajs/inertia';
-import { Link } from '@inertiajs/inertia-react';
-import GuestLayout from '@/Layouts/GuestLayout';
+import React, { useState } from "react";
+import { Inertia } from "@inertiajs/inertia";
+import { Link } from "@inertiajs/inertia-react";
+import GuestLayout from "@/Layouts/GuestLayout";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Container,
+  Stack,
+} from "@mui/material";
 
 export default function Create() {
   const [form, setForm] = useState({
-    name: '',
-    code: '',
+    name: "",
+    code: "",
   });
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.post(route('cities.store'), form);
+
+    if (!form.name) {
+      alert("Le nom de la ville est obligatoire");
+      return;
+    }
+
+    Inertia.post(route("cities.store"), form);
   };
 
   return (
     <GuestLayout>
-      <h1 className="text-2xl font-bold mb-4">Créer une nouvelle ville</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block font-medium mb-1">Nom de la ville</label>
-          <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            className="border px-3 py-2 rounded w-full"
-          />
-        </div>
+      <Container maxWidth="sm">
+        <Box
+          sx={{
+            mt: 4,
+            p: 3,
+            boxShadow: 2,
+            borderRadius: 2,
+            bgcolor: "white",
+          }}
+        >
+          <Typography variant="h5" gutterBottom>
+            Créer une nouvelle ville
+          </Typography>
 
-        <div>
-          <label className="block font-medium mb-1">Code</label>
-          <input
-            type="text"
-            name="code"
-            value={form.code}
-            onChange={handleChange}
-            className="border px-3 py-2 rounded w-full"
-          />
-        </div>
+          <form onSubmit={handleSubmit}>
+            <TextField
+              label="Nom de la ville"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+              required
+            />
 
-        <div className="flex space-x-2">
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            Enregistrer
-          </button>
-          <Link
-            href={route('cities.index')}
-            className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-          >
-            Annuler
-          </Link>
-        </div>
-      </form>
+            <TextField
+              label="Code"
+              name="code"
+              value={form.code}
+              onChange={handleChange}
+              fullWidth
+              margin="normal"
+            />
+
+            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+              >
+                Enregistrer
+              </Button>
+
+              <Button
+                component={Link}
+                href={route("cities.index")}
+                variant="outlined"
+                color="secondary"
+              >
+                Annuler
+              </Button>
+            </Stack>
+          </form>
+        </Box>
+      </Container>
     </GuestLayout>
   );
 }

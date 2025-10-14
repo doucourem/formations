@@ -98,6 +98,7 @@ export default function EditTrip({ trip, routes, buses }) {
                     routes.map((r) => (
                       <MenuItem key={r.id} value={r.id}>
                         {r.departureCity || "-"} → {r.arrivalCity || "-"}
+                        
                       </MenuItem>
                     ))
                   ) : (

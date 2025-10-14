@@ -20,7 +20,7 @@ class TicketController extends Controller
             'trip.route.departureCity',
             'trip.route.arrivalCity',
             'stop.city',
-            'user.agency', // 🔹 Inclure l'agence de l'utilisateur
+            'user.agency',
         ])
         ->where('user_id', Auth::id())
         ->orderBy('created_at', 'desc')
@@ -49,7 +49,7 @@ class TicketController extends Controller
                 'client_name' => $ticket->client_name,
                 'seat_number' => $ticket->seat_number,
                 'status' => $ticket->status,
-                 'price' => $ticket->price,
+                'price' => $ticket->price,
                 'created_at' => $ticket->created_at->format('Y-m-d H:i:s'),
                 'user' => $ticket->user ? [
                     'name' => $ticket->user->name,
@@ -76,39 +76,59 @@ class TicketController extends Controller
     }
 
     // ➕ Formulaire de création
-    public function create()
-    {
-        Carbon::setLocale('fr');
-        $today = Carbon::now();
+   public function create()
+{
+    // Définir la locale française pour Carbon
+    Carbon::setLocale('fr');
+    $today = Carbon::now();
 
-        $trips = Trip::with([
-            'route.departureCity',
-            'route.arrivalCity',
-            'route.stops.city',
-        ])
-        ->whereDate('departure_at', '>=', $today)
-        ->get()
-        ->map(function ($t) {
-            return [
-                'id' => $t->id,
-                'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
-                'route' => [
-                    'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
-                    'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
-                    'stops' => $t->route->stops->map(function ($s) {
-                        return [
-                            'id' => $s->id,
-                            'distance_from_start' => $s->distance_from_start,
-                            'price' => $s->price,
-                            'city' => $s->city ? ['name' => $s->city->name] : null,
-                        ];
-                    }),
-                ],
-            ];
-        });
+    // Récupérer les trajets futurs avec relations nécessaires
+    $trips = Trip::with([
+        'route.departureCity',
+        'route.arrivalCity',
+        'route.stops.city',
+        'bus',
+        'tickets.user.agency', // utile si tu veux lister les sièges occupés par agence
+    ])
+    ->whereDate('departure_at', '>=', $today)
+    ->get()
+    ->map(function ($t) {
+        return [
+            'id' => $t->id,
+            'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
+            'bus' => [
+                'capacity' => $t->bus?->capacity ?? 0,
+                'model' => $t->bus?->model,
+                'registration_number' => $t->bus?->registration_number,
+            ],
+            'route' => [
+                'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
+                'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
+                'stops' => $t->route->stops->map(function ($s) {
+                    return [
+                        'id' => $s->id,
+                        'distance_from_start' => $s->distance_from_start,
+                        'price' => $s->price,
+                        'city' => $s->city ? ['name' => $s->city->name] : null,
+                    ];
+                }),
+            ],
+            'tickets' => $t->tickets->map(function ($ticket) {
+                return [
+                    'id' => $ticket->id,
+                    'seat_number' => $ticket->seat_number,
+                    'client_name' => $ticket->client_name,
+                    'user' => $ticket->user ? [
+                        'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
+                    ] : null,
+                ];
+            }),
+        ];
+    });
 
-        return Inertia::render('Tickets/Form', ['trips' => $trips]);
-    }
+    return Inertia::render('Tickets/Form', ['trips' => $trips]);
+}
+
 
     public function store(Request $request)
     {
@@ -121,9 +141,18 @@ class TicketController extends Controller
             'status' => 'required|in:reserved,paid,cancelled',
         ]);
 
+        // Vérification du siège unique
+        if (!empty($data['seat_number'])) {
+            $exists = Ticket::where('trip_id', $data['trip_id'])
+                ->where('seat_number', $data['seat_number'])
+                ->exists();
+            if ($exists) {
+                return back()->withErrors(['seat_number' => 'Ce siège est déjà réservé pour ce voyage.'])->withInput();
+            }
+        }
+
         $trip = Trip::with('route', 'route.stops')->findOrFail($data['trip_id']);
 
-        // 🔹 Prix selon stop ou route
         if (!empty($data['stop_id'])) {
             $stop = $trip->route->stops->where('id', $data['stop_id'])->first();
             $data['price'] = $stop->price ?? $trip->route->price ?? 0;
@@ -149,9 +178,19 @@ class TicketController extends Controller
             'status' => 'required|in:reserved,paid,cancelled',
         ]);
 
+        // Vérification du siège unique (hors ticket actuel)
+        if (!empty($data['seat_number'])) {
+            $exists = Ticket::where('trip_id', $data['trip_id'])
+                ->where('seat_number', $data['seat_number'])
+                ->where('id', '!=', $ticket->id)
+                ->exists();
+            if ($exists) {
+                return back()->withErrors(['seat_number' => 'Ce siège est déjà réservé pour ce voyage.'])->withInput();
+            }
+        }
+
         $trip = Trip::with('route', 'route.stops')->findOrFail($data['trip_id']);
 
-        // 🔹 Prix selon stop ou route
         if (!empty($data['stop_id'])) {
             $stop = $trip->route->stops->where('id', $data['stop_id'])->first();
             $data['price'] = $stop->price ?? $trip->route->price ?? 0;
@@ -205,48 +244,65 @@ class TicketController extends Controller
     }
 
     public function show($id)
-    {
-        $ticket = Ticket::with([
-            'trip.route.departureCity',
-            'trip.route.arrivalCity',
-            'trip.bus',
-            'stop.city',
-            'user.agency',
-        ])->findOrFail($id);
+{
+    $ticket = Ticket::with([
+        'trip.route.departureCity',
+        'trip.route.arrivalCity',
+        'trip.bus',
+        'stop.city',
+        'user.agency',
+    ])->findOrFail($id);
 
-        return Inertia::render('Tickets/Show', [
-            'ticket' => [
-                'id' => $ticket->id,
-                'seat_number' => $ticket->seat_number,
-                'client_name' => $ticket->client_name,
-                'status' => $ticket->status,
-                'stop' => $ticket->stop ? [
-                    'city_name' => $ticket->stop->city?->name,
-                    'distance_from_start' => $ticket->stop->distance_from_start,
-                    'price' => $ticket->stop->price,
+    return Inertia::render('Tickets/Show', [
+        'ticket' => [
+            'id' => $ticket->id,
+            'seat_number' => $ticket->seat_number,
+            'client_name' => $ticket->client_name,
+            'status' => $ticket->status,
+            'price' => $ticket->price,
+            'stop' => $ticket->stop ? [
+                'id' => $ticket->stop->id,
+                'city_name' => $ticket->stop->city?->name,
+                'distance_from_start' => $ticket->stop->distance_from_start,
+                'price' => $ticket->stop->price,
+            ] : null,
+            'user' => $ticket->user ? [
+                'id' => $ticket->user->id,
+                'name' => $ticket->user->name,
+                'email' => $ticket->user->email,
+                'agency' => $ticket->user->agency ? [
+                    'id' => $ticket->user->agency->id,
+                    'name' => $ticket->user->agency->name,
                 ] : null,
-                'user' => $ticket->user ? [
-                    'name' => $ticket->user->name,
-                    'email' => $ticket->user->email,
-                    'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
+            ] : null,
+            'trip' => $ticket->trip ? [
+                'id' => $ticket->trip->id,
+                'departure_time' => $ticket->trip->departure_at
+                    ? Carbon::parse($ticket->trip->departure_at)->format('d/m/Y H:i')
+                    : null,
+                'arrival_time' => $ticket->trip->arrival_at
+                    ? Carbon::parse($ticket->trip->arrival_at)->format('d/m/Y H:i')
+                    : null,
+                'bus' => $ticket->trip->bus ? [
+                    'id' => $ticket->trip->bus->id,
+                    'model' => $ticket->trip->bus->model,
+                    'registration_number' => $ticket->trip->bus->registration_number,
                 ] : null,
-                'trip' => $ticket->trip ? [
-                    'departure_time' => optional($ticket->trip->departure_at)
-                        ? Carbon::parse($ticket->trip->departure_at)->format('d/m/Y H:i')
-                        : null,
-                    'arrival_time' => optional($ticket->trip->arrival_at)
-                        ? Carbon::parse($ticket->trip->arrival_at)->format('d/m/Y H:i')
-                        : null,
-                    'bus' => $ticket->trip->bus ? [
-                        'plate_number' => $ticket->trip->bus->registration_number,
-                    ] : null,
-                    'route' => $ticket->trip->route ? [
-                        'departureCity' => $ticket->trip->route->departureCity?->name,
-                        'arrivalCity' => $ticket->trip->route->arrivalCity?->name,
-                        'price' => $ticket->trip->route->price,
-                    ] : null,
+                'route' => $ticket->trip->route ? [
+                    'id' => $ticket->trip->route->id,
+                    'departureCity' => $ticket->trip->route->departureCity?->name,
+                    'arrivalCity' => $ticket->trip->route->arrivalCity?->name,
+                    'price' => $ticket->stop ? $ticket->stop->price : $ticket->trip->route->price,
+                    'stops' => $ticket->trip->route->stops->map(fn($s) => [
+                        'id' => $s->id,
+                        'city_name' => $s->city?->name,
+                        'distance_from_start' => $s->distance_from_start,
+                        'price' => $s->price,
+                    ]),
                 ] : null,
-            ],
-        ]);
-    }
+            ] : null,
+        ],
+    ]);
+}
+
 }

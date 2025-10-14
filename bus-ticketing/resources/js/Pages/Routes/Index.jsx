@@ -75,7 +75,7 @@ export default function RoutesIndex({ initialRoutes, initialFilters }) {
                 variant="contained"
                 color="primary"
                 startIcon={<AddIcon />}
-                onClick={() => Inertia.visit(route('routes.create'))}
+                onClick={() => Inertia.visit(route('busroutes.create'))}
               >
                 Ajouter une route
               </Button>
