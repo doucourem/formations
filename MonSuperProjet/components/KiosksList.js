@@ -1,23 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { View, FlatList, Alert, ScrollView } from "react-native";
+import { Provider as PaperProvider, Card, List, Text, Button, Portal, Dialog, TextInput, Menu } from "react-native-paper";
+import { groupBy } from "lodash";
 import supabase from "../supabaseClient";
-import {
-  StyleSheet,
-  View,
-  FlatList,
-  Alert,
-  TouchableOpacity,
-} from "react-native";
-import {
-  Button,
-  Dialog,
-  Portal,
-  TextInput,
-  Text,
-  Provider as PaperProvider,
-  IconButton,
-  Card,
-  List,
-} from "react-native-paper";
 
 export default function KiosksList() {
   const [kiosks, setKiosks] = useState([]);
@@ -34,6 +19,8 @@ export default function KiosksList() {
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("CREDIT");
   const [editingTransaction, setEditingTransaction] = useState(null);
+  const [filterType, setFilterType] = useState("ALL");
+  const [menuVisible, setMenuVisible] = useState(false);
 
   // =====================
   // Auth
@@ -95,9 +82,7 @@ export default function KiosksList() {
       .order("created_at", { ascending: true });
 
     if (error) console.error(error);
-    else {
-      setTransactionsMap((prev) => ({ ...prev, [cash.id]: data || [] }));
-    }
+    else setTransactionsMap(prev => ({ ...prev, [cash.id]: data || [] }));
   };
 
   const handleOpenTransactions = async (cash) => {
@@ -106,8 +91,22 @@ export default function KiosksList() {
     setAmount("");
     setType("CREDIT");
     await fetchTransactions(cash);
+    setFilterType("ALL");
     setOpenTransactionsDialog(true);
   };
+
+  const filteredTransactions = selectedCash
+    ? (filterType === "ALL"
+        ? transactionsMap[selectedCash.id] || []
+        : (transactionsMap[selectedCash.id] || []).filter(t => t.type === filterType))
+    : [];
+
+  const groupedTransactions = groupBy(filteredTransactions, t => new Date(t.created_at).toLocaleDateString("fr-FR"));
+
+  const totalBalance = filteredTransactions.reduce(
+    (sum, t) => sum + (t.type === "CREDIT" ? t.amount : -t.amount),
+    0
+  );
 
   const handleAddOrEditTransaction = async () => {
     if (!amount) {
@@ -129,20 +128,19 @@ export default function KiosksList() {
         if (error) throw error;
       }
 
-      // Mettre à jour le solde de la caisse
+      // Mettre à jour solde
       const cashes = cashesMap[selectedCash.kiosk_id] || [];
       const cashIndex = cashes.findIndex(c => c.id === selectedCash.id);
       if (cashIndex !== -1) {
-        const oldBalance = cashes[cashIndex].balance;
-        let newBalance = oldBalance;
+        let newBalance = cashes[cashIndex].balance;
         if (editingTransaction) {
           if (editingTransaction.type === "CREDIT") newBalance -= editingTransaction.amount;
           else newBalance += editingTransaction.amount;
         }
         if (type === "CREDIT") newBalance += newAmount;
         else newBalance -= newAmount;
-        cashes[cashIndex].balance = newBalance;
 
+        cashes[cashIndex].balance = newBalance;
         setCashesMap({ ...cashesMap, [selectedCash.kiosk_id]: cashes });
         setBalances({ ...balances, [selectedCash.kiosk_id]: cashes.reduce((sum, c) => sum + c.balance, 0) });
       }
@@ -167,7 +165,6 @@ export default function KiosksList() {
       const { error } = await supabase.from("transactions").delete().eq("id", t.id);
       if (error) throw error;
 
-      // Ajuster le solde
       const cashes = cashesMap[selectedCash.kiosk_id] || [];
       const cashIndex = cashes.findIndex(c => c.id === selectedCash.id);
       if (cashIndex !== -1) {
@@ -242,26 +239,29 @@ export default function KiosksList() {
   const renderItem = ({ item }) => {
     const kioskCashes = cashesMap[item.id] || [];
     return (
-      <Card style={styles.card}>
+      <Card style={{ marginBottom: 12 }}>
         <Card.Content>
           <List.Item
             title={item.name}
             description={`Lieu: ${item.location}\nSolde total: ${balances[item.id]?.toLocaleString("fr-FR")} XOF`}
             left={() => <List.Icon icon="store" />}
             right={() => (
-              <View style={styles.actions}>
-                <IconButton icon="pencil" color="blue" size={20} onPress={() => handleOpenPopup(item)} />
-                <IconButton icon="delete" color="red" size={20} onPress={() => deleteKiosk(item.id)} />
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Button compact onPress={() => handleOpenPopup(item)}>Modifier</Button>
+                <Button compact textColor="red" onPress={() => deleteKiosk(item.id)}>Supprimer</Button>
               </View>
             )}
           />
-          <Text style={styles.text}>Créé le: {new Date(item.created_at).toLocaleString()}</Text>
+          <Text style={{ marginLeft: 16 }}>Créé le: {new Date(item.created_at).toLocaleString()}</Text>
 
           {kioskCashes.map((c) => (
-            <TouchableOpacity key={c.id} style={styles.cashItem} onPress={() => handleOpenTransactions(c)}>
-              <Text>{c.name} - Solde: {c.balance?.toLocaleString("fr-FR")} XOF</Text>
-              <Text style={styles.link}>Voir opérations</Text>
-            </TouchableOpacity>
+            <List.Item
+              key={c.id}
+              title={`${c.name} - Solde: ${c.balance?.toLocaleString("fr-FR")} XOF`}
+              description="Voir opérations"
+              onPress={() => handleOpenTransactions(c)}
+              left={() => <List.Icon icon="cash" />}
+            />
           ))}
         </Card.Content>
       </Card>
@@ -270,19 +270,19 @@ export default function KiosksList() {
 
   return (
     <PaperProvider>
-      <View style={styles.container}>
-        <Text variant="headlineMedium" style={styles.title}>Clients</Text>
-        <Button mode="contained" onPress={() => handleOpenPopup()} style={styles.addButton} icon="plus">Ajouter un client</Button>
+      <View style={{ flex: 1, padding: 16, backgroundColor: "#f5f5f5" }}>
+        <Text style={{ marginBottom: 16, textAlign: "center", fontWeight: "bold", fontSize: 20 }}>Clients</Text>
+        <Button mode="contained" onPress={() => handleOpenPopup()} style={{ marginBottom: 16 }}>Ajouter un client</Button>
 
-        <FlatList data={kiosks} keyExtractor={(item) => item.id.toString()} renderItem={renderItem} style={styles.list} />
+        <FlatList data={kiosks} keyExtractor={item => item.id.toString()} renderItem={renderItem} />
 
         {/* Dialog ajout/modification kiosque */}
         <Portal>
           <Dialog visible={openPopup} onDismiss={handleClosePopup}>
             <Dialog.Title>{currentKiosk.id ? "Modifier client" : "Ajouter client"}</Dialog.Title>
             <Dialog.Content>
-              <TextInput label="Nom" value={currentKiosk.name} onChangeText={(text) => setCurrentKiosk({ ...currentKiosk, name: text })} style={styles.input} />
-              <TextInput label="Lieu" value={currentKiosk.location} onChangeText={(text) => setCurrentKiosk({ ...currentKiosk, location: text })} style={styles.input} />
+              <TextInput label="Nom" value={currentKiosk.name} onChangeText={text => setCurrentKiosk({ ...currentKiosk, name: text })} style={{ marginBottom: 16 }} />
+              <TextInput label="Lieu" value={currentKiosk.location} onChangeText={text => setCurrentKiosk({ ...currentKiosk, location: text })} style={{ marginBottom: 16 }} />
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={handleClosePopup}>Annuler</Button>
@@ -293,41 +293,59 @@ export default function KiosksList() {
 
         {/* Dialog transactions */}
         <Portal>
-          <Dialog visible={openTransactionsDialog} onDismiss={() => setOpenTransactionsDialog(false)}>
+          <Dialog visible={openTransactionsDialog} onDismiss={() => setOpenTransactionsDialog(false)} style={{ maxHeight: "85%" }}>
             <Dialog.Title>Transactions - {selectedCash?.name}</Dialog.Title>
-            <Dialog.Content>
-              {(transactionsMap[selectedCash?.id] || []).map((t) => (
-                <List.Item
-                  key={t.id}
-                  title={`${t.type} - ${t.amount?.toLocaleString("fr-FR")} XOF`}
-                  description={`Date: ${new Date(t.created_at).toLocaleString()}`}
-                  left={() => <List.Icon icon="currency-usd" />}
-                  right={() => (
-                    <View style={{ flexDirection: "row" }}>
-                      <Button compact onPress={() => handleEditTransaction(t)}>Modifier</Button>
-                      <Button compact textColor="red" onPress={() => handleDeleteTransaction(t)}>Supprimer</Button>
-                    </View>
-                  )}
-                />
-              ))}
 
-              <Text style={{ marginTop: 12, fontWeight: "bold" }}>
-                {editingTransaction ? "Modifier transaction" : "Nouvelle transaction"}
-              </Text>
-              <TextInput
-                label="Montant"
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="numeric"
-                style={{ marginTop: 8 }}
-              />
-              <Button mode="outlined" onPress={() => setType(type === "CREDIT" ? "DEBIT" : "CREDIT")} style={{ marginTop: 8 }}>
-                Type: {type}
-              </Button>
+            <Dialog.Content>
+              <View style={{ marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <Text style={{ fontWeight: "bold" }}>
+                  Solde total affiché: {totalBalance.toLocaleString("fr-FR")} XOF
+                </Text>
+
+                <Menu
+                  visible={menuVisible}
+                  onDismiss={() => setMenuVisible(false)}
+                  anchor={<Button mode="outlined" onPress={() => setMenuVisible(true)}>Filtrer: {filterType}</Button>}
+                >
+                  <Menu.Item onPress={() => { setFilterType("ALL"); setMenuVisible(false); }} title="Toutes" />
+                  <Menu.Item onPress={() => { setFilterType("CREDIT"); setMenuVisible(false); }} title="CREDIT" />
+                  <Menu.Item onPress={() => { setFilterType("DEBIT"); setMenuVisible(false); }} title="DEBIT" />
+                </Menu>
+              </View>
+
+              <ScrollView>
+                {Object.entries(groupedTransactions).length > 0 ? Object.entries(groupedTransactions).map(([date, transactionsOfDay]) => {
+                  const dayTotal = transactionsOfDay.reduce((sum, t) => sum + (t.type === "CREDIT" ? t.amount : -t.amount), 0);
+                  return (
+                    <List.Accordion key={date} title={`${date} - Total: ${dayTotal.toLocaleString("fr-FR")} XOF`} style={{ backgroundColor: "#f0f0f0", marginBottom: 8 }}>
+                      {transactionsOfDay.map(t => (
+                        <Card key={t.id} style={{ marginBottom: 4, backgroundColor: t.type === "CREDIT" ? "#e6f4ea" : "#fdecea" }}>
+                          <Card.Content style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                            <View>
+                              <Text style={{ fontWeight: "bold", color: t.type === "CREDIT" ? "green" : "red" }}>
+                                {t.type} - {t.amount.toLocaleString("fr-FR")} XOF
+                              </Text>
+                              <Text style={{ fontSize: 12, color: "#555" }}>
+                                {new Date(t.created_at).toLocaleTimeString("fr-FR")}
+                              </Text>
+                            </View>
+                            <View style={{ flexDirection: "row" }}>
+                              <Button compact onPress={() => handleEditTransaction(t)}>Modifier</Button>
+                              <Button compact textColor="red" onPress={() => handleDeleteTransaction(t)}>Supprimer</Button>
+                            </View>
+                          </Card.Content>
+                        </Card>
+                      ))}
+                    </List.Accordion>
+                  );
+                }) : <Text style={{ textAlign: "center", marginTop: 16, color: "#888" }}>Aucune transaction</Text>}
+              </ScrollView>
+
+            
             </Dialog.Content>
+
             <Dialog.Actions>
               <Button onPress={() => setOpenTransactionsDialog(false)}>Fermer</Button>
-              <Button onPress={handleAddOrEditTransaction} mode="contained">{editingTransaction ? "Enregistrer" : "Ajouter"}</Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
@@ -335,16 +353,3 @@ export default function KiosksList() {
     </PaperProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f5f5f5" },
-  title: { marginBottom: 16, textAlign: "center", fontWeight: "bold" },
-  addButton: { marginBottom: 16 },
-  list: { flex: 1 },
-  card: { marginBottom: 12, elevation: 4 },
-  actions: { flexDirection: "row", alignItems: "center" },
-  text: { marginTop: 4, marginLeft: 64 },
-  input: { marginBottom: 16 },
-  cashItem: { paddingVertical: 6, paddingHorizontal: 12, borderTopWidth: 1, borderColor: "#ddd" },
-  link: { color: "blue", fontSize: 12 },
-});

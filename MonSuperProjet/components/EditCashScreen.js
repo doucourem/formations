@@ -75,9 +75,9 @@ export default function EditCashScreen({ route, navigation }) {
           <TextInput label="Nom" value={name} onChangeText={setName} style={styles.input} />
           <TextInput label="Solde" keyboardType="numeric" value={balance} onChangeText={setBalance} style={styles.input} />
 
-          <Text style={styles.label}>Kiosque</Text>
+          <Text style={styles.label}>Client</Text>
           <TextInput
-            placeholder="Rechercher un kiosque..."
+            placeholder="Rechercher un client..."
             value={kioskQuery}
             onChangeText={text => { setKioskQuery(text); setKioskId(null); }}
             style={styles.input}

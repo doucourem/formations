@@ -64,7 +64,7 @@ export default function AddCashScreen({ navigation }) {
             style={styles.input}
           />
           <TextInput
-            label="Solde initial"
+            label="Seuil"
             value={balance}
             onChangeText={setBalance}
             keyboardType="numeric"
@@ -73,7 +73,7 @@ export default function AddCashScreen({ navigation }) {
 
           <Text style={styles.label}>Sélectionner un client :</Text>
           <TextInput
-            placeholder="Rechercher un kiosque..."
+            placeholder="Rechercher un client..."
             value={kioskQuery}
             onChangeText={text => { setKioskQuery(text); setKioskId(null); }}
             style={styles.input}
