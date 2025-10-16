@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; 
 import { Inertia } from "@inertiajs/inertia";
 import { Link } from "@inertiajs/react";
 import {
@@ -33,7 +33,13 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function TripsIndex({ initialTrips, initialFilters, buses = [], routes = [] }) {
+export default function TripsIndex({
+  initialTrips,
+  initialFilters,
+  buses = [],
+  routes = [],
+  userRole, // <-- rôle de l'utilisateur connecté
+}) {
   const [trips, setTrips] = useState(initialTrips || { data: [], links: [] });
   const [perPage, setPerPage] = useState(initialFilters?.per_page || 20);
   const [busId, setBusId] = useState(initialFilters?.bus_id || "");
@@ -84,14 +90,17 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
               </Stack>
             }
             action={
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddCircleOutlineIcon />}
-                onClick={() => Inertia.get(route("trips.create"))}
-              >
-                Nouveau trajet
-              </Button>
+              // Bouton "Nouveau trajet" visible seulement pour manager / manageragence
+              (userRole === "manageragence" || userRole === "manager") && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AddCircleOutlineIcon />}
+                  onClick={() => Inertia.get(route("trips.create"))}
+                >
+                  Nouveau trajet
+                </Button>
+              )
             }
           />
 
@@ -207,31 +216,32 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                               </IconButton>
                             </Tooltip>
 
-                            {/* Afficher Modifier et Supprimer seulement si départ >= aujourd'hui */}
-                            {new Date(trip.departure_at) >= new Date() && (
-                              <>
-                                <Tooltip title="Modifier">
-                                  <IconButton
-                                    color="primary"
-                                    size="small"
-                                    component={Link}
-                                    href={trip.edit_url || route("trips.edit", trip.id)}
-                                  >
-                                    <EditIcon />
-                                  </IconButton>
-                                </Tooltip>
+                            {/* Modifier / Supprimer seulement pour manager / manageragence et trajets futurs */}
+                            {new Date(trip.departure_at) >= new Date() &&
+                              (userRole === "manageragence" || userRole === "manager") && (
+                                <>
+                                  <Tooltip title="Modifier">
+                                    <IconButton
+                                      color="primary"
+                                      size="small"
+                                      component={Link}
+                                      href={trip.edit_url || route("trips.edit", trip.id)}
+                                    >
+                                      <EditIcon />
+                                    </IconButton>
+                                  </Tooltip>
 
-                                <Tooltip title="Supprimer">
-                                  <IconButton
-                                    color="error"
-                                    size="small"
-                                    onClick={() => handleDelete(trip.id)}
-                                  >
-                                    <DeleteIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              </>
-                            )}
+                                  <Tooltip title="Supprimer">
+                                    <IconButton
+                                      color="error"
+                                      size="small"
+                                      onClick={() => handleDelete(trip.id)}
+                                    >
+                                      <DeleteIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              )}
                           </Stack>
                         </TableCell>
                       </TableRow>

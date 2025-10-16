@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, FlatList, Alert, TouchableOpacity } from "react-native";
+import { View, StyleSheet } from "react-native";
 import {
   Provider as PaperProvider,
   MD3DarkTheme,
   Button,
   Text,
-  Card,
-  List,
-  Dialog,
-  Portal,
-  TextInput,
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
 import {
@@ -31,7 +26,8 @@ import WholesalersList from "./components/WholesalersList";
 import WholesalerTransactionsList from "./components/WholesalerTransactionsList";
 import KiosksList from "./components/KiosksList";
 import UsersList from "./components/UsersList";
-import DashboardMenu from "./components/DashboardMenu";
+import AddCashScreen from "./components/AddCashScreen";
+import EditCashScreen from "./components/EditCashScreen";
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -57,32 +53,11 @@ const theme = {
 
 // === STYLES GLOBAUX ===
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: theme.colors.background },
   drawerContainer: { flex: 1 },
   drawerHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: "#334155" },
   drawerFooter: { marginTop: "auto", padding: 16, borderTopWidth: 1, borderTopColor: "#334155" },
   logoutButton: { marginTop: 10, borderColor: theme.colors.onSurface },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: theme.colors.background,
-  },
-  card: { marginBottom: 12, backgroundColor: theme.colors.surface, elevation: 4 },
-  actions: { flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' },
-  actionButton: { padding: 8, borderRadius: 5, marginBottom: 4, backgroundColor: theme.colors.primary },
-  transactionsButton: { backgroundColor: theme.colors.accent },
-  deleteButton: { backgroundColor: theme.colors.error },
-  actionText: { color: 'white', fontSize: 12 },
-  errorText: { color: theme.colors.error, textAlign: 'center', marginVertical: 8 },
-  successText: { color: theme.colors.success, textAlign: 'center', marginVertical: 8 },
-  input: { marginBottom: 16, backgroundColor: theme.colors.surface, color: theme.colors.onSurface },
-  title: { textAlign: "center", marginBottom: 20, fontWeight: "bold", color: theme.colors.onBackground },
-  addButton: { marginBottom: 20 },
-  label: { color: theme.colors.onSurface, marginBottom: 8, fontSize: 16 },
-  typeButtons: { flexDirection: "row", justifyContent: "space-around", marginTop: 8 },
-  typeButton: { flex: 1, marginHorizontal: 4 },
-  noDataText: { textAlign: "center", color: "#CBD5E1", marginTop: 40, fontSize: 16 },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.colors.background },
 });
 
 // === DRAWER CUSTOM ===
@@ -112,7 +87,23 @@ const CustomDrawerContent = ({ user, ...props }) => (
   </View>
 );
 
-// === NAVIGATIONS ===
+// === STACKS POUR CHAQUE MODULE ===
+function CashStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTintColor: theme.colors.onSurface,
+      }}
+    >
+      <Stack.Screen name="CashesList" component={CashesList} options={{ title: "Caisse" }} />
+      <Stack.Screen name="AddCash" component={AddCashScreen} options={{ title: "Ajouter Caisse" }} />
+      <Stack.Screen name="EditCash" component={EditCashScreen} options={{ title: "Modifier Caisse" }} />
+    </Stack.Navigator>
+  );
+}
+
+// === DRAWER NAVIGATOR ===
 function DrawerNavigator({ user }) {
   return (
     <Drawer.Navigator
@@ -125,7 +116,7 @@ function DrawerNavigator({ user }) {
         drawerStyle: { backgroundColor: theme.colors.surface },
       }}
     >
-      <Drawer.Screen name="Caisse" component={CashesList} />
+      <Drawer.Screen name="Caisse" component={CashStack} />
       <Drawer.Screen name="Transactions" component={TransactionsList} />
       <Drawer.Screen name="Opérateurs" component={OperatorsList} />
       <Drawer.Screen name="Fournisseurs" component={WholesalersList} />
@@ -135,14 +126,10 @@ function DrawerNavigator({ user }) {
   );
 }
 
+// === APP CONTENT AVEC STACK GLOBAL ===
 function AppContent({ user }) {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.colors.surface },
-        headerTintColor: theme.colors.onSurface,
-      }}
-    >
+    <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.onSurface }}>
       <Stack.Screen name="DrawerStack" options={{ headerShown: false }}>
         {() => <DrawerNavigator user={user} />}
       </Stack.Screen>

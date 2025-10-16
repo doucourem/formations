@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, usePage } from "@inertiajs/react";
+import { usePage, useForm, Link } from "@inertiajs/react";
 import {
   AppBar,
   Toolbar,
@@ -35,26 +35,42 @@ const drawerWidth = 240;
 export default function AuthenticatedLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-
   const { auth, url } = usePage().props;
   const user = auth?.user || {};
+
+  const { post } = useForm();
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
-  // Items du menu
-  const menuItems = [
-    { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
-    { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
-    { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") },
-    { text: "Trajets", icon: <RouteIcon />, route: route("busroutes.index") },
-    { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
-    { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
-  ];
+  const handleLogout = () => {
+    post(route("logout"));
+  };
 
-  if (user.role === "admin") {
-    menuItems.push({ text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") });
+  // Construction dynamique des menus selon le rôle
+  let menuItems = [];
+
+  if (user.role === "admin" || user.role === "manager") {
+    menuItems = [
+      { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
+      { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
+      { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") },
+      { text: "Trajets", icon: <RouteIcon />, route: route("busroutes.index") },
+      { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
+      { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
+      { text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") },
+    ];
+  } else if (user.role === "manageragence") {
+    menuItems = [
+      { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
+      { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index", { agence_id: user.agence_id }) },
+    ];
+  } else if (user.role === "agent") {
+    menuItems = [
+      { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
+      { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index", { agence_id: user.agence_id }) },
+    ];
   }
 
   const drawerContent = (
@@ -81,7 +97,7 @@ export default function AuthenticatedLayout({ children }) {
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <CssBaseline />
 
-      {/* AppBar */}
+      {/* Barre supérieure */}
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <IconButton
@@ -126,14 +142,14 @@ export default function AuthenticatedLayout({ children }) {
             <MenuItem component={Link} href={route("profile.edit")}>
               <AccountCircleIcon sx={{ mr: 1 }} /> Profil
             </MenuItem>
-            <MenuItem component={Link} href={route("logout")} method="post" as="button">
+            <MenuItem onClick={handleLogout}>
               <LogoutIcon sx={{ mr: 1 }} /> Déconnexion
             </MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>
 
-      {/* Drawer permanent desktop */}
+      {/* Drawer permanent (desktop) */}
       <Drawer
         variant="permanent"
         sx={{
@@ -145,7 +161,7 @@ export default function AuthenticatedLayout({ children }) {
         {drawerContent}
       </Drawer>
 
-      {/* Drawer temporaire mobile */}
+      {/* Drawer mobile */}
       <Drawer
         variant="temporary"
         open={mobileOpen}

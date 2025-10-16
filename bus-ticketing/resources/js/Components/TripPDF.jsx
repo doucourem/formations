@@ -9,19 +9,25 @@ import {
   Image,
 } from "@react-pdf/renderer";
 
-// Format de date FR
+// ✅ Fonction de formatage des nombres (évite les bugs de toLocaleString)
+const formatNumber = (num) => {
+  if (!num && num !== 0) return "0";
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); // espace insécable
+};
+
+// ✅ Format date FR
 const formatDateFR = (dateStr) => {
   if (!dateStr) return "-";
   const date = new Date(dateStr);
   return `${date.getDate().toString().padStart(2, "0")}/${
     (date.getMonth() + 1).toString().padStart(2, "0")
-  }/${date.getFullYear()} ${date.getHours().toString().padStart(2, "0")}:${date
-    .getMinutes()
+  }/${date.getFullYear()} ${date
+    .getHours()
     .toString()
-    .padStart(2, "0")}`;
+    .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
 };
 
-// Styles PDF
+// ✅ Styles PDF
 const styles = StyleSheet.create({
   page: { padding: 30, fontSize: 12, fontFamily: "Helvetica" },
   header: {
@@ -63,7 +69,7 @@ const styles = StyleSheet.create({
   summary: { marginTop: 5, fontWeight: "bold" },
 });
 
-// Résumé par agence
+// ✅ Calcul résumé par agence
 const computeAgenceSummary = (tickets) => {
   const summary = {};
   tickets.forEach((t) => {
@@ -75,7 +81,7 @@ const computeAgenceSummary = (tickets) => {
   return summary;
 };
 
-// Composant PDF du trajet
+// ✅ Document PDF
 export const TripPDF = ({ trip, companyLogo }) => {
   const placesDispo = (trip.bus?.capacity || 0) - (trip.tickets?.length || 0);
   const totalRevenue = trip.tickets?.reduce(
@@ -111,7 +117,7 @@ export const TripPDF = ({ trip, companyLogo }) => {
           <Text>
             <Text style={styles.label}>Prix de base : </Text>
             {trip.route?.price
-              ? Number(trip.route.price).toLocaleString("fr-FR") + " FCFA"
+              ? `${formatNumber(trip.route.price)} FCFA`
               : "-"}
           </Text>
           <Text>
@@ -128,10 +134,16 @@ export const TripPDF = ({ trip, companyLogo }) => {
         {trip.tickets?.length > 0 ? (
           <View style={styles.table}>
             <View style={styles.tableRow}>
-              <Text style={[styles.tableCol, styles.tableCellHeader]}>Client</Text>
-              <Text style={[styles.tableCol, styles.tableCellHeader]}>Siège</Text>
+              <Text style={[styles.tableCol, styles.tableCellHeader]}>
+                Client
+              </Text>
+              <Text style={[styles.tableCol, styles.tableCellHeader]}>
+                Siège
+              </Text>
               <Text style={[styles.tableCol, styles.tableCellHeader]}>Prix</Text>
-              <Text style={[styles.tableCol, styles.tableCellHeader]}>Statut</Text>
+              <Text style={[styles.tableCol, styles.tableCellHeader]}>
+                Statut
+              </Text>
             </View>
 
             {trip.tickets.map((ticket, index) => (
@@ -141,12 +153,14 @@ export const TripPDF = ({ trip, companyLogo }) => {
               >
                 <Text style={styles.tableCol}>
                   {ticket.client_name}{" "}
-                  {ticket.user?.agency?.name ? `(${ticket.user.agency.name})` : ""}
+                  {ticket.user?.agency?.name
+                    ? `(${ticket.user.agency.name})`
+                    : ""}
                 </Text>
                 <Text style={styles.tableCol}>{ticket.seat_number || "-"}</Text>
                 <Text style={styles.tableCol}>
                   {ticket.price
-                    ? Number(ticket.price).toLocaleString("fr-FR") + " FCFA"
+                    ? `${formatNumber(ticket.price)} FCFA`
                     : "-"}
                 </Text>
                 <Text style={styles.tableCol}>
@@ -168,7 +182,7 @@ export const TripPDF = ({ trip, companyLogo }) => {
           Total billets vendus : {trip.tickets?.length || 0}
         </Text>
         <Text style={styles.summary}>
-          Recette totale : {totalRevenue?.toLocaleString("fr-FR") || 0} FCFA
+          Recette totale : {formatNumber(totalRevenue)} FCFA
         </Text>
 
         {/* Résumé par agence */}
@@ -179,7 +193,8 @@ export const TripPDF = ({ trip, companyLogo }) => {
             </Text>
             {Object.entries(agenceSummary).map(([agence, data]) => (
               <Text key={agence} style={styles.summary}>
-                {agence} : {data.count} billet(s) – {data.total.toLocaleString("fr-FR")} FCFA
+                {agence} : {data.count} billet(s) –{" "}
+                {formatNumber(data.total)} FCFA
               </Text>
             ))}
           </View>
@@ -189,7 +204,7 @@ export const TripPDF = ({ trip, companyLogo }) => {
   );
 };
 
-// Télécharger PDF
+// ✅ Lien de téléchargement
 export const TripPDFDownload = ({ trip, companyLogo }) => (
   <PDFDownloadLink
     document={<TripPDF trip={trip} companyLogo={companyLogo} />}

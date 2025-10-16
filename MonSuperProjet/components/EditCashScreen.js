@@ -97,9 +97,9 @@ export default function EditCashScreen({ route, navigation }) {
             />
           )}
 
-          <Text style={styles.label}>Caissier</Text>
+          <Text style={styles.label}>Coursier</Text>
           <TextInput
-            placeholder="Rechercher un caissier..."
+            placeholder="Rechercher un coursier..."
             value={cashierQuery}
             onChangeText={text => { setCashierQuery(text); setCashierId(null); }}
             style={styles.input}

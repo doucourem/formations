@@ -30,4 +30,20 @@ class Agency extends Model
     {
         return $this->hasMany(Bus::class);
     }
+
+    /**
+     * Une agence possède plusieurs utilisateurs
+     */
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
+    /**
+     * Une agence peut accéder indirectement aux tickets via ses utilisateurs
+     */
+    public function tickets()
+    {
+        return $this->hasManyThrough(Ticket::class, User::class);
+    }
 }
