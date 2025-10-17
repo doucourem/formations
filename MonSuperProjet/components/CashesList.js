@@ -72,7 +72,7 @@ export default function CashesList({ navigation }) {
   return (
     <View style={styles.container}>
       <TextInput
-        placeholder="Rechercher une caisse, client ou caissier..."
+        placeholder="Rechercher une caisse, client ou Coursier..."
         value={search}
         onChangeText={setSearch}
         style={styles.searchInput}
@@ -118,9 +118,19 @@ export default function CashesList({ navigation }) {
                 )}
               />
               <Card.Content>
-                <Text style={styles.text}>💰 Solde : {item.balance} FCFA</Text>
+                <Text
+  style={[
+    styles.text,
+    item.balance < 0 ? styles.negative : styles.positive,
+  ]}
+>
+  {item.balance < 0
+    ? `⚠️ Doit : ${Math.abs(item.balance)} FCFA`
+    : `💰 Doit recevoir : ${item.balance} FCFA`}
+</Text>
+
                 <Text style={styles.text}>
-                  👤 Caissier : {cashier?.full_name || cashier?.email || "—"}
+                  👤 Coursier : {cashier?.full_name || cashier?.email || "—"}
                 </Text>
                 <Text style={[styles.text, { color: item.closed ? "#EF4444" : "#10B981" }]}>
                   📦 État : {item.closed ? "Clôturée" : "Ouverte"}
@@ -140,4 +150,14 @@ const styles = StyleSheet.create({
   card: { marginVertical: 6, borderRadius: 12, paddingVertical: 6 },
   text: { fontSize: 14, marginVertical: 2 },
   addButton: { marginVertical: 10 },
+  text: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  positive: {
+    color: "green",
+  },
+  negative: {
+    color: "red",
+  },
 });

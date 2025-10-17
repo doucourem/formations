@@ -3,18 +3,23 @@ import { Inertia } from '@inertiajs/inertia';
 import GuestLayout from '@/Layouts/GuestLayout';
 import {
   Box,
-  TextField,
+  Card,
+  CardHeader,
+  CardContent,
   Table,
-  TableHead,
   TableBody,
-  TableRow,
   TableCell,
   TableContainer,
+  TableHead,
+  TableRow,
   Paper,
   Typography,
-  Pagination,
+  Stack,
   IconButton,
   Button,
+  Tooltip,
+  TextField,
+  Pagination,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -40,20 +45,21 @@ export default function Index({ agencies, filters }) {
 
   return (
     <GuestLayout>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4">Agences</Typography>
-
-        {/* ✅ Bouton Créer */}
-        <Button
+       <Card elevation={3} sx={{ borderRadius: 3 }}>
+         <CardHeader
+                    title={<Typography variant="h5">Agences</Typography>}
+                    action={
+                      <Button
           variant="contained"
-          color="success"
+          color="primary"
           startIcon={<AddIcon />}
           onClick={() => Inertia.get(route('agencies.create'))}
         >
           Créer une agence
         </Button>
-      </Box>
-
+                    }
+                  />
+ <CardContent>
       {/* Filtres */}
       <Box display="flex" gap={2} mb={3} alignItems="flex-end">
         <TextField
@@ -144,6 +150,8 @@ export default function Index({ agencies, filters }) {
           color="primary"
         />
       </Box>
+      </CardContent>
+      </Card>
     </GuestLayout>
   );
 }
