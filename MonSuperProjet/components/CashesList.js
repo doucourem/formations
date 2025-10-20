@@ -39,10 +39,16 @@ export default function CashesList({ navigation }) {
     if (!error) setKiosks(data || []);
   };
 
-  const fetchUsers = async () => {
-    const { data, error } = await supabase.from("users").select("id, full_name, email, role");
-      if (!error) setUsers(data || []); // plus de filtre sur role
-  };
+ const fetchUsers = async () => {
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, full_name, email, role")
+    ; // ✅ Filtre sur le rôle
+
+  if (error) Alert.alert("Erreur", error.message);
+  else setUsers(data || []);
+};
+
 
   const deleteCash = async (id) => {
     Alert.alert("Supprimer", "Confirmer la suppression ?", [

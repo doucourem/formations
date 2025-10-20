@@ -361,7 +361,7 @@ export default function KiosksTransactions() {
               <Text style={styles.transactionTitle}>Ajouter / Modifier transaction</Text>
               <TextInput label="Montant" keyboardType="numeric" value={amount} onChangeText={setAmount} style={styles.input} />
               <View style={styles.typeButtons}>
-                <Button mode={type === "CREDIT" ? "contained" : "outlined"} onPress={() => setType("CREDIT")} style={{ marginRight: 8 }}>Entrée</Button>
+                <Button mode={type === "CREDIT" ? "contained" : "outlined"} onPress={() => setType("CREDIT")} style={{ marginRight: 8 }}>Paiement</Button>
                 <Button mode={type === "DEBIT" ? "contained" : "outlined"} onPress={() => setType("DEBIT")}>Sortie</Button>
               </View>
               <View style={styles.transactionTypes}>

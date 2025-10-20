@@ -36,7 +36,7 @@ export default function UsersList() {
   });
 
   const roles = [
-    { label: "Kiosque", value: "kiosque" },
+    { label: "Couriser", value: "kiosque" },
     { label: "Grossiste", value: "grossiste" },
     { label: "Admin", value: "admin" },
   ];
@@ -53,8 +53,8 @@ export default function UsersList() {
         .select("id, email, full_name, role, created_at")
         .order("created_at", { ascending: false });
 
-      if (error) setError(error.message);
-      else setUsers(data || []);
+      if (error) throw error;
+      setUsers(data || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -64,12 +64,13 @@ export default function UsersList() {
 
   const handleRoleChange = async (id, newRole) => {
     if (!newRole) return;
-    const { error } = await supabase
-      .from("users")
-      .update({ role: newRole })
-      .eq("id", id);
-    if (error) Alert.alert("Erreur", error.message);
-    else fetchUsers();
+    try {
+      const { error } = await supabase.from("users").update({ role: newRole }).eq("id", id);
+      if (error) throw error;
+      fetchUsers();
+    } catch (err) {
+      Alert.alert("Erreur", err.message);
+    }
   };
 
   const openForm = (user = null) => {
@@ -85,75 +86,62 @@ export default function UsersList() {
   };
 
   const handleSubmit = async () => {
-    if (
-      !formData.email ||
-      !formData.full_name ||
-      (!editingUser && !formData.password)
-    ) {
+    if (!formData.email || !formData.full_name || (!editingUser && !formData.password)) {
       setError("Veuillez remplir tous les champs obligatoires.");
       return;
     }
 
     const emailTrimmed = formData.email.trim().toLowerCase();
 
-    if (editingUser) {
-      // Mise à jour existante
-      const { error } = await supabase
-        .from("users")
-        .update({
-          email: emailTrimmed,
-          full_name: formData.full_name,
-          role: formData.role,
-        })
-        .eq("id", editingUser.id);
+    try {
+      if (editingUser) {
 
-      if (error) Alert.alert("Erreur", error.message);
-      else {
+        console.log(editingUser);
+
+        // 🔧 Correction : éviter le double `.select()`
+        const { error } = await supabase
+          .from("users")
+          .update({
+            email: emailTrimmed,
+            full_name: formData.full_name,
+            role: formData.role,
+          })
+          .eq("id", editingUser.id);
+  console.log(editingUser);
+        if (error) throw error;
         Alert.alert("Succès", "Utilisateur mis à jour.");
         setOpenDialog(false);
         fetchUsers();
-      }
-    } else {
-      // Création nouvel utilisateur
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: emailTrimmed,
-        password: formData.password,
-      });
-
-      if (signUpError) {
-        Alert.alert("Erreur Auth", signUpError.message);
-        return;
-      }
-
-      if (!authData.user?.id) {
-        Alert.alert("Erreur", "Impossible de récupérer l'id de l'utilisateur Auth.");
-        return;
-      }
-
-      // Insertion dans table users
-      const { error: insertError } = await supabase.from("users").insert([
-        {
-          id: authData.user.id,
-          auth_id: authData.user.id,
+      } else {
+        // 🔧 Création d’un nouvel utilisateur
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email: emailTrimmed,
-          full_name: formData.full_name,
-          role: formData.role,
-          is_active: true,
-          created_by: null,
-        },
-      ]);
+          password: formData.password,
+        });
 
-      if (insertError) {
-        Alert.alert("Erreur table users", insertError.message);
-        return;
+        if (signUpError) throw signUpError;
+        const userId = authData?.user?.id;
+        if (!userId) throw new Error("Impossible de récupérer l'ID de l'utilisateur.");
+
+        // Insertion dans table users
+        const { error: insertError } = await supabase.from("users").insert([
+          {
+            id: userId,
+            email: emailTrimmed,
+            full_name: formData.full_name,
+            role: formData.role,
+            is_active: true,
+          },
+        ]);
+
+        if (insertError) throw insertError;
+
+        Alert.alert("Succès", "Utilisateur créé avec succès !");
+        setOpenDialog(false);
+        fetchUsers();
       }
-
-      Alert.alert(
-        "Succès",
-        "Utilisateur créé avec succès ! Vérifiez votre email pour confirmation."
-      );
-      setOpenDialog(false);
-      fetchUsers();
+    } catch (err) {
+      Alert.alert("Erreur", err.message);
     }
   };
 
@@ -176,7 +164,7 @@ export default function UsersList() {
                 <RNPickerSelect
                   onValueChange={(value) => handleRoleChange(item.id, value)}
                   items={roles}
-                  value={item.role || roles[0].value}
+                  value={item.role}
                   style={{
                     inputIOS: {
                       ...pickerSelectStyles.inputIOS,
@@ -201,12 +189,10 @@ export default function UsersList() {
   return (
     <PaperProvider theme={theme}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <Text
-          variant="headlineMedium"
-          style={[styles.title, { color: theme.colors.onSurface }]}
-        >
+        <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
           Gestion des utilisateurs
         </Text>
+
         <Button
           mode="contained"
           onPress={() => openForm()}
@@ -216,25 +202,16 @@ export default function UsersList() {
           Ajouter un utilisateur
         </Button>
 
-        {loading && (
+        {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
             <Text style={{ color: theme.colors.onSurface }}>Chargement...</Text>
           </View>
-        )}
-        {error && (
-          <Text
-            style={{
-              color: theme.colors.error,
-              textAlign: "center",
-              marginBottom: 20,
-            }}
-          >
+        ) : error ? (
+          <Text style={{ color: theme.colors.error, textAlign: "center", marginBottom: 20 }}>
             {error}
           </Text>
-        )}
-
-        {!loading && !error && (
+        ) : (
           <FlatList
             data={users}
             keyExtractor={(item) => item.id.toString()}
@@ -278,7 +255,7 @@ export default function UsersList() {
                 <RNPickerSelect
                   onValueChange={(value) => setFormData({ ...formData, role: value })}
                   items={roles}
-                  value={formData.role || roles[0].value}
+                  value={formData.role}
                   style={{
                     inputIOS: {
                       ...pickerSelectStyles.inputIOS,
@@ -296,11 +273,7 @@ export default function UsersList() {
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setOpenDialog(false)}>Annuler</Button>
-              <Button
-                onPress={handleSubmit}
-                mode="contained"
-                buttonColor={theme.colors.primary}
-              >
+              <Button onPress={handleSubmit} mode="contained" buttonColor={theme.colors.primary}>
                 {editingUser ? "Modifier" : "Créer"}
               </Button>
             </Dialog.Actions>
