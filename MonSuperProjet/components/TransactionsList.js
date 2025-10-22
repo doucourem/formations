@@ -39,10 +39,13 @@ export default function TransactionsList() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [dateFilter, setDateFilter] = useState("all"); // filtre période
-  const [typeFilter, setTypeFilter] = useState("all"); // filtre type transaction
+  const [dateFilter, setDateFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+
   const [form, setForm] = useState({
     cashId: null,
     cashQuery: "",
@@ -61,7 +64,7 @@ export default function TransactionsList() {
     loadUser();
   }, []);
 
-  // === Récupération transactions, cashes, kiosks ===
+  // === Récupération données ===
   const fetchCashesAndTransactions = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -114,13 +117,12 @@ export default function TransactionsList() {
     fetchCashesAndTransactions();
   }, [fetchCashesAndTransactions]);
 
-  // === Filtrage combiné (date + type) ===
+  // === Filtrage combiné ===
   useEffect(() => {
     if (!transactions.length) return;
     const now = new Date();
     let filtered = transactions;
 
-    // Filtre période
     if (dateFilter === "today") {
       filtered = filtered.filter((t) => {
         const d = new Date(t.created_at);
@@ -142,7 +144,6 @@ export default function TransactionsList() {
       );
     }
 
-    // Filtre type
     if (typeFilter !== "all") {
       filtered = filtered.filter((t) => t.type === typeFilter);
     }
@@ -150,26 +151,40 @@ export default function TransactionsList() {
     setFilteredTransactions(filtered);
   }, [dateFilter, typeFilter, transactions]);
 
-  // === Création transaction ===
-  const handleCreateTransaction = async () => {
+  // === Création / Mise à jour transaction ===
+  const handleSaveTransaction = async () => {
     const { cashId, amount, transactionType, type } = form;
     if (!cashId || !amount)
       return Alert.alert("Champs requis", "Veuillez remplir tous les champs.");
 
-    const { error } = await supabase.from("transactions").insert([
-      {
-        cash_id: cashId,
-        amount: parseFloat(amount),
-        type,
-        transaction_type: transactionType,
-        created_at: new Date(),
-      },
-    ]);
-
-    if (error) return Alert.alert("Erreur", error.message);
+    if (editMode && editingId) {
+      const { error } = await supabase
+        .from("transactions")
+        .update({
+          cash_id: cashId,
+          amount: parseFloat(amount),
+          type,
+          transaction_type: transactionType,
+        })
+        .eq("id", editingId);
+      if (error) return Alert.alert("Erreur", error.message);
+    } else {
+      const { error } = await supabase.from("transactions").insert([
+        {
+          cash_id: cashId,
+          amount: parseFloat(amount),
+          type,
+          transaction_type: transactionType,
+          created_at: new Date(),
+        },
+      ]);
+      if (error) return Alert.alert("Erreur", error.message);
+    }
 
     setDialogVisible(false);
     setForm({ cashId: null, cashQuery: "", amount: "", type: "CREDIT", transactionType: "Vente UV" });
+    setEditMode(false);
+    setEditingId(null);
     fetchCashesAndTransactions();
   };
 
@@ -189,7 +204,20 @@ export default function TransactionsList() {
     ]);
   };
 
-  // === Format CFA ===
+  // === Préparation modification ===
+  const openEditDialog = (item) => {
+    setEditMode(true);
+    setEditingId(item.id);
+    setForm({
+      cashId: item.cash_id,
+      cashQuery: item.cash_name,
+      amount: item.amount.toString(),
+      type: item.type,
+      transactionType: item.transaction_type,
+    });
+    setDialogVisible(true);
+  };
+
   const formatCFA = (a) =>
     new Intl.NumberFormat("fr-FR", {
       style: "currency",
@@ -203,7 +231,7 @@ export default function TransactionsList() {
     return (
       <Card style={styles.card}>
         <Card.Title
-          title={`${item.transaction_type} (${isCredit ? "Entrée" : "Sortie"})`}
+          title={` ${isCredit ? "Entrée" : "Paiement"}`}
           subtitle={`${item.cash_name} — ${item.kiosk_name}`}
           left={(props) => (
             <MaterialCommunityIcons
@@ -214,12 +242,20 @@ export default function TransactionsList() {
             />
           )}
           right={() => (
-            <TouchableOpacity
-              onPress={() => handleDeleteTransaction(item.id)}
-              style={styles.deleteBtn}
-            >
-              <MaterialCommunityIcons name="delete" color="white" size={18} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row" }}>
+              <TouchableOpacity
+                onPress={() => openEditDialog(item)}
+                style={[styles.actionBtn, { backgroundColor: "orange", marginRight: 6 }]}
+              >
+                <MaterialCommunityIcons name="pencil" color="white" size={18} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleDeleteTransaction(item.id)}
+                style={[styles.actionBtn, { backgroundColor: "red" }]}
+              >
+                <MaterialCommunityIcons name="delete" color="white" size={18} />
+              </TouchableOpacity>
+            </View>
           )}
         />
         <Card.Content>
@@ -236,7 +272,6 @@ export default function TransactionsList() {
     );
   };
 
-  // === UI ===
   return (
     <PaperProvider>
       <View style={styles.container}>
@@ -244,7 +279,6 @@ export default function TransactionsList() {
           Transactions
         </Text>
 
-        {/* 🔹 Filtre période */}
         <SegmentedButtons
           value={dateFilter}
           onValueChange={setDateFilter}
@@ -257,14 +291,13 @@ export default function TransactionsList() {
           style={{ marginBottom: 8 }}
         />
 
-        {/* 🔹 Filtre type */}
         <SegmentedButtons
           value={typeFilter}
           onValueChange={setTypeFilter}
           buttons={[
             { value: "all", label: "Tous" },
-            { value: "CREDIT", label: "Crédit" },
-            { value: "DEBIT", label: "Débit" },
+            { value: "CREDIT", label: "Paiement" },
+            { value: "DEBIT", label: "Entrée" },
             { value: "Vente UV", label: "Vente UV" },
           ]}
           style={{ marginBottom: 12 }}
@@ -281,18 +314,29 @@ export default function TransactionsList() {
           />
         )}
 
-        {/* FAB pour créer une transaction */}
         <FAB
           icon="plus"
           style={styles.fab}
           label="Nouvelle transaction"
-          onPress={() => setDialogVisible(true)}
+          onPress={() => {
+            setEditMode(false);
+            setEditingId(null);
+            setForm({
+              cashId: null,
+              cashQuery: "",
+              amount: "",
+              type: "CREDIT",
+              transactionType: "Vente UV",
+            });
+            setDialogVisible(true);
+          }}
         />
 
-        {/* Dialog création transaction */}
         <Portal>
           <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
-            <Dialog.Title>Créer une transaction</Dialog.Title>
+            <Dialog.Title>
+              {editMode ? "Modifier la transaction" : "Créer une transaction"}
+            </Dialog.Title>
             <Dialog.Content>
               <TextInput
                 label="Rechercher une caisse"
@@ -338,13 +382,13 @@ export default function TransactionsList() {
                   onPress={() => setForm({ ...form, type: "CREDIT" })}
                   style={{ marginRight: 8 }}
                 >
-                  Crédit
+                  Paiement
                 </Button>
                 <Button
                   mode={form.type === "DEBIT" ? "contained" : "outlined"}
                   onPress={() => setForm({ ...form, type: "DEBIT" })}
                 >
-                  Débit
+                  Entrée
                 </Button>
               </View>
 
@@ -365,8 +409,8 @@ export default function TransactionsList() {
 
             <Dialog.Actions>
               <Button onPress={() => setDialogVisible(false)}>Annuler</Button>
-              <Button mode="contained" onPress={handleCreateTransaction}>
-                Créer
+              <Button mode="contained" onPress={handleSaveTransaction}>
+                {editMode ? "Mettre à jour" : "Créer"}
               </Button>
             </Dialog.Actions>
           </Dialog>
@@ -380,6 +424,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#f8f9fa" },
   title: { textAlign: "center", marginBottom: 12, fontWeight: "bold" },
   card: { marginBottom: 10, borderRadius: 10, elevation: 2 },
-  deleteBtn: { backgroundColor: "red", padding: 6, borderRadius: 8 },
+  actionBtn: { padding: 6, borderRadius: 8 },
   fab: { position: "absolute", right: 16, bottom: 16 },
 });
