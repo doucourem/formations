@@ -21,8 +21,6 @@ import { groupBy } from "lodash";
 import supabase from "../supabaseClient";
 
 const TRANSACTION_TYPES = [
-  "CREDIT",
-  "DEBIT",
   "Vente UV",
   "Dépôt cash",
   "Retrait cash",
