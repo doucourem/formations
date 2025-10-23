@@ -165,7 +165,7 @@ class TicketController extends Controller
         $trip = Trip::with('route', 'route.stops')->findOrFail($data['trip_id']);
 
         $data['price'] = !empty($data['stop_id'])
-            ? ($trip->route->stops->where('id', $data['stop_id'])->first()?->price ?? $trip->route->price ?? 0)
+            ? ($trip->route->stops->where('id', $data['stop_id'])->first()?->partial_price ?? $trip->route->price ?? 0)
             : ($trip->route->price ?? 0);
 
         $data['user_id'] = Auth::id();
@@ -226,7 +226,7 @@ class TicketController extends Controller
 
         $trip = Trip::with('route', 'route.stops')->findOrFail($data['trip_id']);
         $data['price'] = !empty($data['stop_id'])
-            ? ($trip->route->stops->where('id', $data['stop_id'])->first()?->price ?? $trip->route->price ?? 0)
+            ? ($trip->route->stops->where('id', $data['stop_id'])->first()?->partial_price ?? $trip->route->price ?? 0)
             : ($trip->route->price ?? 0);
         $data['user_id'] = Auth::id();
 
