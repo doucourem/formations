@@ -41,7 +41,7 @@ export default function EditCashScreen({ route, navigation }) {
   const fetchCashiers = async () => {
     const { data, error } = await supabase
       .from("users")
-      .select("id, full_name, email, role");
+      .select("id, full_name, email, role").eq("role", "kiosque");
     if (error) Alert.alert("Erreur", error.message);
     else setUsers(data || []);
     const currentCashier = data?.find(u => u.id === cashierId);
