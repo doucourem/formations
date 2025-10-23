@@ -5,7 +5,7 @@ import Sidebar from '@/Components/Sidebar';
 const Dashboard = () => {
   return (
     <div className="flex">
-      <Sidebar />
+    <Sidebar />
       <main className="flex-1 p-6">
         <h1 className="text-2xl font-bold">Bienvenue sur le Dashboard</h1>
       </main>

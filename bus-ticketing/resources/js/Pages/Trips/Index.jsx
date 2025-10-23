@@ -91,7 +91,7 @@ export default function TripsIndex({
             }
             action={
               // Bouton "Nouveau trajet" visible seulement pour manager / manageragence
-              (userRole === "manageragence" || userRole === "manager") && (
+              (userRole === "manageragence" || userRole === "manager" || userRole === "admin") && (
                 <Button
                   variant="contained"
                   color="primary"

@@ -293,7 +293,7 @@ class TicketController extends Controller
     private function authorizeAgent()
     {
         if (Auth::user()->role !== 'agent') {
-            abort(403, 'Action non autorisée : seul le profil agent peut effectuer cette opération.');
+          //  abort(403, 'Action non autorisée : seul le profil agent peut effectuer cette opération.');
         }
     }
 }

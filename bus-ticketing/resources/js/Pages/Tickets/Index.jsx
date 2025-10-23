@@ -1,20 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react'; 
 import { Inertia } from '@inertiajs/inertia';
 import { usePage } from '@inertiajs/react';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Visibility, Edit, Delete } from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Typography,
-  TextField,
-  MenuItem,
-  Stack,
-  Card,
-  CardContent,
-  CardActions,
-  Chip
-} from '@mui/material';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import Box from '@mui/material/Box';
+import DataTablePro from '@/Components/DataTablePro';
 
 export default function TicketsIndex({ tickets }) {
   const { auth } = usePage().props;
@@ -24,7 +22,6 @@ export default function TicketsIndex({ tickets }) {
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🔹 Supprimer un ticket
   const handleDelete = (id) => {
     if (confirm('Voulez-vous vraiment supprimer ce ticket ?')) {
       Inertia.delete(route('ticket.destroy', id), {
@@ -49,20 +46,81 @@ export default function TicketsIndex({ tickets }) {
     });
   }, [currentTickets.data, filterStatus, searchQuery]);
 
+  // 🔹 Colonnes du tableau
+  const columns = [
+    { field: 'id', label: 'ID', minWidth: 50 },
+    { field: 'trip', label: 'Voyage', render: (_, row) => `${row.trip?.route?.departure_city || '-'} → ${row.trip?.route?.arrival_city || '-'}`, minWidth: 150 },
+    { field: 'client', label: 'Client', render: (_, row) => row.client_name, minWidth: 120 },
+    { field: 'seat_number', label: 'Siège', hideOnXs: true, minWidth: 60 },
+    { field: 'price', label: 'Prix', render: (_, row) => `${row.price || '-'}`, hideOnXs: true, minWidth: 80 },
+    { field: 'status', label: 'Statut', render: (_, row) => (
+        <Chip
+          label={row.status === 'reserved' ? 'Réservé' : row.status === 'paid' ? 'Payé' : 'Annulé'}
+          color={row.status === 'paid' ? 'success' : row.status === 'cancelled' ? 'error' : 'warning'}
+          size="small"
+        />
+      ), minWidth: 100
+    },
+  ];
+
+  // 🔹 Actions sur chaque ligne
+  // 🔹 Actions sur chaque ligne
+const actions = [
+  { label: 'Voir', icon: <VisibilityIcon />, color: 'info', onClick: row => Inertia.get(route('ticket.show', row.id)) },
+  // Seul l'agent propriétaire du ticket peut modifier ou supprimer
+  ...(user.role === 'agent'
+    ? [
+        {
+          label: 'Éditer',
+          icon: <EditIcon />,
+          color: 'primary',
+          onClick: row =>  Inertia.get(route('ticket.edit', row.id)),
+        },
+        {
+          label: 'Supprimer',
+          icon: <DeleteIcon />,
+          color: 'error',
+          onClick: row => handleDelete(row.id),
+        },
+      ]
+    : []),
+];
+
+
+  // 🔹 Pagination sécurisée
+  const filteredLinks = useMemo(() => {
+    const linksArray = Array.isArray(currentTickets.links) ? currentTickets.links : [];
+    const maxVisiblePages = 5;
+    const currentPage = currentTickets.current_page || 1;
+
+    return linksArray.filter(link => {
+      if (link.label === '&laquo;' || link.label === '&raquo;') return true;
+      const pageNumber = parseInt(link.label.replace(/[^0-9]/g, ''), 10);
+      const start = Math.max(currentPage - 2, 1);
+      const end = start + maxVisiblePages - 1;
+      return pageNumber >= start && pageNumber <= end;
+    });
+  }, [currentTickets.links, currentTickets.current_page]);
+
   return (
     <GuestLayout>
       {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3, flexWrap: 'wrap' }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h4">Tickets</Typography>
-        {user.role === 'agent' && (
-          <Button variant="contained" color="primary" onClick={() => Inertia.get(route('ticket.create'))}>
-            Ajouter un ticket
-          </Button>
-        )}
+        {(user.role === 'agent' || user.role === 'manageragence' || user.role === 'manager') && (
+  <Button
+    variant="contained"
+    color="primary"
+    onClick={() => Inertia.get(route('ticket.create'))}
+  >
+    Ajouter un ticket
+  </Button>
+)}
+
       </Stack>
 
       {/* FILTRES */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }} alignItems="center">
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }} alignItems="center">
         <TextField
           label="Rechercher par client"
           value={searchQuery}
@@ -85,44 +143,20 @@ export default function TicketsIndex({ tickets }) {
         </TextField>
       </Stack>
 
-      {/* LISTE DES TICKETS EN CARDS */}
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' } }}>
-        {filteredTickets.map(ticket => (
-          <Card key={ticket.id} variant="outlined">
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {ticket.client_name || 'Client inconnu'}
-              </Typography>
-              <Typography variant="body2">
-                Voyage: {ticket.trip?.route?.departure_city || '-'} → {ticket.trip?.route?.arrival_city || '-'}
-              </Typography>
-              <Typography variant="body2">
-                Siège: {ticket.seat_number || '-'} | Prix: {ticket.price || '-'} €
-              </Typography>
-              <Chip
-                label={ticket.status === 'reserved' ? 'Réservé' : ticket.status === 'paid' ? 'Payé' : 'Annulé'}
-                color={ticket.status === 'paid' ? 'success' : ticket.status === 'cancelled' ? 'error' : 'warning'}
-                size="small"
-                sx={{ mt: 1 }}
-              />
-            </CardContent>
-            <CardActions>
-              <Button size="small" startIcon={<Visibility />} onClick={() => Inertia.get(route('ticket.show', ticket.id))}>
-                Voir
-              </Button>
-              {user.role === 'agent' && (
-                <>
-                  <Button size="small" startIcon={<Edit />} onClick={() => Inertia.get(route('ticket.edit', ticket.id))}>
-                    Éditer
-                  </Button>
-                  <Button size="small" startIcon={<Delete />} color="error" onClick={() => handleDelete(ticket.id)}>
-                    Supprimer
-                  </Button>
-                </>
-              )}
-            </CardActions>
-          </Card>
-        ))}
+      {/* TABLEAU */}
+      <Box sx={{ width: '100%', overflowX: 'auto' }}>
+        <DataTablePro
+          columns={columns}
+          data={filteredTickets}
+          actions={actions}
+          links={filteredLinks}
+          onPageChange={url =>
+            Inertia.get(url, {}, {
+              preserveState: true,
+              onSuccess: page => setCurrentTickets(page.props.tickets)
+            })
+          }
+        />
       </Box>
     </GuestLayout>
   );
