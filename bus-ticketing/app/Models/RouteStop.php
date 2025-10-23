@@ -12,6 +12,7 @@ class RouteStop extends Model
     protected $fillable = [
         'route_id',
         'city_id',
+        'to_city_id',
         'order',
         'distance_from_start',
         'partial_price',
@@ -25,5 +26,13 @@ class RouteStop extends Model
     public function city()
     {
         return $this->belongsTo(City::class);
+    }
+
+      /**
+     * 🔹 Ville d’arrivée du stop
+     */
+    public function toCity()
+    {
+        return $this->belongsTo(City::class, 'to_city_id');
     }
 }

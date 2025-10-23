@@ -54,6 +54,7 @@ class RouteController extends Controller
             'price' => 'required|numeric|min:0',
             'stops' => 'array',
             'stops.*.city_id' => 'required|exists:cities,id',
+            'stops.*.to_city_id' => 'required|exists:cities,id',
             'stops.*.order' => 'required|integer|min:1',
             'stops.*.distance_from_start' => 'nullable|numeric|min:0',
             'stops.*.partial_price' => 'nullable|numeric|min:0',
@@ -74,6 +75,7 @@ class RouteController extends Controller
                     RouteStop::create([
                         'route_id' => $route->id,
                         'city_id' => $stop['city_id'],
+                        'to_city_id' => $stop['to_city_id'],
                         'order' => $stop['order'],
                         'distance_from_start' => $stop['distance_from_start'] ?? null,
                         'partial_price' => $stop['partial_price'] ?? null,

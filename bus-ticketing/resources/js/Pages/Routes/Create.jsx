@@ -17,42 +17,62 @@ import { Add, Delete } from "@mui/icons-material";
 
 export default function Create({ cities }) {
   const [form, setForm] = useState({
+    // Trajet principal
     departure_city_id: "",
     arrival_city_id: "",
     distance: "",
     price: "",
-    stops: [], // Liste des arrêts intermédiaires
+    // Arrêts intermédiaires (stops)
+    stops: [],
   });
 
+  /** 🔹 Gérer le changement de champ principal */
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-    setForm({
-      ...form,
-      [name]: type === "number" ? Number(value) : value,
-    });
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "number" ? Number(value) || "" : value,
+    }));
   };
 
+  /** 🔹 Ajouter un arrêt intermédiaire */
   const handleAddStop = () => {
-    setForm({
-      ...form,
+    setForm((prev) => ({
+      ...prev,
       stops: [
-        ...form.stops,
-        { city_id: "", order: form.stops.length + 1, distance_from_start: "", partial_price: "" },
+        ...prev.stops,
+        {
+          from_city_id: "",
+          to_city_id: "",
+          distance: "",
+          price: "",
+          order: prev.stops.length + 1,
+        },
       ],
+    }));
+  };
+
+  /** 🔹 Modifier un arrêt existant */
+  const handleStopChange = (index, field, value) => {
+    setForm((prev) => {
+      const updated = [...prev.stops];
+      updated[index][field] =
+        field === "order" || field === "distance" || field === "price"
+          ? Number(value) || ""
+          : value;
+      return { ...prev, stops: updated };
     });
   };
 
-  const handleStopChange = (index, field, value) => {
-    const updatedStops = [...form.stops];
-    updatedStops[index][field] = field === "order" ? Number(value) : value;
-    setForm({ ...form, stops: updatedStops });
-  };
-
+  /** 🔹 Supprimer un arrêt */
   const handleRemoveStop = (index) => {
-    const updatedStops = form.stops.filter((_, i) => i !== index);
-    setForm({ ...form, stops: updatedStops });
+    setForm((prev) => ({
+      ...prev,
+      stops: prev.stops.filter((_, i) => i !== index),
+    }));
   };
 
+  /** 🔹 Soumission du formulaire */
   const handleSubmit = (e) => {
     e.preventDefault();
     Inertia.post(route("busroutes.store"), form);
@@ -62,7 +82,7 @@ export default function Create({ cities }) {
     <GuestLayout>
       <Box sx={{ p: 3, maxWidth: 700, mx: "auto" }}>
         <Typography variant="h4" gutterBottom>
-          Créer un itinéraire
+          Créer un trajet principal
         </Typography>
 
         <Box
@@ -70,7 +90,9 @@ export default function Create({ cities }) {
           onSubmit={handleSubmit}
           sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
-          {/* Ville de départ */}
+          {/* 🚌 Trajet principal */}
+          <Typography variant="h6">Trajet principal</Typography>
+
           <FormControl fullWidth>
             <InputLabel id="departure-label">Ville de départ</InputLabel>
             <Select
@@ -89,7 +111,6 @@ export default function Create({ cities }) {
             </Select>
           </FormControl>
 
-          {/* Ville d'arrivée */}
           <FormControl fullWidth>
             <InputLabel id="arrival-label">Ville d'arrivée</InputLabel>
             <Select
@@ -108,31 +129,29 @@ export default function Create({ cities }) {
             </Select>
           </FormControl>
 
-          {/* Distance totale */}
           <TextField
             label="Distance totale (km)"
             name="distance"
             type="number"
             value={form.distance}
             onChange={handleChange}
-            required
             inputProps={{ min: 0 }}
+            required
           />
 
-          {/* Prix total */}
           <TextField
             label="Prix total (FCFA)"
             name="price"
             type="number"
             value={form.price}
             onChange={handleChange}
-            required
             inputProps={{ min: 0 }}
+            required
           />
 
-          {/* Arrêts intermédiaires */}
-          <Typography variant="h6" mt={2}>
-            Arrêts intermédiaires
+          {/* 🚏 Arrêts intermédiaires */}
+          <Typography variant="h6" mt={3}>
+            Arrêts intermédiaires (stops)
           </Typography>
 
           {form.stops.map((stop, index) => (
@@ -145,13 +164,34 @@ export default function Create({ cities }) {
                 flexWrap: "wrap",
               }}
             >
-              <FormControl sx={{ flex: 1, minWidth: 150 }}>
-                <InputLabel id={`city-${index}`}>Ville</InputLabel>
+              <FormControl sx={{ flex: 1, minWidth: 140 }}>
+                <InputLabel id={`from-${index}`}>Départ</InputLabel>
                 <Select
-                  labelId={`city-${index}`}
-                  value={stop.city_id}
-                  label="Ville"
-                  onChange={(e) => handleStopChange(index, "city_id", e.target.value)}
+                  labelId={`from-${index}`}
+                  value={stop.from_city_id}
+                  label="Départ"
+                  onChange={(e) =>
+                    handleStopChange(index, "from_city_id", e.target.value)
+                  }
+                  required
+                >
+                  {cities.map((city) => (
+                    <MenuItem key={city.id} value={city.id}>
+                      {city.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl sx={{ flex: 1, minWidth: 140 }}>
+                <InputLabel id={`to-${index}`}>Arrivée</InputLabel>
+                <Select
+                  labelId={`to-${index}`}
+                  value={stop.to_city_id}
+                  label="Arrivée"
+                  onChange={(e) =>
+                    handleStopChange(index, "to_city_id", e.target.value)
+                  }
                   required
                 >
                   {cities.map((city) => (
@@ -163,27 +203,25 @@ export default function Create({ cities }) {
               </FormControl>
 
               <TextField
-                label="Ordre"
-                type="number"
-                value={stop.order}
-                onChange={(e) => handleStopChange(index, "order", e.target.value)}
-                sx={{ width: 90 }}
-              />
-
-              <TextField
                 label="Distance (km)"
                 type="number"
-                value={stop.distance_from_start}
-                onChange={(e) => handleStopChange(index, "distance_from_start", e.target.value)}
+                value={stop.distance}
+                onChange={(e) =>
+                  handleStopChange(index, "distance", e.target.value)
+                }
                 sx={{ width: 120 }}
+                inputProps={{ min: 0 }}
               />
 
               <TextField
-                label="Prix partiel (FCFA)"
+                label="Prix (FCFA)"
                 type="number"
-                value={stop.partial_price}
-                onChange={(e) => handleStopChange(index, "partial_price", e.target.value)}
-                sx={{ width: 150 }}
+                value={stop.price}
+                onChange={(e) =>
+                  handleStopChange(index, "price", e.target.value)
+                }
+                sx={{ width: 120 }}
+                inputProps={{ min: 0 }}
               />
 
               <IconButton color="error" onClick={() => handleRemoveStop(index)}>
@@ -203,8 +241,9 @@ export default function Create({ cities }) {
             </Button>
           </Stack>
 
+          {/* ✅ Soumission */}
           <Button type="submit" variant="contained" color="primary">
-            Enregistrer l'itinéraire
+            Enregistrer le trajet
           </Button>
         </Box>
       </Box>
