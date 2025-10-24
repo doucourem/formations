@@ -262,13 +262,13 @@ export default function TransactionsList() {
     return (
       <Card style={styles.card}>
         <Card.Title
-          title={isCredit ? "Entrée" : "Paiement"}
+          title={isCredit ? "Envoie" : "Paiement"}
           subtitle={`${item.cash_name} — ${item.kiosk_name}`}
           left={(props) => (
             <MaterialCommunityIcons
               {...props}
-              name={isCredit ? "arrow-down-bold-circle" : "arrow-up-bold-circle"}
-              color={isCredit ? "green" : "red"}
+              name={isCredit ?   "arrow-up-bold-circle": "arrow-down-bold-circle"}
+              color={isCredit ? "red" : "green"}
               size={26}
             />
           )}
@@ -276,14 +276,14 @@ export default function TransactionsList() {
             <View style={{ flexDirection: "row" }}>
               <TouchableOpacity
                 onPress={() => openEditDialog(item)}
-                style={[styles.actionBtn, { backgroundColor: "orange", marginRight: 6 }]}
+                style={[styles.actionBtn, { backgroundColor: "red", marginRight: 6 }]}
               >
                 <MaterialCommunityIcons name="pencil" color="white" size={18} />
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => handleDeleteTransaction(item.id)}
-                style={[styles.actionBtn, { backgroundColor: "red" }]}
+                style={[styles.actionBtn, { backgroundColor: "orange" }]}
               >
                 <MaterialCommunityIcons name="delete" color="white" size={18} />
               </TouchableOpacity>
@@ -293,7 +293,7 @@ export default function TransactionsList() {
         <Card.Content>
           <Text>
             Montant :{" "}
-            <Text style={{ fontWeight: "bold", color: isCredit ? "green" : "red" }}>
+            <Text style={{ fontWeight: "bold", color: isCredit ? "red" : "green" }}>
               {formatCFA(item.amount)}
             </Text>
           </Text>
@@ -339,7 +339,7 @@ export default function TransactionsList() {
           onValueChange={setTypeFilter}
           buttons={[
             { value: "all", label: "Tous" },
-            { value: "CREDIT", label: "Entrée" },
+            { value: "CREDIT", label: "Envoi" },
             { value: "DEBIT", label: "Paiement" },
           ]}
           style={{ marginBottom: 12 }}
@@ -491,16 +491,16 @@ export default function TransactionsList() {
                     mode={form.type === "CREDIT" ? "contained" : "outlined"}
                     onPress={() => setForm({ ...form, type: "CREDIT" })}
                     style={{ flex: 1, marginRight: 5 }}
-                    buttonColor={form.type === "CREDIT" ? theme.colors.success : undefined}
+                    buttonColor={form.type === "CREDIT" ? theme.colors.error : undefined}
                     textColor={form.type === "CREDIT" ? "white" : theme.colors.onSurface}
                   >
-                    Entrée
+                    Envoie
                   </Button>
                   <Button
                     mode={form.type === "DEBIT" ? "contained" : "outlined"}
                     onPress={() => setForm({ ...form, type: "DEBIT" })}
                     style={{ flex: 1, marginLeft: 5 }}
-                    buttonColor={form.type === "DEBIT" ? theme.colors.error : undefined}
+                    buttonColor={form.type === "DEBIT" ? theme.colors.success : undefined}
                     textColor={form.type === "DEBIT" ? "white" : theme.colors.onSurface}
                   >
                     Paiement

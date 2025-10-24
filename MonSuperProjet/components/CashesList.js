@@ -5,7 +5,6 @@ import {
   Alert,
   StyleSheet,
   useWindowDimensions,
-  ScrollView,
 } from "react-native";
 import { Card, Text, Button, IconButton, TextInput } from "react-native-paper";
 import supabase from "../supabaseClient";
@@ -39,20 +38,17 @@ export default function CashesList({ navigation }) {
     if (!error) setKiosks(data || []);
   };
 
- const fetchUsers = async () => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, full_name, email, role")
-    ; // ✅ Filtre sur le rôle
-
-  if (error) Alert.alert("Erreur", error.message);
-  else setUsers(data || []);
-};
-
+  const fetchUsers = async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, full_name, email, role");
+    if (error) Alert.alert("Erreur", error.message);
+    else setUsers(data || []);
+  };
 
   const deleteCash = async (id) => {
     Alert.alert("Supprimer", "Confirmer la suppression ?", [
-      { text: "Annuler" },
+      { text: "Annuler", style: "cancel" },
       {
         text: "Supprimer",
         style: "destructive",
@@ -65,9 +61,37 @@ export default function CashesList({ navigation }) {
     ]);
   };
 
-  const filteredCashes = cashes.filter(cash => {
-    const kiosk = kiosks.find(k => k.id === cash.kiosk_id);
-    const cashier = users.find(u => u.id === cash.cashier_id);
+  const closeCash = async (cash) => {
+    if (cash.closed) {
+      Alert.alert("Info", "Cette caisse est déjà clôturée.");
+      return;
+    }
+
+    Alert.alert(
+      "Clôturer la caisse",
+      `Voulez-vous vraiment clôturer la caisse "${cash.name}" ?`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Clôturer",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await supabase
+              .from("cashes")
+              .update({ closed: true })
+              .eq("id", cash.id);
+
+            if (error) Alert.alert("Erreur", error.message);
+            else fetchCashes();
+          },
+        },
+      ]
+    );
+  };
+
+  const filteredCashes = cashes.filter((cash) => {
+    const kiosk = kiosks.find((k) => k.id === cash.kiosk_id);
+    const cashier = users.find((u) => u.id === cash.cashier_id);
     return (
       cash.name.toLowerCase().includes(search.toLowerCase()) ||
       (kiosk?.name || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -78,7 +102,7 @@ export default function CashesList({ navigation }) {
   return (
     <View style={styles.container}>
       <TextInput
-        placeholder="Rechercher une caisse, client ou Coursier..."
+        placeholder="Rechercher une caisse, client ou coursier..."
         value={search}
         onChangeText={setSearch}
         style={styles.searchInput}
@@ -98,8 +122,8 @@ export default function CashesList({ navigation }) {
         data={filteredCashes}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => {
-          const kiosk = kiosks.find(k => k.id === item.kiosk_id);
-          const cashier = users.find(u => u.id === item.cashier_id);
+          const kiosk = kiosks.find((k) => k.id === item.kiosk_id);
+          const cashier = users.find((u) => u.id === item.cashier_id);
 
           return (
             <Card style={[styles.card, { width: screenWidth * 0.95, alignSelf: "center" }]}>
@@ -108,32 +132,46 @@ export default function CashesList({ navigation }) {
                 subtitle={`Client: ${kiosk?.name || "—"}`}
                 right={(props) => (
                   <View style={{ flexDirection: "row" }}>
-                    <IconButton
-                      {...props}
-                      icon="pencil"
-                      size={20}
-                      onPress={() => navigation.navigate("EditCash", { cash: item })}
-                    />
+                    {/* Modifier seulement si la caisse est ouverte */}
+                    {!item.closed && (
+                      <IconButton
+                        {...props}
+                        icon="pencil"
+                        size={20}
+                        onPress={() => navigation.navigate("EditCash", { cash: item })}
+                      />
+                    )}
+
                     <IconButton
                       {...props}
                       icon="delete"
                       size={20}
                       onPress={() => deleteCash(item.id)}
                     />
+
+                    {/* Bouton Clôturer seulement si la caisse est ouverte */}
+                    {!item.closed && (
+                      <IconButton
+                        {...props}
+                        icon="lock"
+                        size={20}
+                        onPress={() => closeCash(item)}
+                      />
+                    )}
                   </View>
                 )}
               />
               <Card.Content>
                 <Text
-  style={[
-    styles.text,
-    item.balance < 0 ? styles.negative : styles.positive,
-  ]}
->
-  {item.balance < 0
-    ? `⚠️ Doit : ${Math.abs(item.balance)} FCFA`
-    : `💰 Doit recevoir : ${item.balance} FCFA`}
-</Text>
+                  style={[
+                    styles.text,
+                    item.balance < 0 ? styles.negative : styles.positive,
+                  ]}
+                >
+                  {item.balance < 0
+                    ? `⚠️ Doit : ${Math.abs(item.balance)} FCFA`
+                    : `💰 Doit recevoir : ${item.balance} FCFA`}
+                </Text>
 
                 <Text style={styles.text}>
                   👤 Coursier : {cashier?.full_name || cashier?.email || "—"}
@@ -154,16 +192,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, paddingVertical: 10 },
   searchInput: { marginHorizontal: 16, marginBottom: 10 },
   card: { marginVertical: 6, borderRadius: 12, paddingVertical: 6 },
-  text: { fontSize: 14, marginVertical: 2 },
+  text: { fontSize: 16, fontWeight: "bold", marginVertical: 2 },
+  positive: { color: "green" },
+  negative: { color: "red" },
   addButton: { marginVertical: 10 },
-  text: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  positive: {
-    color: "green",
-  },
-  negative: {
-    color: "red",
-  },
 });
