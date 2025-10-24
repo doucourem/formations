@@ -74,6 +74,8 @@ class RouteController extends Controller
                     RouteStop::create([
                         'route_id' => $route->id,
                         'city_id' => $stop['city_id'],
+                        'to_city_id' => $stop['to_city_id'],
+
                         'order' => $stop['order'],
                         'distance_from_start' => $stop['distance_from_start'] ?? null,
                         'partial_price' => $stop['partial_price'] ?? null,
@@ -95,6 +97,7 @@ public function edit(\App\Models\Route $busroute)
         return [
             'id' => $stop->id,
             'city_id' => $stop->city_id,
+             'to_city_id' => $stop->to_city_id,
             'order' => $stop->order ?? $index + 1,
             'distance_from_start' => $stop->distance_from_start ?? 0,
             'partial_price' => $stop->partial_price ?? 0,
@@ -144,6 +147,8 @@ public function edit(\App\Models\Route $busroute)
                     RouteStop::create([
                         'route_id' => $route->id,
                         'city_id' => $stop['city_id'],
+                        'to_city_id' => $stop['to_city_id'],
+
                         'order' => $stop['order'],
                         'distance_from_start' => $stop['distance_from_start'] ?? null,
                         'partial_price' => $stop['partial_price'] ?? null,

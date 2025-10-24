@@ -12,6 +12,7 @@ class RouteStop extends Model
     protected $fillable = [
         'route_id',
         'city_id',
+        'to_city_id',
         'order',
         'distance_from_start',
         'partial_price',
