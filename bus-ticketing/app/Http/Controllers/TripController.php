@@ -12,24 +12,31 @@ use Carbon\Carbon;
 
 class TripController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
 {
     $perPage = (int) $request->input('per_page', 10);
     $busId = $request->input('bus_id');
     $routeId = $request->input('route_id');
     $user = auth()->user();
 
-    $trips = Trip::with(['bus', 'route.departureCity', 'route.arrivalCity'])
-        ->withCount('tickets')
-        ->when($busId, fn($q) => $q->where('bus_id', $busId))
-        ->when($routeId, fn($q) => $q->where('route_id', $routeId))
-        ->orderByDesc('departure_at')
-        ->paginate($perPage)
-        ->withQueryString();
+    // Chargement des trajets avec relations
+    $trips = Trip::with([
+        'bus',
+        'route.departureCity',
+        'route.arrivalCity',
+    ])
+    ->withCount('tickets')
+    ->when($busId, fn($q) => $q->where('bus_id', $busId))
+    ->when($routeId, fn($q) => $q->where('route_id', $routeId))
+    ->orderByDesc('departure_at')
+    ->paginate($perPage)
+    ->withQueryString();
 
+    // Transformation pour le frontend
     $trips->getCollection()->transform(function ($t) {
         $t->edit_url = route('trips.edit', $t->id);
 
+        // Assurer que la route et les villes existent
         $t->route = $t->route ?? (object)[
             'departureCity' => (object)['name' => '-'],
             'arrivalCity' => (object)['name' => '-'],
@@ -39,19 +46,22 @@ class TripController extends Controller
         $t->route->departureCity = $t->route->departureCity ?? (object)['name' => '-'];
         $t->route->arrivalCity = $t->route->arrivalCity ?? (object)['name' => '-'];
 
+        // Calcul des places disponibles
         $t->places_dispo = max(($t->bus->capacity ?? 0) - $t->tickets_count, 0);
 
         return $t;
     });
 
+    // Liste des bus pour filtre
     $buses = Bus::select('id', 'model', 'registration_number', 'capacity')
         ->orderBy('model')
         ->get();
 
-    $routes = TripRoute::with(['departureCity:id,name', 'arrivalCity:id,name'])
-        ->select('id', 'departure_city_id', 'arrival_city_id', 'price')
-        ->orderBy('id', 'desc')
-        ->get();
+    // Liste des routes avec leurs villes
+   $routes = TripRoute::with(['departureCity', 'arrivalCity'])
+    ->orderByDesc('id')
+    ->get();
+
 
     return Inertia::render('Trips/Index', [
         'initialTrips' => $trips,
@@ -62,9 +72,11 @@ class TripController extends Controller
         ],
         'buses' => $buses,
         'routes' => $routes,
-        'userRole' => $user?->role, // <-- Ajouté
+        'userRole' => $user?->role,
     ]);
 }
+
+
 
 
     public function create()
