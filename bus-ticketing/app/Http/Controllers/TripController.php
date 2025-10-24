@@ -185,7 +185,7 @@ class TripController extends Controller
                     $query->where('user_id', $user->id);
                     break;
                 case 'manageragence':
-                    $query->whereHas('user', fn($q) => $q->where('agency_id', $user->agency_id));
+                    $query->whereHas('user', fn($q) => $q->where('agence_id', $user->agence_id));
                     break;
                 default:
                     $query->whereRaw('1 = 0'); // aucun ticket pour les autres

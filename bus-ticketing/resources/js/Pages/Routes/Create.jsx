@@ -40,14 +40,8 @@ export default function Create({ cities }) {
     setForm((prev) => ({
       ...prev,
       stops: [
-        ...prev.stops,
-        {
-          from_city_id: "",
-          to_city_id: "",
-          distance: "",
-          price: "",
-          order: prev.stops.length + 1,
-        },
+        ...form.stops,
+        { city_id: "", order: form.stops.length + 1, distance_from_start: "", partial_price: "" },
       ],
     }));
   };
@@ -164,27 +158,8 @@ export default function Create({ cities }) {
                 flexWrap: "wrap",
               }}
             >
-              <FormControl sx={{ flex: 1, minWidth: 140 }}>
-                <InputLabel id={`from-${index}`}>Départ</InputLabel>
-                <Select
-                  labelId={`from-${index}`}
-                  value={stop.from_city_id}
-                  label="Départ"
-                  onChange={(e) =>
-                    handleStopChange(index, "from_city_id", e.target.value)
-                  }
-                  required
-                >
-                  {cities.map((city) => (
-                    <MenuItem key={city.id} value={city.id}>
-                      {city.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl sx={{ flex: 1, minWidth: 140 }}>
-                <InputLabel id={`to-${index}`}>Arrivée</InputLabel>
+              <FormControl sx={{ flex: 1, minWidth: 150 }}>
+                <InputLabel id={`city-${index}`}>Ville</InputLabel>
                 <Select
                   labelId={`to-${index}`}
                   value={stop.to_city_id}

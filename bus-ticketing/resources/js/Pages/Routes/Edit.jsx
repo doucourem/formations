@@ -21,7 +21,17 @@ export default function Edit({ routeData, cities }) {
     arrival_city_id: routeData.arrival_city_id || "",
     distance: routeData.distance || "",
     price: routeData.price || "",
-    stops: routeData.stops || [], // arrêts existants
+    stops: routeData.stops?.length
+      ? routeData.stops
+      : [
+          {
+            from_city_id: "",
+            to_city_id: "",
+            order: 1,
+            distance: "",
+            price: "",
+          },
+        ],
   });
 
   const handleChange = (e) => {
@@ -35,7 +45,7 @@ export default function Edit({ routeData, cities }) {
   const handleStopChange = (index, field, value) => {
     const updatedStops = [...form.stops];
     updatedStops[index][field] =
-      field === "order" || field === "distance_from_start" || field === "partial_price"
+      field === "order" || field === "distance" || field === "price"
         ? Number(value)
         : value;
     setForm({ ...form, stops: updatedStops });
@@ -48,9 +58,10 @@ export default function Edit({ routeData, cities }) {
         ...form.stops,
         {
           city_id: "",
+          to_city_id: "",
           order: form.stops.length + 1,
-          distance_from_start: "",
-          partial_price: "",
+          distance: "",
+          price: "",
         },
       ],
     });
@@ -68,7 +79,7 @@ export default function Edit({ routeData, cities }) {
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 3, maxWidth: 700, mx: "auto" }}>
+      <Box sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
         <Typography variant="h4" gutterBottom>
           Modifier le trajet #{routeData.id}
         </Typography>
@@ -78,7 +89,7 @@ export default function Edit({ routeData, cities }) {
           onSubmit={handleSubmit}
           sx={{ display: "flex", flexDirection: "column", gap: 3 }}
         >
-          {/* --- DÉPART / ARRIVÉE --- */}
+          {/* --- TRAJET GLOBAL --- */}
           <Stack spacing={2}>
             <FormControl fullWidth>
               <InputLabel id="departure-label">Ville de départ</InputLabel>
@@ -117,7 +128,7 @@ export default function Edit({ routeData, cities }) {
             </FormControl>
 
             <TextField
-              label="Distance (km)"
+              label="Distance totale (km)"
               name="distance"
               type="number"
               value={form.distance}
@@ -137,10 +148,10 @@ export default function Edit({ routeData, cities }) {
             />
           </Stack>
 
-          {/* --- ARRÊTS INTERMÉDIAIRES --- */}
+          {/* --- SEGMENTS / SOUS-ÉTAPES --- */}
           <Box>
             <Typography variant="h6" sx={{ mb: 1 }}>
-              Points d'arrêt intermédiaires
+              Segments du trajet
             </Typography>
 
             {form.stops.map((stop, index) => (
@@ -151,17 +162,17 @@ export default function Edit({ routeData, cities }) {
                   borderRadius: 2,
                   p: 2,
                   mb: 2,
-                  backgroundColor: "#fafafa",
+                  backgroundColor: "#f9f9f9",
                 }}
               >
                 <Stack direction="row" spacing={2} alignItems="center">
-                  {/* Ville */}
+                  {/* Ville de départ du segment */}
                   <FormControl sx={{ flex: 2 }}>
-                    <InputLabel id={`city-${index}`}>Ville</InputLabel>
+                    <InputLabel id={`from-${index}`}>De</InputLabel>
                     <Select
-                      labelId={`city-${index}`}
-                      value={stop.city_id}
-                      label="Ville"
+                      labelId={`from-${index}`}
+                      value={stop.from_city_id}
+                      label="De"
                       onChange={(e) =>
                         handleStopChange(index, "city_id", e.target.value)
                       }
@@ -175,37 +186,46 @@ export default function Edit({ routeData, cities }) {
                     </Select>
                   </FormControl>
 
-                  {/* Ordre */}
-                  <TextField
-                    label="Ordre"
-                    type="number"
-                    value={stop.order}
-                    onChange={(e) =>
-                      handleStopChange(index, "order", e.target.value)
-                    }
-                    sx={{ width: 100 }}
-                  />
+                  {/* Ville d'arrivée du segment */}
+                  <FormControl sx={{ flex: 2 }}>
+                    <InputLabel id={`to-${index}`}>Vers</InputLabel>
+                    <Select
+                      labelId={`to-${index}`}
+                      value={stop.to_city_id}
+                      label="Vers"
+                      onChange={(e) =>
+                        handleStopChange(index, "to_city_id", e.target.value)
+                      }
+                      required
+                    >
+                      {cities.map((city) => (
+                        <MenuItem key={city.id} value={city.id}>
+                          {city.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
                   {/* Distance */}
                   <TextField
                     label="Distance (km)"
                     type="number"
-                    value={stop.distance_from_start || ""}
+                    value={stop.distance || ""}
                     onChange={(e) =>
-                      handleStopChange(index, "distance_from_start", e.target.value)
+                      handleStopChange(index, "distance", e.target.value)
                     }
-                    sx={{ width: 120 }}
+                    sx={{ width: 130 }}
                   />
 
-                  {/* Prix partiel */}
+                  {/* Prix */}
                   <TextField
-                    label="Prix partiel"
+                    label="Prix (FCFA)"
                     type="number"
-                    value={stop.partial_price || ""}
+                    value={stop.price || ""}
                     onChange={(e) =>
-                      handleStopChange(index, "partial_price", e.target.value)
+                      handleStopChange(index, "price", e.target.value)
                     }
-                    sx={{ width: 120 }}
+                    sx={{ width: 130 }}
                   />
 
                   {/* Supprimer */}
@@ -226,7 +246,7 @@ export default function Edit({ routeData, cities }) {
               startIcon={<Add />}
               onClick={addStop}
             >
-              Ajouter un arrêt
+              Ajouter un segment
             </Button>
           </Box>
 
