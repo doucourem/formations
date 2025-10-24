@@ -4,8 +4,6 @@ import { Box, Typography, Paper, Stack, Divider, Button } from "@mui/material";
 import { Inertia } from "@inertiajs/inertia";
 import TicketPDFDownload from "./TicketPDFDownload";
 
-
-
 export default function Show({ ticket }) {
   if (!ticket) {
     return (
@@ -21,29 +19,36 @@ export default function Show({ ticket }) {
 
   const handleBack = () => Inertia.visit(route("ticket.index"));
   const handleEdit = () => Inertia.visit(route("ticket.edit", ticket.id));
-  const handlePrint = () => window.print();
 
   const translateStatus = (status) => {
     switch (status) {
-      case "paid": return "Payé";
-      case "cancelled": return "Annulé";
-      case "reserved": return "Réservé";
-      default: return "Inconnu";
+      case "paid":
+        return "Payé";
+      case "cancelled":
+        return "Annulé";
+      case "reserved":
+        return "Réservé";
+      default:
+        return "Inconnu";
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "paid": return "green";
-      case "cancelled": return "red";
-      case "reserved": return "orange";
-      default: return "gray";
+      case "paid":
+        return "green";
+      case "cancelled":
+        return "red";
+      case "reserved":
+        return "orange";
+      default:
+        return "gray";
     }
   };
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 4, maxWidth: 600, mx: "auto" }}>
+      <Box sx={{ p: 4, maxWidth: 650, mx: "auto" }}>
         <Typography variant="h4" gutterBottom align="center">
           🎟️ Ticket #{ticket.id}
         </Typography>
@@ -61,44 +66,86 @@ export default function Show({ ticket }) {
           }}
         >
           <Stack spacing={1.5}>
+            {/* --- CLIENT --- */}
             <Typography variant="h6" color="primary" align="center">
               🎫 Informations client
             </Typography>
-            <Typography><strong>Nom :</strong> {ticket.client_name || "—"}</Typography>
-
-            <Divider />
-
-            <Typography variant="h6" color="primary" align="center">
-              👤 Informations utilisateur / vendeur
+            <Typography>
+              <strong>Nom :</strong> {ticket.client_name || "—"}
             </Typography>
-            <Typography><strong>Nom :</strong> {ticket.user?.name || "—"}</Typography>
-            <Typography><strong>Email :</strong> {ticket.user?.email || "—"}</Typography>
-            <Typography><strong>Agence :</strong> {ticket.user?.agency?.name || "—"}</Typography>
 
             <Divider />
 
+            {/* --- VENDEUR --- */}
+            <Typography variant="h6" color="primary" align="center">
+              👤 Informations vendeur
+            </Typography>
+            <Typography>
+              <strong>Nom :</strong> {ticket.user?.name || "—"}
+            </Typography>
+            <Typography>
+              <strong>Agence :</strong> {ticket.user?.agency?.name || "—"}
+            </Typography>
+
+            <Divider />
+
+            {/* --- VOYAGE --- */}
             <Typography variant="h6" color="primary" align="center">
               🚌 Informations du voyage
             </Typography>
+
             <Typography>
-              <strong>Trajet :</strong>{" "}
+              <strong>Trajet global :</strong>{" "}
               {ticket.trip?.route
                 ? `${ticket.trip.route.departureCity} → ${ticket.trip.route.arrivalCity}`
                 : "Non défini"}
             </Typography>
-            <Typography><strong>Départ :</strong> {ticket.trip?.departure_time || "—"}</Typography>
-            <Typography><strong>Arrivée :</strong> {ticket.trip?.arrival_time || "—"}</Typography>
-            <Typography><strong>Bus :</strong> {ticket.trip?.bus?.plate_number || "—"}</Typography>
-            <Typography><strong>Siège :</strong> {ticket.seat_number || "—"}</Typography>
-            <Typography><strong>Prix :</strong> {ticket.trip.route.price?.toLocaleString() || "—"} FCFA</Typography>
+
+            {/* ✅ ARRÊT RÉSERVÉ */}
+            {ticket.stop && (
+              <Typography color="secondary">
+                <strong>Arrêt réservé :</strong>{" "}
+                {ticket.stop.city?.name || "?"} →{" "}
+                {ticket.stop.to_city?.name || "?"}
+              </Typography>
+            )}
+
+            <Typography>
+              <strong>Départ :</strong> {ticket.trip?.departure_time || "—"}
+            </Typography>
+            <Typography>
+              <strong>Arrivée :</strong> {ticket.trip?.arrival_time || "—"}
+            </Typography>
+            <Typography>
+              <strong>Bus :</strong> {ticket.trip?.bus?.plate_number || "—"}
+            </Typography>
+            <Typography>
+              <strong>Siège :</strong> {ticket.seat_number || "—"}
+            </Typography>
+
+            {/* ✅ Prix basé sur l’arrêt réservé s’il existe */}
+            <Typography>
+              <strong>Prix :</strong>{" "}
+              {ticket.stop?.partial_price
+                ? ticket.stop.partial_price.toLocaleString()
+                : ticket.trip?.route?.price?.toLocaleString() || "—"}{" "}
+              FCFA
+            </Typography>
+
             <Typography>
               <strong>Statut :</strong>{" "}
-              <span style={{ color: getStatusColor(ticket.status), fontWeight: 600 }}>
+              <span
+                style={{
+                  color: getStatusColor(ticket.status),
+                  fontWeight: 600,
+                }}
+              >
                 {translateStatus(ticket.status)}
               </span>
             </Typography>
           </Stack>
 
+          {/* --- BOUTONS --- */}
           <Box
             sx={{
               mt: 4,
@@ -115,7 +162,7 @@ export default function Show({ ticket }) {
               Modifier
             </Button>
             <Button variant="contained" color="secondary">
-             <TicketPDFDownload ticket={ticket} />
+              <TicketPDFDownload ticket={ticket} />
             </Button>
           </Box>
         </Paper>
