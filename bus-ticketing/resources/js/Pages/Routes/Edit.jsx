@@ -6,135 +6,142 @@ import {
   Button,
   TextField,
   Typography,
+  MenuItem,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
   IconButton,
   Stack,
+  Divider,
 } from "@mui/material";
-import { Add, Remove } from "@mui/icons-material";
+import { Add, Delete } from "@mui/icons-material";
 
 export default function Edit({ routeData, cities }) {
   const [form, setForm] = useState({
+    id: routeData.id,
     departure_city_id: routeData.departure_city_id || "",
     arrival_city_id: routeData.arrival_city_id || "",
     distance: routeData.distance || "",
     price: routeData.price || "",
-    stops: routeData.stops?.length
-      ? routeData.stops
-      : [
-          {
-            from_city_id: "",
-            to_city_id: "",
-            order: 1,
-            distance: "",
-            price: "",
-          },
-        ],
+    stops: routeData.stops || [],
   });
 
+  /** 🔹 Gérer le changement de champ principal */
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-    setForm({
-      ...form,
-      [name]: type === "number" ? Number(value) : value,
-    });
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "number" ? Number(value) || "" : value,
+    }));
   };
 
-  const handleStopChange = (index, field, value) => {
-    const updatedStops = [...form.stops];
-    updatedStops[index][field] =
-      field === "order" || field === "distance" || field === "price"
-        ? Number(value)
-        : value;
-    setForm({ ...form, stops: updatedStops });
-  };
-
-  const addStop = () => {
-    setForm({
-      ...form,
+  /** 🔹 Ajouter un arrêt intermédiaire */
+  const handleAddStop = () => {
+    setForm((prev) => ({
+      ...prev,
       stops: [
-        ...form.stops,
+        ...prev.stops,
         {
+          id: null,
           city_id: "",
           to_city_id: "",
-          order: form.stops.length + 1,
-          distance: "",
-          price: "",
+          order: prev.stops.length + 1,
+          distance_from_start: "",
+          partial_price: "",
         },
       ],
+    }));
+  };
+
+  /** 🔹 Modifier un arrêt existant */
+  const handleStopChange = (index, field, value) => {
+    setForm((prev) => {
+      const updatedStops = [...prev.stops];
+      updatedStops[index][field] =
+        ["order", "distance_from_start", "partial_price"].includes(field)
+          ? Number(value) || ""
+          : value;
+      return { ...prev, stops: updatedStops };
     });
   };
 
-  const removeStop = (index) => {
-    const updatedStops = form.stops.filter((_, i) => i !== index);
-    setForm({ ...form, stops: updatedStops });
+  /** 🔹 Supprimer un arrêt */
+  const handleRemoveStop = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      stops: prev.stops.filter((_, i) => i !== index),
+    }));
   };
 
+  /** 🔹 Soumission de la mise à jour */
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.put(route("busroutes.update", routeData.id), form);
+    Inertia.put(route("busroutes.update", form.id), form);
   };
 
   return (
     <GuestLayout>
       <Box sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
-        <Typography variant="h4" gutterBottom>
-          Modifier le trajet #{routeData.id}
+        <Typography variant="h4" gutterBottom fontWeight="bold">
+          Modifier le trajet
         </Typography>
 
         <Box
           component="form"
           onSubmit={handleSubmit}
-          sx={{ display: "flex", flexDirection: "column", gap: 3 }}
+          sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
-          {/* --- TRAJET GLOBAL --- */}
-          <Stack spacing={2}>
-            <FormControl fullWidth>
-              <InputLabel id="departure-label">Ville de départ</InputLabel>
-              <Select
-                labelId="departure-label"
-                name="departure_city_id"
-                value={form.departure_city_id}
-                label="Ville de départ"
-                onChange={handleChange}
-                required
-              >
-                {cities.map((city) => (
-                  <MenuItem key={city.id} value={city.id}>
-                    {city.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          {/* 🚌 Trajet principal */}
+          <Typography variant="h6" mt={2}>
+            Trajet principal
+          </Typography>
 
-            <FormControl fullWidth>
-              <InputLabel id="arrival-label">Ville d'arrivée</InputLabel>
-              <Select
-                labelId="arrival-label"
-                name="arrival_city_id"
-                value={form.arrival_city_id}
-                label="Ville d'arrivée"
-                onChange={handleChange}
-                required
-              >
-                {cities.map((city) => (
-                  <MenuItem key={city.id} value={city.id}>
-                    {city.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          <FormControl fullWidth>
+            <InputLabel id="departure-label">Ville de départ</InputLabel>
+            <Select
+              labelId="departure-label"
+              name="departure_city_id"
+              value={form.departure_city_id}
+              label="Ville de départ"
+              onChange={handleChange}
+              required
+            >
+              {cities.map((city) => (
+                <MenuItem key={city.id} value={city.id}>
+                  {city.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
+          <FormControl fullWidth>
+            <InputLabel id="arrival-label">Ville d'arrivée</InputLabel>
+            <Select
+              labelId="arrival-label"
+              name="arrival_city_id"
+              value={form.arrival_city_id}
+              label="Ville d'arrivée"
+              onChange={handleChange}
+              required
+            >
+              {cities.map((city) => (
+                <MenuItem key={city.id} value={city.id}>
+                  {city.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             <TextField
               label="Distance totale (km)"
               name="distance"
               type="number"
               value={form.distance}
               onChange={handleChange}
-              required
               inputProps={{ min: 0 }}
+              fullWidth
+              required
             />
 
             <TextField
@@ -143,115 +150,114 @@ export default function Edit({ routeData, cities }) {
               type="number"
               value={form.price}
               onChange={handleChange}
-              required
               inputProps={{ min: 0 }}
+              fullWidth
+              required
             />
           </Stack>
 
-          {/* --- SEGMENTS / SOUS-ÉTAPES --- */}
-          <Box>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Segments du trajet
-            </Typography>
+          <Divider sx={{ my: 3 }} />
 
-            {form.stops.map((stop, index) => (
-              <Box
-                key={index}
-                sx={{
-                  border: "1px solid #ddd",
-                  borderRadius: 2,
-                  p: 2,
-                  mb: 2,
-                  backgroundColor: "#f9f9f9",
-                }}
-              >
-                <Stack direction="row" spacing={2} alignItems="center">
-                  {/* Ville de départ du segment */}
-                  <FormControl sx={{ flex: 2 }}>
-                    <InputLabel id={`from-${index}`}>De</InputLabel>
-                    <Select
-                      labelId={`from-${index}`}
-                      value={stop.from_city_id}
-                      label="De"
-                      onChange={(e) =>
-                        handleStopChange(index, "city_id", e.target.value)
-                      }
-                      required
-                    >
-                      {cities.map((city) => (
-                        <MenuItem key={city.id} value={city.id}>
-                          {city.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+          {/* 🚏 Arrêts intermédiaires */}
+          <Typography variant="h6">Arrêts intermédiaires</Typography>
 
-                  {/* Ville d'arrivée du segment */}
-                  <FormControl sx={{ flex: 2 }}>
-                    <InputLabel id={`to-${index}`}>Vers</InputLabel>
-                    <Select
-                      labelId={`to-${index}`}
-                      value={stop.to_city_id}
-                      label="Vers"
-                      onChange={(e) =>
-                        handleStopChange(index, "to_city_id", e.target.value)
-                      }
-                      required
-                    >
-                      {cities.map((city) => (
-                        <MenuItem key={city.id} value={city.id}>
-                          {city.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+          {form.stops.map((stop, index) => (
+            <Box
+              key={index}
+              sx={{
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+                flexWrap: "wrap",
+                p: 1.5,
+                border: "1px solid #ddd",
+                borderRadius: 2,
+              }}
+            >
+              <FormControl sx={{ flex: 1, minWidth: 140 }}>
+                <InputLabel id={`from-${index}`}>Départ</InputLabel>
+                <Select
+                  labelId={`from-${index}`}
+                  value={stop.city_id || ""}
+                  label="Départ"
+                  onChange={(e) =>
+                    handleStopChange(index, "city_id", e.target.value)
+                  }
+                  required
+                >
+                  {cities.map((city) => (
+                    <MenuItem key={city.id} value={city.id}>
+                      {city.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-                  {/* Distance */}
-                  <TextField
-                    label="Distance (km)"
-                    type="number"
-                    value={stop.distance || ""}
-                    onChange={(e) =>
-                      handleStopChange(index, "distance", e.target.value)
-                    }
-                    sx={{ width: 130 }}
-                  />
+              <FormControl sx={{ flex: 1, minWidth: 140 }}>
+                <InputLabel id={`to-${index}`}>Arrivée</InputLabel>
+                <Select
+                  labelId={`to-${index}`}
+                  value={stop.to_city_id || ""}
+                  label="Arrivée"
+                  onChange={(e) =>
+                    handleStopChange(index, "to_city_id", e.target.value)
+                  }
+                  required
+                >
+                  {cities.map((city) => (
+                    <MenuItem key={city.id} value={city.id}>
+                      {city.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-                  {/* Prix */}
-                  <TextField
-                    label="Prix (FCFA)"
-                    type="number"
-                    value={stop.price || ""}
-                    onChange={(e) =>
-                      handleStopChange(index, "price", e.target.value)
-                    }
-                    sx={{ width: 130 }}
-                  />
+              <TextField
+                label="Distance depuis départ (km)"
+                type="number"
+                value={stop.distance_from_start || ""}
+                onChange={(e) =>
+                  handleStopChange(index, "distance_from_start", e.target.value)
+                }
+                sx={{ width: 160 }}
+                inputProps={{ min: 0 }}
+              />
 
-                  {/* Supprimer */}
-                  <IconButton
-                    color="error"
-                    onClick={() => removeStop(index)}
-                    sx={{ mt: 1 }}
-                  >
-                    <Remove />
-                  </IconButton>
-                </Stack>
-              </Box>
-            ))}
+              <TextField
+                label="Prix partiel (FCFA)"
+                type="number"
+                value={stop.partial_price || ""}
+                onChange={(e) =>
+                  handleStopChange(index, "partial_price", e.target.value)
+                }
+                sx={{ width: 160 }}
+                inputProps={{ min: 0 }}
+              />
 
+              <IconButton color="error" onClick={() => handleRemoveStop(index)}>
+                <Delete />
+              </IconButton>
+            </Box>
+          ))}
+
+          <Stack direction="row" justifyContent="flex-end">
             <Button
               variant="outlined"
-              color="primary"
+              color="secondary"
               startIcon={<Add />}
-              onClick={addStop}
+              onClick={handleAddStop}
             >
-              Ajouter un segment
+              Ajouter un arrêt
             </Button>
-          </Box>
+          </Stack>
 
-          {/* --- SUBMIT --- */}
-          <Button type="submit" variant="contained" color="success" size="large">
+          {/* ✅ Soumission */}
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            sx={{ mt: 3 }}
+          >
             Mettre à jour le trajet
           </Button>
         </Box>

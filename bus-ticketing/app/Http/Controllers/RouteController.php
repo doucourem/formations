@@ -75,6 +75,7 @@ class RouteController extends Controller
                     RouteStop::create([
                         'route_id' => $route->id,
                         'city_id' => $stop['city_id'],
+                        'to_city_id' => $stop['to_city_id'],
                         'order' => $stop['order'],
                         'distance_from_start' => $stop['distance_from_start'] ?? null,
                         'partial_price' => $stop['partial_price'] ?? null,
@@ -119,45 +120,55 @@ public function edit(\App\Models\Route $busroute)
 
 
     // Mise à jour d'une route + stops
-    public function update(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'departure_city_id' => 'required|exists:cities,id|different:arrival_city_id',
-            'arrival_city_id' => 'required|exists:cities,id',
-            'distance' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'stops' => 'array',
-            'stops.*.city_id' => 'required|exists:cities,id',
-            'stops.*.order' => 'required|integer|min:1',
-            'stops.*.distance_from_start' => 'nullable|numeric|min:0',
-            'stops.*.partial_price' => 'nullable|numeric|min:0',
+   public function update(Request $request, $id)
+{
+    $validated = $request->validate([
+        'departure_city_id' => 'required|exists:cities,id|different:arrival_city_id',
+        'arrival_city_id' => 'required|exists:cities,id',
+        'distance' => 'required|numeric|min:0',
+        'price' => 'required|numeric|min:0',
+        'stops' => 'array',
+        'stops.*.city_id' => 'required|exists:cities,id',
+        'stops.*.to_city_id' => 'nullable|exists:cities,id', // ✅ ajouté
+        'stops.*.order' => 'required|integer|min:1',
+        'stops.*.distance_from_start' => 'nullable|numeric|min:0',
+        'stops.*.partial_price' => 'nullable|numeric|min:0',
+    ]);
+
+    DB::transaction(function () use ($validated, $id) {
+        $route = Route::findOrFail($id);
+
+        // ✅ Met à jour uniquement les champs principaux, pas tout le tableau validé
+        $route->update([
+            'departure_city_id' => $validated['departure_city_id'],
+            'arrival_city_id' => $validated['arrival_city_id'],
+            'distance' => $validated['distance'],
+            'price' => $validated['price'],
         ]);
 
-        DB::transaction(function () use ($validated, $id) {
-            $route = Route::findOrFail($id);
-            $route->update($validated);
+        // Supprime les anciens arrêts
+        $route->stops()->delete();
 
-            // Supprimer les anciens arrêts
-            $route->stops()->delete();
-
-            // Recréer les nouveaux arrêts
-            if (!empty($validated['stops'])) {
-                foreach ($validated['stops'] as $stop) {
-                    RouteStop::create([
-                        'route_id' => $route->id,
-                        'city_id' => $stop['city_id'],
-                        'to_city_id' => $stop['to_city_id'],
-
-                        'order' => $stop['order'],
-                        'distance_from_start' => $stop['distance_from_start'] ?? null,
-                        'partial_price' => $stop['partial_price'] ?? null,
-                    ]);
-                }
+        // Recrée les arrêts
+        if (!empty($validated['stops'])) {
+            foreach ($validated['stops'] as $stop) {
+                RouteStop::create([
+                    'route_id' => $route->id,
+                    'city_id' => $stop['city_id'],
+                    'to_city_id' => $stop['to_city_id'] ?? null, // ✅ sécurisé
+                    'order' => $stop['order'],
+                    'distance_from_start' => $stop['distance_from_start'] ?? null,
+                    'partial_price' => $stop['partial_price'] ?? null,
+                ]);
             }
-        });
+        }
+    });
 
-        return redirect()->route('busroutes.index')->with('success', 'Itinéraire mis à jour avec succès ✅');
-    }
+    return redirect()
+        ->route('busroutes.index')
+        ->with('success', 'Itinéraire mis à jour avec succès ✅');
+}
+
 
     // Supprimer une route
     public function destroy(Route $route)

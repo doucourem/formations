@@ -119,9 +119,9 @@ export default function TicketForm({ ticket = null, trips = [] }) {
             >
               {stops.length > 0 ? (
                 stops.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.city?.name || "—"} ({s.distance_from_start} km)
-                  </MenuItem>
+                 <MenuItem key={s.id} value={s.id}>
+  {`${s.city?.name || "—"} → ${s.toCity?.name || "—"} (${s.distance_from_start} km)`}
+</MenuItem>
                 ))
               ) : (
                 <MenuItem disabled>Aucun arrêt disponible</MenuItem>
