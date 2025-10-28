@@ -68,7 +68,7 @@ class RouteController extends Controller
                 'distance' => $validated['distance'],
                 'price' => $validated['price'],
             ]);
-
+$i = 1;
             // Créer les arrêts s’ils existent
             if (!empty($validated['stops'])) {
                 foreach ($validated['stops'] as $stop) {
@@ -76,7 +76,7 @@ class RouteController extends Controller
                         'route_id' => $route->id,
                         'city_id' => $stop['city_id'],
                         'to_city_id' => $stop['to_city_id'],
-                        'order' => $stop['order'],
+                        'order' => $i++,
                         'distance_from_start' => $stop['distance_from_start'] ?? null,
                         'partial_price' => $stop['partial_price'] ?? null,
                     ]);
@@ -120,7 +120,7 @@ public function edit(\App\Models\Route $busroute)
 
 
     // Mise à jour d'une route + stops
-   public function update(Request $request, $id)
+public function update(Request $request, $id)
 {
     $validated = $request->validate([
         'departure_city_id' => 'required|exists:cities,id|different:arrival_city_id',
@@ -128,8 +128,9 @@ public function edit(\App\Models\Route $busroute)
         'distance' => 'required|numeric|min:0',
         'price' => 'required|numeric|min:0',
         'stops' => 'array',
+        'stops.*.id' => 'nullable|exists:route_stops,id', // 👈 pour savoir si le stop existe déjà
         'stops.*.city_id' => 'required|exists:cities,id',
-        'stops.*.to_city_id' => 'nullable|exists:cities,id', // ✅ ajouté
+        'stops.*.to_city_id' => 'nullable|exists:cities,id',
         'stops.*.order' => 'required|integer|min:1',
         'stops.*.distance_from_start' => 'nullable|numeric|min:0',
         'stops.*.partial_price' => 'nullable|numeric|min:0',
@@ -138,7 +139,7 @@ public function edit(\App\Models\Route $busroute)
     DB::transaction(function () use ($validated, $id) {
         $route = Route::findOrFail($id);
 
-        // ✅ Met à jour uniquement les champs principaux, pas tout le tableau validé
+        // 🔹 Met à jour la route principale
         $route->update([
             'departure_city_id' => $validated['departure_city_id'],
             'arrival_city_id' => $validated['arrival_city_id'],
@@ -146,21 +147,40 @@ public function edit(\App\Models\Route $busroute)
             'price' => $validated['price'],
         ]);
 
-        // Supprime les anciens arrêts
-        $route->stops()->delete();
+        $existingStopIds = $route->stops()->pluck('id')->toArray();
+        $newStopIds = [];
 
-        // Recrée les arrêts
+        // 🔹 Met à jour ou crée les arrêts
         if (!empty($validated['stops'])) {
-            foreach ($validated['stops'] as $stop) {
-                RouteStop::create([
-                    'route_id' => $route->id,
-                    'city_id' => $stop['city_id'],
-                    'to_city_id' => $stop['to_city_id'] ?? null, // ✅ sécurisé
-                    'order' => $stop['order'],
-                    'distance_from_start' => $stop['distance_from_start'] ?? null,
-                    'partial_price' => $stop['partial_price'] ?? null,
-                ]);
+            foreach ($validated['stops'] as $stopData) {
+                if (!empty($stopData['id']) && in_array($stopData['id'], $existingStopIds)) {
+                    // ✅ Mise à jour d’un arrêt existant
+                    RouteStop::where('id', $stopData['id'])->update([
+                        'city_id' => $stopData['city_id'],
+                        'to_city_id' => $stopData['to_city_id'] ?? null,
+                        'distance_from_start' => $stopData['distance_from_start'] ?? null,
+                        'partial_price' => $stopData['partial_price'] ?? null,
+                    ]);
+                    $newStopIds[] = $stopData['id'];
+                } else {
+                    // ✅ Création d’un nouvel arrêt
+                    $newStop = RouteStop::create([
+                        'route_id' => $route->id,
+                        'city_id' => $stopData['city_id'],
+                        'to_city_id' => $stopData['to_city_id'] ?? null,
+                        'order' => $stopData['order'],
+                        'distance_from_start' => $stopData['distance_from_start'] ?? null,
+                        'partial_price' => $stopData['partial_price'] ?? null,
+                    ]);
+                    $newStopIds[] = $newStop->id;
+                }
             }
+        }
+
+        // 🔹 Supprime uniquement les stops supprimés côté interface
+        $toDelete = array_diff($existingStopIds, $newStopIds);
+        if (!empty($toDelete)) {
+            RouteStop::whereIn('id', $toDelete)->delete();
         }
     });
 
@@ -168,6 +188,7 @@ public function edit(\App\Models\Route $busroute)
         ->route('busroutes.index')
         ->with('success', 'Itinéraire mis à jour avec succès ✅');
 }
+
 
 
     // Supprimer une route

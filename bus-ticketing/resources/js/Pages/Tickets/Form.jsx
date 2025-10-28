@@ -16,49 +16,81 @@ import {
 export default function TicketForm({ ticket = null, trips = [] }) {
   const { data, setData, post, put, processing, errors } = useForm({
     trip_id: ticket?.trip_id || "",
-    stop_id: ticket?.stop_id || "",
+    start_stop_id: ticket?.start_stop_id || "",
+    end_stop_id: ticket?.end_stop_id || "",
     client_name: ticket?.client_name || "",
     client_nina: ticket?.client_nina || "",
     seat_number: ticket?.seat_number || "",
-    status: ticket?.status || "booked",
+    status: ticket?.status || "reserved",
+    price: ticket?.price || 0,
   });
 
   const [stops, setStops] = useState([]);
   const [occupiedSeats, setOccupiedSeats] = useState([]);
-  const [availableSeats, setAvailableSeats] = useState([]);
-  const [soldTickets, setSoldTickets] = useState(0);
   const [busCapacity, setBusCapacity] = useState(0);
+  const [soldTickets, setSoldTickets] = useState(0);
 
-  // 🚌 Mise à jour dynamique selon le voyage choisi
+  // 🔹 Met à jour les stops et sièges occupés selon le trajet et les arrêts
   useEffect(() => {
     const selectedTrip = trips.find((t) => t.id === data.trip_id);
 
     if (selectedTrip) {
-      setStops(selectedTrip?.route?.stops || []);
+      const tripStops = selectedTrip?.route?.stops || [];
+      setStops(tripStops);
 
       const tickets = selectedTrip?.tickets || [];
+
+      const startOrder = tripStops.find((s) => s.id === Number(data.start_stop_id))?.order;
+      const endOrder = tripStops.find((s) => s.id === Number(data.end_stop_id))?.order;
+
+      // 🔹 Calcul des sièges occupés uniquement pour le segment choisi
       const seatsTaken = tickets
-        .filter((t) => t.id !== ticket?.id)
+        .filter((t) => {
+          const tStart = tripStops.find((s) => s.id === t.start_stop_id)?.order;
+          const tEnd = tripStops.find((s) => s.id === t.end_stop_id)?.order;
+          return (
+            tStart !== undefined &&
+            tEnd !== undefined &&
+            startOrder !== undefined &&
+            endOrder !== undefined &&
+            !(tEnd < startOrder || tStart > endOrder)
+          );
+        })
         .map((t) => t.seat_number);
 
       setOccupiedSeats(seatsTaken);
-
-      const capacity = selectedTrip?.bus?.capacity || 0;
-      setBusCapacity(capacity);
+      setBusCapacity(selectedTrip?.bus?.capacity || 0);
       setSoldTickets(tickets.length);
-
-      const seats = Array.from({ length: capacity }, (_, i) =>
-        (i + 1).toString()
-      );
-      setAvailableSeats(seats.filter((s) => !seatsTaken.includes(s)));
     } else {
       setStops([]);
       setOccupiedSeats([]);
-      setAvailableSeats([]);
-      setSoldTickets(0);
       setBusCapacity(0);
+      setSoldTickets(0);
     }
-  }, [data.trip_id, trips, ticket]);
+  }, [data.trip_id, data.start_stop_id, data.end_stop_id, trips, ticket]);
+
+  // 🔹 Calcul automatique du prix en fonction des stops sélectionnés
+  useEffect(() => {
+    if (data.start_stop_id && data.end_stop_id) {
+      const start = stops.find((s) => s.id === Number(data.start_stop_id));
+      const end = stops.find((s) => s.id === Number(data.end_stop_id));
+
+      if (start && end && start.order <= end.order) {
+        const selectedStops = stops.filter(
+          (s) => s.order >= start.order && s.order <= end.order
+        );
+        const totalPrice = selectedStops.reduce(
+          (sum, s) => sum + (s.price || 0),
+          0
+        );
+        setData("price", totalPrice);
+      } else {
+        setData("price", 0);
+      }
+    } else {
+      setData("price", 0);
+    }
+  }, [data.start_stop_id, data.end_stop_id, stops]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -69,8 +101,15 @@ export default function TicketForm({ ticket = null, trips = [] }) {
     }
   };
 
-  // 🧩 Condition : bus plein ?
-  const isBusFull = busCapacity > 0 && soldTickets >= busCapacity;
+  const isBusFull = soldTickets >= busCapacity;
+
+  // 🔹 Formattage stops
+  const formatStopdepartLabel = (s) => s.city?.name || "—";
+  const formatStopLabel = (s) => s.toCity?.name || s.city?.name || "—";
+
+  // 🔹 Places libres
+  const allSeats = Array.from({ length: busCapacity }, (_, i) => (i + 1).toString());
+  const freeSeats = allSeats.filter((seat) => !occupiedSeats.includes(seat));
 
   return (
     <GuestLayout>
@@ -84,6 +123,7 @@ export default function TicketForm({ ticket = null, trips = [] }) {
           onSubmit={handleSubmit}
           sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
+          {/* Voyage */}
           <FormControl fullWidth error={!!errors.trip_id}>
             <InputLabel id="trip-label">Voyage</InputLabel>
             <Select
@@ -102,38 +142,52 @@ export default function TicketForm({ ticket = null, trips = [] }) {
                 </MenuItem>
               ))}
             </Select>
-            {errors.trip_id && (
-              <Typography color="error" variant="caption">
-                {errors.trip_id}
-              </Typography>
-            )}
           </FormControl>
 
-          <FormControl fullWidth disabled={!data.trip_id} error={!!errors.stop_id}>
-            <InputLabel id="stop-label">Point d’arrêt</InputLabel>
+          {/* Stop de départ */}
+          <FormControl fullWidth disabled={!data.trip_id} error={!!errors.start_stop_id}>
+            <InputLabel id="start-stop-label">Départ</InputLabel>
             <Select
-              labelId="stop-label"
-              name="stop_id"
-              value={data.stop_id}
-              onChange={(e) => setData("stop_id", e.target.value)}
+              labelId="start-stop-label"
+              name="start_stop_id"
+              value={data.start_stop_id}
+              onChange={(e) => {
+                setData("start_stop_id", e.target.value);
+                setData("end_stop_id", "");
+              }}
             >
-              {stops.length > 0 ? (
-                stops.map((s) => (
-                 <MenuItem key={s.id} value={s.id}>
-  {`${s.city?.name || "—"} → ${s.toCity?.name || "—"} (${s.distance_from_start} km)`}
-</MenuItem>
-                ))
-              ) : (
-                <MenuItem disabled>Aucun arrêt disponible</MenuItem>
-              )}
+              {stops.map((s) => (
+                <MenuItem key={s.id} value={s.id}>
+                  {formatStopdepartLabel(s)}
+                </MenuItem>
+              ))}
             </Select>
-            {errors.stop_id && (
-              <Typography color="error" variant="caption">
-                {errors.stop_id}
-              </Typography>
-            )}
           </FormControl>
 
+          {/* Stop d’arrivée */}
+          <FormControl fullWidth disabled={!data.start_stop_id} error={!!errors.end_stop_id}>
+            <InputLabel id="end-stop-label">Arrivée</InputLabel>
+            <Select
+              labelId="end-stop-label"
+              name="end_stop_id"
+              value={data.end_stop_id}
+              onChange={(e) => setData("end_stop_id", e.target.value)}
+            >
+              {stops
+                .filter(
+                  (s) =>
+                    s.order >=
+                    (stops.find((st) => st.id === Number(data.start_stop_id))?.order || 0)
+                )
+                .map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {formatStopLabel(s)}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+
+          {/* Client */}
           <TextField
             label="Nom du client"
             name="client_name"
@@ -145,25 +199,29 @@ export default function TicketForm({ ticket = null, trips = [] }) {
             helperText={errors.client_name}
           />
 
+          {/* Siège — uniquement places libres */}
           <FormControl fullWidth error={!!errors.seat_number}>
-            <TextField
-              label="Numéro de siège"
-              name="seat_number"
-              value={data.seat_number}
-              onChange={(e) => setData("seat_number", e.target.value)}
-              fullWidth
-              required
-              error={!!errors.seat_number}
-              helperText={
-                errors.seat_number
-                  ? errors.seat_number
-                  : occupiedSeats.length > 0
-                  ? `Sièges déjà réservés : ${occupiedSeats.join(", ")}`
-                  : ""
-              }
-            />
+          
+           <TextField
+  label="Numéro de siège"
+  name="seat_number"
+  value={data.seat_number}
+  onChange={(e) => setData("seat_number", e.target.value)}
+  fullWidth
+  disabled={isBusFull || busCapacity === 0} // bloqué si bus complet
+  error={!!errors.seat_number}
+  helperText={
+    errors.seat_number
+      ? errors.seat_number
+      : occupiedSeats.length > 0
+      ? `Sièges déjà réservés : ${occupiedSeats.join(", ")}`
+      : ""
+  }
+/>
+
           </FormControl>
 
+          {/* Statut */}
           <FormControl fullWidth error={!!errors.status}>
             <InputLabel id="status-label">Statut</InputLabel>
             <Select
@@ -177,48 +235,31 @@ export default function TicketForm({ ticket = null, trips = [] }) {
               <MenuItem value="paid">Payé</MenuItem>
               <MenuItem value="cancelled">Annulé</MenuItem>
             </Select>
-            {errors.status && (
-              <Typography color="error" variant="caption">
-                {errors.status}
-              </Typography>
-            )}
           </FormControl>
 
-          {/* 🚫 Si bus plein → désactiver le bouton */}
+          {/* Soumission */}
           <Button
             type="submit"
             variant="contained"
             color="success"
-            disabled={processing || isBusFull}
+            disabled={processing || isBusFull }
           >
             {ticket?.id ? "Mettre à jour" : "Créer"}
           </Button>
+
+          {/* Info bus */}
+          {isBusFull && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              🚫 Le bus est complet — impossible de réserver un nouveau billet.
+            </Alert>
+          )}
+
+          {occupiedSeats.length > 0 && (
+            <Typography sx={{ mt: 1, fontStyle: "italic" }}>
+              Sièges déjà réservés : {occupiedSeats.join(", ")}
+            </Typography>
+          )}
         </Box>
-
-        {/* 🧾 Résumé dynamique */}
-        {data.trip_id && (
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="body1">
-              🎟️ Billets vendus : <strong>{soldTickets}</strong>
-            </Typography>
-            <Typography variant="body1">
-              🪑 Places disponibles :{" "}
-              <strong>{busCapacity - soldTickets}</strong> / {busCapacity}
-            </Typography>
-
-            {isBusFull && (
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                🚫 Le bus est complet — impossible de réserver un nouveau billet.
-              </Alert>
-            )}
-
-            {occupiedSeats.length > 0 && (
-              <Typography sx={{ mt: 1, fontStyle: "italic" }}>
-                Sièges déjà réservés : {occupiedSeats.join(", ")}
-              </Typography>
-            )}
-          </Box>
-        )}
       </Box>
     </GuestLayout>
   );

@@ -20,12 +20,13 @@ class TicketController extends Controller
         $ticketsQuery = Ticket::with([
             'trip.route.departureCity',
             'trip.route.arrivalCity',
-            'stop.city',
-            'stop.toCity',
+            'startStop.city',
+            'startStop.toCity',
+            'endStop.city',
+            'endStop.toCity',
             'user.agency',
         ]);
 
-        // 🔹 Filtrage selon le rôle
         if ($user->role === 'agent') {
             $ticketsQuery->where('user_id', $user->id);
         } elseif ($user->role === 'manageragence') {
@@ -36,42 +37,40 @@ class TicketController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        $ticketsData = $tickets->getCollection()->map(function ($ticket) {
-            return [
-                'id' => $ticket->id,
-                'trip' => $ticket->trip ? [
-                    'id' => $ticket->trip->id,
-                    'route' => $ticket->trip->route ? [
-                        'departure_city' => $ticket->trip->route->departureCity->name ?? '-',
-                        'arrival_city' => $ticket->trip->route->arrivalCity->name ?? '-',
-                        'departure_at' => $ticket->trip->departure_at,
-                        'arrival_at' => $ticket->trip->arrival_at,
-                        'price' => $ticket->stop
-                            ? $ticket->stop->partial_price
-                            : $ticket->trip->route->price,
-                    ] : null,
+        $ticketsData = $tickets->getCollection()->map(fn($ticket) => [
+            'id' => $ticket->id,
+            'trip' => $ticket->trip ? [
+                'id' => $ticket->trip->id,
+                'route' => $ticket->trip->route ? [
+                    'departure_city' => $ticket->trip->route->departureCity->name ?? '-',
+                    'arrival_city' => $ticket->trip->route->arrivalCity->name ?? '-',
+                    'departure_at' => $ticket->trip->departure_at,
+                    'arrival_at' => $ticket->trip->arrival_at,
                 ] : null,
-                'stop' => $ticket->stop ? [
-                    'id' => $ticket->stop->id,
-                    'city_name' => $ticket->stop->city?->name ?? '-',
-                    'to_city_name' => $ticket->stop->toCity?->name ?? '-',
-                    'distance_from_start' => $ticket->stop->distance_from_start,
-                    'price' => $ticket->stop->partial_price,
-                ] : null,
-                'client_name' => $ticket->client_name,
-                'seat_number' => $ticket->seat_number,
-                'status' => $ticket->status,
-                'price' => $ticket->price,
-                'created_at' => $ticket->created_at->format('Y-m-d H:i:s'),
-                'user' => $ticket->user ? [
-                    'name' => $ticket->user->name,
-                    'email' => $ticket->user->email,
-                    'agency' => $ticket->user->agency ? [
-                        'name' => $ticket->user->agency->name
-                    ] : null,
-                ] : null,
-            ];
-        });
+            ] : null,
+            'start_stop' => $ticket->startStop ? [
+                'id' => $ticket->startStop->id,
+                'city_name' => $ticket->startStop->city?->name ?? '-',
+                'to_city_name' => $ticket->startStop->toCity?->name ?? '-',
+                'distance_from_start' => $ticket->startStop->distance_from_start,
+            ] : null,
+            'end_stop' => $ticket->endStop ? [
+                'id' => $ticket->endStop->id,
+                'city_name' => $ticket->endStop->city?->name ?? '-',
+                'to_city_name' => $ticket->endStop->toCity?->name ?? '-',
+                'distance_from_start' => $ticket->endStop->distance_from_start,
+            ] : null,
+            'client_name' => $ticket->client_name,
+            'seat_number' => $ticket->seat_number,
+            'status' => $ticket->status,
+            'price' => $ticket->price,
+            'created_at' => $ticket->created_at->format('Y-m-d H:i:s'),
+            'user' => $ticket->user ? [
+                'name' => $ticket->user->name,
+                'email' => $ticket->user->email,
+                'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
+            ] : null,
+        ]);
 
         return Inertia::render('Tickets/Index', [
             'tickets' => [
@@ -121,87 +120,101 @@ class TicketController extends Controller
                         'id' => $s->id,
                         'distance_from_start' => $s->distance_from_start,
                         'price' => $s->partial_price,
+                        'order' => $s->order,
                         'city' => $s->city ? ['name' => $s->city->name] : null,
                         'toCity' => $s->toCity ? ['name' => $s->toCity->name] : null,
                     ]),
                 ],
-                'tickets' => $t->tickets->map(fn($ticket) => [
-                    'id' => $ticket->id,
-                    'seat_number' => $ticket->seat_number,
-                    'client_name' => $ticket->client_name,
-                    'user' => $ticket->user ? [
-                        'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
-                    ] : null,
-                ]),
             ]);
 
         return Inertia::render('Tickets/Form', ['trips' => $trips]);
     }
 
-    public function store(Request $request)
-    {
-        $this->authorizeAgent();
+ public function store(Request $request)
+{
+    $this->authorizeAgent();
 
-        $data = $request->validate([
-            'trip_id' => 'required|exists:trips,id',
-            'stop_id' => 'nullable|exists:route_stops,id',
-            'client_name' => 'required|string|max:255',
-            'client_nina' => 'nullable|string|max:255',
-            'seat_number' => 'nullable|string|max:10',
-            'status' => 'required|in:reserved,paid,cancelled',
-        ]);
+    $data = $request->validate([
+        'trip_id' => 'required|exists:trips,id',
+        'start_stop_id' => 'nullable|exists:route_stops,id',
+        'end_stop_id' => 'nullable|exists:route_stops,id',
+        'client_name' => 'required|string|max:255',
+        'client_nina' => 'nullable|string|max:255',
+        'seat_number' => 'nullable|string|max:10',
+        'status' => 'required|in:reserved,paid,cancelled',
+    ]);
 
-        if (!empty($data['seat_number'])) {
-            $exists = Ticket::where('trip_id', $data['trip_id'])
-                ->where('seat_number', $data['seat_number'])
-                ->exists();
+    $trip = Trip::with('route.stops', 'tickets')->findOrFail($data['trip_id']);
+    $startStop = $trip->route->stops->where('id', $data['start_stop_id'])->first();
+    $endStop = $trip->route->stops->where('id', $data['end_stop_id'])->first();
 
-            if ($exists) {
-                return back()->withErrors(['seat_number' => 'Ce siège est déjà réservé pour ce voyage.'])->withInput();
-            }
-        }
-
-        $trip = Trip::with('route', 'route.stops')->findOrFail($data['trip_id']);
-
-        $data['price'] = !empty($data['stop_id'])
-            ? ($trip->route->stops->where('id', $data['stop_id'])->first()?->partial_price ?? $trip->route->price ?? 0)
-            : ($trip->route->price ?? 0);
-
-        $data['user_id'] = Auth::id();
-
-        Ticket::create($data);
-
-        return redirect()->route('ticket.index')->with('success', 'Ticket créé avec succès ✅');
+    if (!$startStop || !$endStop || $startStop->order > $endStop->order) {
+        return back()->withErrors(['start_stop_id' => 'Arrêt de départ ou d’arrivée invalide'])->withInput();
     }
+
+    // 🔹 Vérification du siège uniquement sur les arrêts sélectionnés
+     $seatTaken = false;
+
+if ($startStop && $endStop) {
+    $seatTaken = $trip->tickets->filter(function ($t) use ($trip, $startStop, $endStop, $data) {
+        $tStart = $trip->route->stops->where('id', $t->start_stop_id)->first()?->order;
+        $tEnd = $trip->route->stops->where('id', $t->end_stop_id)->first()?->order;
+
+        // Si le siège overlap avec le trajet choisi
+        return $t->seat_number === $data['seat_number'] &&
+               $tStart !== null &&
+               $tEnd !== null &&
+               !($tEnd < $startStop->order || $tStart > $endStop->order);
+    })->isNotEmpty();
+}
+
+
+    if ($seatTaken) {
+        return back()->withErrors(['seat_number' => 'Ce siège est déjà réservé sur cet intervalle d’arrêts.'])->withInput();
+    }
+
+    // 🔹 Calcul du prix en fonction des arrêts sélectionnés
+    $data['price'] = $trip->route->stops
+        ->where('order', '>=', $startStop->order)
+        ->where('order', '<=', $endStop->order)
+        ->sum('partial_price');
+
+    $data['user_id'] = Auth::id();
+
+    Ticket::create($data);
+
+    return redirect()->route('ticket.index')->with('success', 'Ticket créé avec succès ✅');
+}
+
 
     public function edit(Ticket $ticket)
     {
         $this->authorizeAgent();
 
         $today = Carbon::now();
-
-        $trips = Trip::with([
-            'route.departureCity',
-            'route.arrivalCity',
-            'route.stops.city',
-            'route.stops.toCity',
-        ])
+        $trips = Trip::with(['route.departureCity', 'route.arrivalCity', 'route.stops.city', 'route.stops.toCity'])
             ->whereDate('departure_at', '>=', $today)
             ->get()
             ->map(fn($t) => [
                 'id' => $t->id,
                 'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
-                'route' => $t->route ? [
+                'bus' => [
+                    'capacity' => $t->bus?->capacity ?? 0,
+                    'model' => $t->bus?->model,
+                    'registration_number' => $t->bus?->registration_number,
+                ],
+                'route' => [
                     'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
                     'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
                     'stops' => $t->route->stops->map(fn($s) => [
                         'id' => $s->id,
                         'distance_from_start' => $s->distance_from_start,
                         'price' => $s->partial_price,
+                        'order' => $s->order,
                         'city' => $s->city ? ['name' => $s->city->name] : null,
                         'toCity' => $s->toCity ? ['name' => $s->toCity->name] : null,
                     ]),
-                ] : null,
+                ],
             ]);
 
         return Inertia::render('Tickets/Form', [
@@ -210,42 +223,65 @@ class TicketController extends Controller
         ]);
     }
 
-    public function update(Request $request, Ticket $ticket)
-    {
-        $this->authorizeAgent();
+   public function update(Request $request, Ticket $ticket)
+{
+    $this->authorizeAgent();
 
-        $data = $request->validate([
-            'trip_id' => 'required|exists:trips,id',
-            'stop_id' => 'nullable|exists:route_stops,id',
-            'client_name' => 'required|string|max:255',
-            'client_nina' => 'nullable|string|max:255',
-            'seat_number' => 'nullable|string|max:10',
-            'status' => 'required|in:reserved,paid,cancelled',
-        ]);
+    $data = $request->validate([
+        'trip_id' => 'required|exists:trips,id',
+        'start_stop_id' => 'nullable|exists:route_stops,id',
+        'end_stop_id' => 'nullable|exists:route_stops,id',
+        'client_name' => 'required|string|max:255',
+        'client_nina' => 'nullable|string|max:255',
+        'seat_number' => 'nullable|string|max:10',
+        'status' => 'required|in:reserved,paid,cancelled',
+    ]);
 
-        if (!empty($data['seat_number'])) {
-            $exists = Ticket::where('trip_id', $data['trip_id'])
-                ->where('seat_number', $data['seat_number'])
-                ->where('id', '!=', $ticket->id)
-                ->exists();
+    $trip = Trip::with('route.stops', 'tickets')->findOrFail($data['trip_id']);
+    $startStop = $trip->route->stops->where('id', $data['start_stop_id'])->first();
+    $endStop = $trip->route->stops->where('id', $data['end_stop_id'])->first();
 
-            if ($exists) {
-                return back()->withErrors(['seat_number' => 'Ce siège est déjà réservé pour ce voyage.'])->withInput();
-            }
-        }
-
-        $trip = Trip::with('route', 'route.stops')->findOrFail($data['trip_id']);
-
-        $data['price'] = !empty($data['stop_id'])
-            ? ($trip->route->stops->where('id', $data['stop_id'])->first()?->partial_price ?? $trip->route->price ?? 0)
-            : ($trip->route->price ?? 0);
-
-        $data['user_id'] = Auth::id();
-
-        $ticket->update($data);
-
-        return redirect()->route('ticket.index')->with('success', 'Ticket mis à jour avec succès ✅');
+    // Vérification de l’ordre uniquement si les deux stops existent
+    if (($startStop && $endStop) && $startStop->order > $endStop->order) {
+        return back()->withErrors(['start_stop_id' => 'Arrêt de départ ou d’arrivée invalide'])->withInput();
     }
+
+    // 🔹 Vérifier si le siège est déjà réservé sur l’intervalle choisi
+    $seatTaken = false;
+    if (!empty($data['seat_number']) && $startStop && $endStop) {
+        $seatTaken = $trip->tickets->filter(function ($t) use ($trip, $startStop, $endStop, $data, $ticket) {
+            $tStart = $trip->route->stops->where('id', $t->start_stop_id)->first()?->order;
+            $tEnd = $trip->route->stops->where('id', $t->end_stop_id)->first()?->order;
+
+            return $t->id !== $ticket->id &&
+                   $t->seat_number === $data['seat_number'] &&
+                   $tStart !== null &&
+                   $tEnd !== null &&
+                   !($tEnd < $startStop->order || $tStart > $endStop->order);
+        })->isNotEmpty();
+    }
+
+    if ($seatTaken) {
+        return back()->withErrors(['seat_number' => 'Ce siège est déjà réservé sur cet intervalle d’arrêts.'])->withInput();
+    }
+
+    // 🔹 Calcul du prix uniquement si les deux stops existent
+    if ($startStop && $endStop) {
+        $data['price'] = $trip->route->stops
+            ->where('order', '>=', $startStop->order)
+            ->where('order', '<=', $endStop->order)
+            ->sum('partial_price');
+    } else {
+        $data['price'] = $ticket->price ?? 0; // ou 0 par défaut
+    }
+
+    $data['user_id'] = Auth::id();
+
+    $ticket->update($data);
+
+    return redirect()->route('ticket.index')->with('success', 'Ticket mis à jour avec succès ✅');
+}
+
 
     public function destroy(Ticket $ticket)
     {
@@ -261,8 +297,10 @@ class TicketController extends Controller
             'trip.route.departureCity',
             'trip.route.arrivalCity',
             'trip.bus',
-            'stop.city',
-            'stop.toCity',
+            'startStop.city',
+            'startStop.toCity',
+            'endStop.city',
+            'endStop.toCity',
             'user.agency',
         ])->findOrFail($id);
 
@@ -272,11 +310,18 @@ class TicketController extends Controller
                 'seat_number' => $ticket->seat_number,
                 'client_name' => $ticket->client_name,
                 'status' => $ticket->status,
-                'stop' => $ticket->stop ? [
-                    'city_name' => $ticket->stop->city?->name,
-                    'to_city_name' => $ticket->stop->toCity?->name,
-                    'distance_from_start' => $ticket->stop->distance_from_start,
-                    'price' => $ticket->stop->partial_price,
+                'price' => $ticket->price,
+                'start_stop' => $ticket->startStop ? [
+                    'city_name' => $ticket->startStop->city?->name,
+                    'to_city_name' => $ticket->startStop->toCity?->name,
+                    'distance_from_start' => $ticket->startStop->distance_from_start,
+                    'price' => $ticket->startStop->partial_price,
+                ] : null,
+                'end_stop' => $ticket->endStop ? [
+                    'city_name' => $ticket->endStop->city?->name,
+                    'to_city_name' => $ticket->endStop->toCity?->name,
+                    'distance_from_start' => $ticket->endStop->distance_from_start,
+                    'price' => $ticket->endStop->partial_price,
                 ] : null,
                 'user' => $ticket->user ? [
                     'name' => $ticket->user->name,
@@ -306,7 +351,7 @@ class TicketController extends Controller
     private function authorizeAgent()
     {
         if (Auth::user()->role !== 'agent') {
-            // abort(403, 'Action non autorisée : seul le profil agent peut effectuer cette opération.');
+            abort(403, 'Action non autorisée : seul le profil agent peut effectuer cette opération.');
         }
     }
 }

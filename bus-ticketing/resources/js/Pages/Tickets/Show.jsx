@@ -59,10 +59,7 @@ export default function Show({ ticket }) {
             borderRadius: 2,
             boxShadow: 3,
             border: "2px dashed gray",
-            "@media print": {
-              boxShadow: "none",
-              border: "none",
-            },
+            "@media print": { boxShadow: "none", border: "none" },
           }}
         >
           <Stack spacing={1.5}>
@@ -101,12 +98,12 @@ export default function Show({ ticket }) {
                 : "Non défini"}
             </Typography>
 
-            {/* ✅ ARRÊT RÉSERVÉ */}
-            {ticket.stop && (
+            {/* ✅ ARRÊTS RÉSERVÉS */}
+            {ticket.start_stop && ticket.end_stop && (
               <Typography color="secondary">
-                <strong>Arrêt réservé :</strong>{" "}
-                {ticket.stop.city?.name || "?"} →{" "}
-                {ticket.stop.to_city?.name || "?"}
+                <strong>Trajet réservé :</strong>{" "}
+                {ticket.start_stop.city_name || "?"} →{" "}
+                {ticket.end_stop.to_city_name || "?"}
               </Typography>
             )}
 
@@ -123,13 +120,10 @@ export default function Show({ ticket }) {
               <strong>Siège :</strong> {ticket.seat_number || "—"}
             </Typography>
 
-            {/* ✅ Prix basé sur l’arrêt réservé s’il existe */}
+            {/* ✅ Prix basé sur les arrêts réservés */}
             <Typography>
               <strong>Prix :</strong>{" "}
-              {ticket.stop?.partial_price
-                ? ticket.stop.partial_price.toLocaleString()
-                : ticket.trip?.route?.price?.toLocaleString() || "—"}{" "}
-              FCFA
+              {ticket.price?.toLocaleString() || "—"} FCFA
             </Typography>
 
             <Typography>
@@ -161,9 +155,7 @@ export default function Show({ ticket }) {
             <Button variant="contained" color="success" onClick={handleEdit}>
               Modifier
             </Button>
-            <Button variant="contained" color="secondary">
-              <TicketPDFDownload ticket={ticket} />
-            </Button>
+            <TicketPDFDownload ticket={ticket} />
           </Box>
         </Paper>
       </Box>

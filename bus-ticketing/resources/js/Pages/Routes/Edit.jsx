@@ -26,7 +26,7 @@ export default function Edit({ routeData, cities }) {
     stops: routeData.stops || [],
   });
 
-  /** 🔹 Gérer le changement de champ principal */
+  /** 🔹 Gérer le changement des champs principaux */
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     setForm((prev) => ({
@@ -35,7 +35,7 @@ export default function Edit({ routeData, cities }) {
     }));
   };
 
-  /** 🔹 Ajouter un arrêt intermédiaire */
+  /** 🔹 Ajouter un nouvel arrêt (sans id => sera créé côté backend) */
   const handleAddStop = () => {
     setForm((prev) => ({
       ...prev,
@@ -53,7 +53,7 @@ export default function Edit({ routeData, cities }) {
     }));
   };
 
-  /** 🔹 Modifier un arrêt existant */
+  /** 🔹 Modifier un arrêt */
   const handleStopChange = (index, field, value) => {
     setForm((prev) => {
       const updatedStops = [...prev.stops];
@@ -65,7 +65,7 @@ export default function Edit({ routeData, cities }) {
     });
   };
 
-  /** 🔹 Supprimer un arrêt */
+  /** 🔹 Supprimer un arrêt (frontend seulement) */
   const handleRemoveStop = (index) => {
     setForm((prev) => ({
       ...prev,
@@ -73,7 +73,7 @@ export default function Edit({ routeData, cities }) {
     }));
   };
 
-  /** 🔹 Soumission de la mise à jour */
+  /** 🔹 Soumettre la mise à jour */
   const handleSubmit = (e) => {
     e.preventDefault();
     Inertia.put(route("busroutes.update", form.id), form);
@@ -174,6 +174,9 @@ export default function Edit({ routeData, cities }) {
                 borderRadius: 2,
               }}
             >
+              {/* ID caché pour l’arrêt existant */}
+              <input type="hidden" value={stop.id || ""} name={`stops[${index}][id]`} />
+
               <FormControl sx={{ flex: 1, minWidth: 140 }}>
                 <InputLabel id={`from-${index}`}>Départ</InputLabel>
                 <Select
@@ -202,7 +205,6 @@ export default function Edit({ routeData, cities }) {
                   onChange={(e) =>
                     handleStopChange(index, "to_city_id", e.target.value)
                   }
-                  required
                 >
                   {cities.map((city) => (
                     <MenuItem key={city.id} value={city.id}>
@@ -213,7 +215,7 @@ export default function Edit({ routeData, cities }) {
               </FormControl>
 
               <TextField
-                label="Distance depuis départ (km)"
+                label="Distance (km)"
                 type="number"
                 value={stop.distance_from_start || ""}
                 onChange={(e) =>

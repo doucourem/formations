@@ -17,7 +17,8 @@ class Ticket extends Model
         'seat_number',
         'price',
         'status',
-        'stop_id',
+        'start_stop_id',  // ajouté
+        'end_stop_id',    // ajouté
     ];
 
     public function trip()
@@ -30,11 +31,13 @@ class Ticket extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function startStop()
+    {
+        return $this->belongsTo(RouteStop::class, 'start_stop_id');
+    }
 
- public function stop()
-{
-    return $this->belongsTo(RouteStop::class, 'stop_id');
-}
-
-
+    public function endStop()
+    {
+        return $this->belongsTo(RouteStop::class, 'end_stop_id');
+    }
 }

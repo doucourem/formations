@@ -84,16 +84,45 @@ export default function TransactionsList() {
     if (!user) return;
     setLoading(true);
 
+
+     const { data: profile, error: profileError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      Alert.alert("Erreur", profileError.message);
+      setLoading(false);
+      return;
+    }
+
     const { data: kiosksData } = await supabase
       .from("kiosks")
-      .select("id, name")
-      .eq("owner_id", user.id);
+      .select("id, name");
 
     const kioskIds = kiosksData.map((k) => k.id);
-    const { data: cashesData } = await supabase
-      .from("cashes")
-      .select("id, name, kiosk_id, balance")
-      .in("kiosk_id", kioskIds);
+    
+let cashesData;
+let cashError;
+
+if (profile?.role === "kiosque") {
+  // Caisses où l'utilisateur est cashier
+  const { data, error } = await supabase
+    .from("cashes")
+    .select("id, name, kiosk_id, balance")
+    .eq("cashier_id", user.id);
+  cashesData = data;
+  cashError = error;
+} else {
+  // Toutes les caisses pour les autres rôles
+  const { data, error } = await supabase
+    .from("cashes")
+    .select("id, name, kiosk_id, balance");
+  cashesData = data;
+  cashError = error;
+}
+
 
     const cashIds = cashesData.map((c) => c.id);
     const { data: txData } = await supabase
@@ -262,13 +291,13 @@ export default function TransactionsList() {
     return (
       <Card style={styles.card}>
         <Card.Title
-          title={isCredit ? "Envoie" : "Paiement"}
+          title={isCredit ? "Entrée" : "Paiement"}
           subtitle={`${item.cash_name} — ${item.kiosk_name}`}
           left={(props) => (
             <MaterialCommunityIcons
               {...props}
-              name={isCredit ?   "arrow-up-bold-circle": "arrow-down-bold-circle"}
-              color={isCredit ? "red" : "green"}
+              name={isCredit ? "arrow-down-bold-circle" : "arrow-up-bold-circle"}
+              color={isCredit ? "green" : "red"}
               size={26}
             />
           )}
@@ -276,14 +305,14 @@ export default function TransactionsList() {
             <View style={{ flexDirection: "row" }}>
               <TouchableOpacity
                 onPress={() => openEditDialog(item)}
-                style={[styles.actionBtn, { backgroundColor: "red", marginRight: 6 }]}
+                style={[styles.actionBtn, { backgroundColor: "orange", marginRight: 6 }]}
               >
                 <MaterialCommunityIcons name="pencil" color="white" size={18} />
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => handleDeleteTransaction(item.id)}
-                style={[styles.actionBtn, { backgroundColor: "orange" }]}
+                style={[styles.actionBtn, { backgroundColor: "red" }]}
               >
                 <MaterialCommunityIcons name="delete" color="white" size={18} />
               </TouchableOpacity>
@@ -293,7 +322,7 @@ export default function TransactionsList() {
         <Card.Content>
           <Text>
             Montant :{" "}
-            <Text style={{ fontWeight: "bold", color: isCredit ? "red" : "green" }}>
+            <Text style={{ fontWeight: "bold", color: isCredit ? "green" : "red" }}>
               {formatCFA(item.amount)}
             </Text>
           </Text>
@@ -339,7 +368,7 @@ export default function TransactionsList() {
           onValueChange={setTypeFilter}
           buttons={[
             { value: "all", label: "Tous" },
-            { value: "CREDIT", label: "Envoi" },
+            { value: "CREDIT", label: "Entrée" },
             { value: "DEBIT", label: "Paiement" },
           ]}
           style={{ marginBottom: 12 }}
@@ -491,16 +520,16 @@ export default function TransactionsList() {
                     mode={form.type === "CREDIT" ? "contained" : "outlined"}
                     onPress={() => setForm({ ...form, type: "CREDIT" })}
                     style={{ flex: 1, marginRight: 5 }}
-                    buttonColor={form.type === "CREDIT" ? theme.colors.error : undefined}
+                    buttonColor={form.type === "CREDIT" ? theme.colors.success : undefined}
                     textColor={form.type === "CREDIT" ? "white" : theme.colors.onSurface}
                   >
-                    Envoie
+                    Entrée
                   </Button>
                   <Button
                     mode={form.type === "DEBIT" ? "contained" : "outlined"}
                     onPress={() => setForm({ ...form, type: "DEBIT" })}
                     style={{ flex: 1, marginLeft: 5 }}
-                    buttonColor={form.type === "DEBIT" ? theme.colors.success : undefined}
+                    buttonColor={form.type === "DEBIT" ? theme.colors.error : undefined}
                     textColor={form.type === "DEBIT" ? "white" : theme.colors.onSurface}
                   >
                     Paiement

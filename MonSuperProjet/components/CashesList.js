@@ -22,13 +22,41 @@ export default function CashesList({ navigation }) {
   }, [navigation]);
 
   const fetchAll = async () => {
-    await fetchCashes();
-    await fetchKiosks();
-    await fetchUsers();
+    await Promise.all([fetchCashes(), fetchKiosks(), fetchUsers()]);
   };
 
+  /**
+   * 🔹 Corrigé : Seul l'admin voit tout,
+   * les caissiers voient uniquement leur caisse.
+   */
   const fetchCashes = async () => {
-    const { data, error } = await supabase.from("cashes").select("*");
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) return Alert.alert("Erreur", userError.message);
+    if (!user) return Alert.alert("Erreur", "Utilisateur non connecté");
+
+    // Récupérer le rôle de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from("users") // ou "profiles" selon ta structure
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      Alert.alert("Erreur", profileError.message);
+      return;
+    }
+
+    // Si admin → tout afficher, sinon → filtrer
+    let query = supabase.from("cashes").select("*");
+    if (profile?.role == "kiosque") {
+      query = query.eq("cashier_id", user.id);
+    }
+
+    const { data, error } = await query;
     if (error) Alert.alert("Erreur", error.message);
     else setCashes(data || []);
   };
@@ -132,7 +160,6 @@ export default function CashesList({ navigation }) {
                 subtitle={`Client: ${kiosk?.name || "—"}`}
                 right={(props) => (
                   <View style={{ flexDirection: "row" }}>
-                    {/* Modifier seulement si la caisse est ouverte */}
                     {!item.closed && (
                       <IconButton
                         {...props}
@@ -141,15 +168,12 @@ export default function CashesList({ navigation }) {
                         onPress={() => navigation.navigate("EditCash", { cash: item })}
                       />
                     )}
-
                     <IconButton
                       {...props}
                       icon="delete"
                       size={20}
                       onPress={() => deleteCash(item.id)}
                     />
-
-                    {/* Bouton Clôturer seulement si la caisse est ouverte */}
                     {!item.closed && (
                       <IconButton
                         {...props}
@@ -172,7 +196,6 @@ export default function CashesList({ navigation }) {
                     ? `⚠️ Doit : ${Math.abs(item.balance)} FCFA`
                     : `💰 Doit recevoir : ${item.balance} FCFA`}
                 </Text>
-
                 <Text style={styles.text}>
                   👤 Coursier : {cashier?.full_name || cashier?.email || "—"}
                 </Text>
