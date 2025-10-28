@@ -98,39 +98,49 @@ export default function DataTablePro({
       </TableContainer>
 
       {/* Pagination */}
-      {pagination && pagination.links.length > 0 && (
-        <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Button
-            disabled={!pagination.prev_page_url}
-            onClick={() => handlePageChange(pagination.prev_page_url)}
-            size="small"
-          >
-            Précédent
-          </Button>
+      {/* Pagination */}
+{pagination && pagination.links.length > 0 && (
+  <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+    <Button
+      disabled={!pagination.prev_page_url}
+      onClick={() => handlePageChange(pagination.prev_page_url)}
+      size="small"
+    >
+      Précédent
+    </Button>
 
-          {filteredLinks.map((link, i) => {
-            if (link.label === '&laquo;' || link.label === '&raquo;') return null;
-            return (
-              <Button
-                key={i}
-                disabled={!link.url}
-                onClick={() => handlePageChange(link.url)}
-                dangerouslySetInnerHTML={{ __html: link.label }}
-                variant={link.active ? 'contained' : 'outlined'}
-                size="small"
-              />
-            );
-          })}
+    {filteredLinks.map((link, i) => {
+      // Nettoyer le label
+      let label = link.label.replace(/<[^>]*>?/gm, '');
+      if (label === '&laquo;') label = 'Précédent';
+      if (label === '&raquo;') label = 'Suivant';
 
-          <Button
-            disabled={!pagination.next_page_url}
-            onClick={() => handlePageChange(pagination.next_page_url)}
-            size="small"
-          >
-            Suivant
-          </Button>
-        </Stack>
-      )}
+      // Ignorer les anciens liens de navigation car déjà gérés
+      if (label === 'Précédent' || label === 'Suivant') return null;
+
+      return (
+        <Button
+          key={i}
+          disabled={!link.url}
+          onClick={() => handlePageChange(link.url)}
+          variant={link.active ? 'contained' : 'outlined'}
+          size="small"
+        >
+          {label}
+        </Button>
+      );
+    })}
+
+    <Button
+      disabled={!pagination.next_page_url}
+      onClick={() => handlePageChange(pagination.next_page_url)}
+      size="small"
+    >
+      Suivant
+    </Button>
+  </Stack>
+)}
+
     </Box>
   );
 }

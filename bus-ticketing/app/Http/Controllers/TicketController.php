@@ -14,7 +14,7 @@ class TicketController extends Controller
     // 🧾 Liste des tickets
     public function index(Request $request)
     {
-        $perPage = (int) $request->input('per_page', 10);
+        $perPage = (int) $request->input('per_page', 1000);
         $user = Auth::user();
 
         $ticketsQuery = Ticket::with([
