@@ -1,4 +1,4 @@
-import React, { useState } from "react"; 
+import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import { Link } from "@inertiajs/react";
 import {
@@ -22,6 +22,7 @@ import {
   Tooltip,
   CircularProgress,
   Divider,
+  Pagination,
 } from "@mui/material";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import EditIcon from "@mui/icons-material/Edit";
@@ -38,9 +39,9 @@ export default function TripsIndex({
   initialFilters,
   buses = [],
   routes = [],
-  userRole, // <-- rôle de l'utilisateur connecté
+  userRole,
 }) {
-  const [trips, setTrips] = useState(initialTrips || { data: [], links: [] });
+  const [trips, setTrips] = useState(initialTrips || { data: [], links: [], current_page: 1, last_page: 1 });
   const [perPage, setPerPage] = useState(initialFilters?.per_page || 20);
   const [busId, setBusId] = useState(initialFilters?.bus_id || "");
   const [routeId, setRouteId] = useState(initialFilters?.route_id || "");
@@ -55,7 +56,7 @@ export default function TripsIndex({
         preserveState: true,
         onFinish: () => setLoading(false),
         onSuccess: (page) =>
-          setTrips(page.props.initialTrips || { data: [], links: [] }),
+          setTrips(page.props.initialTrips || { data: [], links: [], current_page: 1, last_page: 1 }),
       }
     );
   };
@@ -66,12 +67,10 @@ export default function TripsIndex({
     }
   };
 
-  const handlePage = (url) => {
-    if (!url) return;
-    Inertia.get(url, {}, {
+  const handlePage = (page) => {
+    Inertia.get(route("trips.index"), { per_page: perPage, bus_id: busId, route_id: routeId, page }, {
       preserveState: true,
-      onSuccess: (page) =>
-        setTrips(page.props.initialTrips || { data: [], links: [] }),
+      onSuccess: (pageData) => setTrips(pageData.props.initialTrips || trips),
     });
   };
 
@@ -90,7 +89,6 @@ export default function TripsIndex({
               </Stack>
             }
             action={
-              // Bouton "Nouveau trajet" visible seulement pour manager / manageragence
               (userRole === "manageragence" || userRole === "manager" || userRole === "admin") && (
                 <Button
                   variant="contained"
@@ -172,16 +170,7 @@ export default function TripsIndex({
               <Table>
                 <TableHead sx={{ bgcolor: "#1565c0" }}>
                   <TableRow>
-                    {[
-                      "ID",
-                      "Route",
-                      "Bus",
-                      "Départ",
-                      "Arrivée",
-                      "Prix",
-                      "Places dispo",
-                      "Actions",
-                    ].map((col) => (
+                    {["ID", "Route", "Bus", "Départ", "Arrivée", "Prix", "Places dispo", "Actions"].map((col) => (
                       <TableCell key={col} sx={{ color: "white", fontWeight: "bold" }}>
                         {col}
                       </TableCell>
@@ -194,10 +183,7 @@ export default function TripsIndex({
                     trips.data.map((trip) => (
                       <TableRow key={trip.id} hover>
                         <TableCell>{trip.id}</TableCell>
-                        <TableCell>
-                          {trip.route?.departureCity?.name || "-"} →{" "}
-                          {trip.route?.arrivalCity?.name || "-"}
-                        </TableCell>
+                        <TableCell>{trip.route?.departureCity?.name || "-"} → {trip.route?.arrivalCity?.name || "-"}</TableCell>
                         <TableCell>{trip.bus?.model || "-"}</TableCell>
                         <TableCell>{formatDateFR(trip.departure_at)}</TableCell>
                         <TableCell>{formatDateFR(trip.arrival_at)}</TableCell>
@@ -215,10 +201,8 @@ export default function TripsIndex({
                                 <VisibilityIcon />
                               </IconButton>
                             </Tooltip>
-
-                            {/* Modifier / Supprimer seulement pour manager / manageragence et trajets futurs */}
                             {new Date(trip.departure_at) >= new Date() &&
-                              (userRole === "manageragence" || userRole === "manager") && (
+                              (userRole === "manageragence" || userRole === "manager"|| userRole === "admin") && (
                                 <>
                                   <Tooltip title="Modifier">
                                     <IconButton
@@ -257,20 +241,17 @@ export default function TripsIndex({
               </Table>
             </TableContainer>
 
-            {/* PAGINATION */}
-            <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap" }}>
-              {trips.links?.map((link, i) => (
-                <Button
-                  key={i}
-                  disabled={!link.url}
-                  variant={link.active ? "contained" : "outlined"}
-                  size="small"
-                  onClick={() => handlePage(link.url)}
-                >
-                  {link.label.replace(/<[^>]*>?/gm, "")}
-                </Button>
-              ))}
-            </Stack>
+            {/* PAGINATION MUI */}
+            <Box mt={3} display="flex" justifyContent="center">
+              <Pagination
+                count={trips.last_page || 1}
+                page={trips.current_page || 1}
+                onChange={(e, page) => handlePage(page)}
+                color="primary"
+                showFirstButton
+                showLastButton
+              />
+            </Box>
           </CardContent>
         </Card>
       </Box>

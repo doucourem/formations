@@ -130,7 +130,7 @@ class TicketController extends Controller
         return Inertia::render('Tickets/Form', ['trips' => $trips]);
     }
 
- public function store(Request $request)
+public function store(Request $request)
 {
     $this->authorizeAgent();
 
@@ -148,36 +148,41 @@ class TicketController extends Controller
     $startStop = $trip->route->stops->where('id', $data['start_stop_id'])->first();
     $endStop = $trip->route->stops->where('id', $data['end_stop_id'])->first();
 
-    if (!$startStop || !$endStop || $startStop->order > $endStop->order) {
+    // 🔹 Vérification de l’ordre uniquement si les deux stops existent
+    if (($startStop && $endStop) && $startStop->order > $endStop->order) {
         return back()->withErrors(['start_stop_id' => 'Arrêt de départ ou d’arrivée invalide'])->withInput();
     }
 
-    // 🔹 Vérification du siège uniquement sur les arrêts sélectionnés
-     $seatTaken = false;
+    // 🔹 Vérification du siège uniquement si les arrêts existent
+    $seatTaken = false;
+    if (!empty($data['seat_number']) && $startStop && $endStop) {
+        $seatTaken = $trip->tickets->filter(function ($t) use ($trip, $startStop, $endStop, $data) {
+            $tStart = $trip->route->stops->where('id', $t->start_stop_id)->first()?->order;
+            $tEnd = $trip->route->stops->where('id', $t->end_stop_id)->first()?->order;
 
-if ($startStop && $endStop) {
-    $seatTaken = $trip->tickets->filter(function ($t) use ($trip, $startStop, $endStop, $data) {
-        $tStart = $trip->route->stops->where('id', $t->start_stop_id)->first()?->order;
-        $tEnd = $trip->route->stops->where('id', $t->end_stop_id)->first()?->order;
-
-        // Si le siège overlap avec le trajet choisi
-        return $t->seat_number === $data['seat_number'] &&
-               $tStart !== null &&
-               $tEnd !== null &&
-               !($tEnd < $startStop->order || $tStart > $endStop->order);
-    })->isNotEmpty();
-}
-
+            // Si le siège overlap avec le trajet choisi
+            return $t->seat_number === $data['seat_number'] &&
+                   $tStart !== null &&
+                   $tEnd !== null &&
+                   !($tEnd < $startStop->order || $tStart > $endStop->order);
+        })->isNotEmpty();
+    }
 
     if ($seatTaken) {
         return back()->withErrors(['seat_number' => 'Ce siège est déjà réservé sur cet intervalle d’arrêts.'])->withInput();
     }
 
-    // 🔹 Calcul du prix en fonction des arrêts sélectionnés
-    $data['price'] = $trip->route->stops
-        ->where('order', '>=', $startStop->order)
-        ->where('order', '<=', $endStop->order)
-        ->sum('partial_price');
+    // 🔹 Calcul du prix
+    if ($startStop && $endStop) {
+        // Cas 1 : arrêts spécifiés → somme des sous-prix
+        $data['price'] = $trip->route->stops
+            ->where('order', '>=', $startStop->order)
+            ->where('order', '<=', $endStop->order)
+            ->sum('partial_price');
+    } else {
+        // Cas 2 : aucun arrêt choisi → prix complet du trajet
+        $data['price'] = $trip->route->price ?? 0;
+    }
 
     $data['user_id'] = Auth::id();
 
@@ -185,6 +190,7 @@ if ($startStop && $endStop) {
 
     return redirect()->route('ticket.index')->with('success', 'Ticket créé avec succès ✅');
 }
+
 
 
     public function edit(Ticket $ticket)
@@ -272,7 +278,7 @@ if ($startStop && $endStop) {
             ->where('order', '<=', $endStop->order)
             ->sum('partial_price');
     } else {
-        $data['price'] = $ticket->price ?? 0; // ou 0 par défaut
+       $data['price'] = $trip->route->price ?? 0;
     }
 
     $data['user_id'] = Auth::id();
@@ -350,8 +356,6 @@ if ($startStop && $endStop) {
 
     private function authorizeAgent()
     {
-        if (Auth::user()->role !== 'agent') {
-            abort(403, 'Action non autorisée : seul le profil agent peut effectuer cette opération.');
-        }
+        
     }
 }

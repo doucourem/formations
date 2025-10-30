@@ -30,7 +30,7 @@ export default function TicketForm({ ticket = null, trips = [] }) {
   const [busCapacity, setBusCapacity] = useState(0);
   const [soldTickets, setSoldTickets] = useState(0);
 
-  // 🔹 Met à jour les stops et sièges occupés selon le trajet et les arrêts
+  // 🔹 Met à jour les arrêts et sièges selon le trajet sélectionné
   useEffect(() => {
     const selectedTrip = trips.find((t) => t.id === data.trip_id);
 
@@ -39,24 +39,29 @@ export default function TicketForm({ ticket = null, trips = [] }) {
       setStops(tripStops);
 
       const tickets = selectedTrip?.tickets || [];
+      let seatsTaken = [];
 
-      const startOrder = tripStops.find((s) => s.id === Number(data.start_stop_id))?.order;
-      const endOrder = tripStops.find((s) => s.id === Number(data.end_stop_id))?.order;
+      if (data.start_stop_id && data.end_stop_id) {
+        const startOrder = tripStops.find(
+          (s) => s.id === Number(data.start_stop_id)
+        )?.order;
+        const endOrder = tripStops.find(
+          (s) => s.id === Number(data.end_stop_id)
+        )?.order;
 
-      // 🔹 Calcul des sièges occupés uniquement pour le segment choisi
-      const seatsTaken = tickets
-        .filter((t) => {
-          const tStart = tripStops.find((s) => s.id === t.start_stop_id)?.order;
-          const tEnd = tripStops.find((s) => s.id === t.end_stop_id)?.order;
-          return (
-            tStart !== undefined &&
-            tEnd !== undefined &&
-            startOrder !== undefined &&
-            endOrder !== undefined &&
-            !(tEnd < startOrder || tStart > endOrder)
-          );
-        })
-        .map((t) => t.seat_number);
+        if (startOrder !== undefined && endOrder !== undefined) {
+          seatsTaken = tickets
+            .filter((t) => {
+              const tStart = tripStops.find((s) => s.id === t.start_stop_id)?.order;
+              const tEnd = tripStops.find((s) => s.id === t.end_stop_id)?.order;
+              return !(tEnd < startOrder || tStart > endOrder);
+            })
+            .map((t) => t.seat_number);
+        }
+      } else {
+        // Aucun arrêt défini → on bloque les sièges déjà pris sur tout le trajet
+        seatsTaken = tickets.map((t) => t.seat_number);
+      }
 
       setOccupiedSeats(seatsTaken);
       setBusCapacity(selectedTrip?.bus?.capacity || 0);
@@ -69,7 +74,7 @@ export default function TicketForm({ ticket = null, trips = [] }) {
     }
   }, [data.trip_id, data.start_stop_id, data.end_stop_id, trips, ticket]);
 
-  // 🔹 Calcul automatique du prix en fonction des stops sélectionnés
+  // 🔹 Calcul automatique du prix selon les arrêts (facultatif maintenant)
   useEffect(() => {
     if (data.start_stop_id && data.end_stop_id) {
       const start = stops.find((s) => s.id === Number(data.start_stop_id));
@@ -88,7 +93,8 @@ export default function TicketForm({ ticket = null, trips = [] }) {
         setData("price", 0);
       }
     } else {
-      setData("price", 0);
+      // Aucun arrêt défini → garder le prix actuel ou 0
+      setData("price", data.price || 0);
     }
   }, [data.start_stop_id, data.end_stop_id, stops]);
 
@@ -103,7 +109,7 @@ export default function TicketForm({ ticket = null, trips = [] }) {
 
   const isBusFull = soldTickets >= busCapacity;
 
-  // 🔹 Formattage stops
+  // 🔹 Helpers pour affichage
   const formatStopdepartLabel = (s) => s.city?.name || "—";
   const formatStopLabel = (s) => s.toCity?.name || s.city?.name || "—";
 
@@ -144,9 +150,9 @@ export default function TicketForm({ ticket = null, trips = [] }) {
             </Select>
           </FormControl>
 
-          {/* Stop de départ */}
+          {/* Stop de départ (facultatif) */}
           <FormControl fullWidth disabled={!data.trip_id} error={!!errors.start_stop_id}>
-            <InputLabel id="start-stop-label">Départ</InputLabel>
+            <InputLabel id="start-stop-label">Départ (optionnel)</InputLabel>
             <Select
               labelId="start-stop-label"
               name="start_stop_id"
@@ -164,9 +170,9 @@ export default function TicketForm({ ticket = null, trips = [] }) {
             </Select>
           </FormControl>
 
-          {/* Stop d’arrivée */}
+          {/* Stop d’arrivée (facultatif) */}
           <FormControl fullWidth disabled={!data.start_stop_id} error={!!errors.end_stop_id}>
-            <InputLabel id="end-stop-label">Arrivée</InputLabel>
+            <InputLabel id="end-stop-label">Arrivée (optionnel)</InputLabel>
             <Select
               labelId="end-stop-label"
               name="end_stop_id"
@@ -199,26 +205,24 @@ export default function TicketForm({ ticket = null, trips = [] }) {
             helperText={errors.client_name}
           />
 
-          {/* Siège — uniquement places libres */}
+          {/* Siège */}
           <FormControl fullWidth error={!!errors.seat_number}>
-          
-           <TextField
-  label="Numéro de siège"
-  name="seat_number"
-  value={data.seat_number}
-  onChange={(e) => setData("seat_number", e.target.value)}
-  fullWidth
-  disabled={isBusFull || busCapacity === 0} // bloqué si bus complet
-  error={!!errors.seat_number}
-  helperText={
-    errors.seat_number
-      ? errors.seat_number
-      : occupiedSeats.length > 0
-      ? `Sièges déjà réservés : ${occupiedSeats.join(", ")}`
-      : ""
-  }
-/>
-
+            <TextField
+              label="Numéro de siège"
+              name="seat_number"
+              value={data.seat_number}
+              onChange={(e) => setData("seat_number", e.target.value)}
+              fullWidth
+              disabled={isBusFull || busCapacity === 0}
+              error={!!errors.seat_number}
+              helperText={
+                errors.seat_number
+                  ? errors.seat_number
+                  : occupiedSeats.length > 0
+                  ? `Sièges déjà réservés : ${occupiedSeats.join(", ")}`
+                  : ""
+              }
+            />
           </FormControl>
 
           {/* Statut */}
@@ -242,12 +246,12 @@ export default function TicketForm({ ticket = null, trips = [] }) {
             type="submit"
             variant="contained"
             color="success"
-            disabled={processing || isBusFull }
+            disabled={processing || isBusFull}
           >
             {ticket?.id ? "Mettre à jour" : "Créer"}
           </Button>
 
-          {/* Info bus */}
+          {/* Alerte bus complet */}
           {isBusFull && (
             <Alert severity="warning" sx={{ mt: 2 }}>
               🚫 Le bus est complet — impossible de réserver un nouveau billet.
