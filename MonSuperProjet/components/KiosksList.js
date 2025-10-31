@@ -321,28 +321,29 @@ export default function KiosksTransactions() {
 
       Alert.alert("Succès", "Kiosque modifié avec succès !");
     } else {
-      // Créer utilisateur Supabase
+      // 1️⃣ Créer utilisateur Supabase Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: emailTrimmed,
         password: password,
       });
-
       if (signUpError) throw signUpError;
 
-
-       const { error: insertError } = await supabase.from("users").insert([
-                {
-                  id: userId,
-                  email: emailTrimmed,
-                  full_name: currentKiosk.name,
-                  role: formData.role,
-                  is_active: true,
-                },
-              ]);
       const userId = authData?.user?.id;
       if (!userId) throw new Error("Impossible de récupérer l'id utilisateur");
 
-      // 🔹 Insérer le kiosque
+      // 2️⃣ Insérer dans table users
+      const { error: insertError } = await supabase.from("users").insert([
+        {
+          id: userId,
+          email: emailTrimmed,
+          full_name: currentKiosk.name,
+          role: "kiosque",
+          is_active: true,
+        },
+      ]);
+      if (insertError) throw insertError;
+
+      // 3️⃣ Insérer le kiosque lié
       const { error: kioskError } = await supabase.from("kiosks").insert([
         {
           name: currentKiosk.name,
@@ -351,7 +352,6 @@ export default function KiosksTransactions() {
           owner_id: user.id,
         },
       ]);
-
       if (kioskError) throw kioskError;
 
       Alert.alert("Succès", "Kiosque et utilisateur créés avec succès !");
@@ -363,6 +363,7 @@ export default function KiosksTransactions() {
     Alert.alert("Erreur", e.message);
   }
 }}
+
 
 >
   Enregistrer
