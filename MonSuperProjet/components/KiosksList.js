@@ -248,37 +248,130 @@ export default function KiosksTransactions() {
         />
 
         {/* Dialog popup client */}
-        <Portal>
-          <Dialog visible={openPopup} onDismiss={() => setOpenPopup(false)}>
-            <Dialog.Title>
-              {currentKiosk.id ? "Modifier client" : "Ajouter client"}
-            </Dialog.Title>
-            <Dialog.Content>
-              <TextInput
-                label="Nom"
-                value={currentKiosk.name}
-                onChangeText={(text) =>
-                  setCurrentKiosk({ ...currentKiosk, name: text })
-                }
-                style={styles.input}
-              />
-              <TextInput
-                label="Lieu"
-                value={currentKiosk.location}
-                onChangeText={(text) =>
-                  setCurrentKiosk({ ...currentKiosk, location: text })
-                }
-                style={styles.input}
-              />
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setOpenPopup(false)}>Annuler</Button>
-              <Button mode="contained" onPress={() => setOpenPopup(false)}>
-                Enregistrer
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
+       <Portal>
+  <Dialog visible={openPopup} onDismiss={() => setOpenPopup(false)}>
+    <Dialog.Title>
+      {currentKiosk.id ? "Modifier client" : "Ajouter client"}
+    </Dialog.Title>
+
+    <Dialog.Content>
+      <TextInput
+        label="Nom"
+        value={currentKiosk.name || ""}
+        onChangeText={(text) =>
+          setCurrentKiosk({ ...currentKiosk, name: text })
+        }
+        style={styles.input}
+      />
+
+      <TextInput
+        label="Lieu"
+        value={currentKiosk.location || ""}
+        onChangeText={(text) =>
+          setCurrentKiosk({ ...currentKiosk, location: text })
+        }
+        style={styles.input}
+      />
+
+      <TextInput
+        label="Email"
+        value={currentKiosk.email || ""}
+        onChangeText={(text) =>
+          setCurrentKiosk({ ...currentKiosk, email: text })
+        }
+        style={styles.input}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+
+      <TextInput
+        label="Mot de passe"
+        value={currentKiosk.password || ""}
+        onChangeText={(text) =>
+          setCurrentKiosk({ ...currentKiosk, password: text })
+        }
+        style={styles.input}
+        secureTextEntry
+      />
+    </Dialog.Content>
+
+    <Dialog.Actions>
+      <Button onPress={() => setOpenPopup(false)}>Annuler</Button>
+      <Button
+  mode="contained"
+ onPress={async () => {
+  const emailTrimmed = (currentKiosk.email || "").trim();
+  const password = currentKiosk.password;
+
+  if (!currentKiosk.name || !currentKiosk.location || !emailTrimmed || !password) {
+    return Alert.alert("Erreur", "Veuillez remplir tous les champs !");
+  }
+
+  try {
+    if (currentKiosk.id) {
+      // Modifier kiosque existant
+      await supabase
+        .from("kiosks")
+        .update({
+          name: currentKiosk.name,
+          location: currentKiosk.location,
+          email: emailTrimmed,
+        })
+        .eq("id", currentKiosk.id);
+
+      Alert.alert("Succès", "Kiosque modifié avec succès !");
+    } else {
+      // Créer utilisateur Supabase
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: emailTrimmed,
+        password: password,
+      });
+
+      if (signUpError) throw signUpError;
+
+
+       const { error: insertError } = await supabase.from("users").insert([
+                {
+                  id: userId,
+                  email: emailTrimmed,
+                  full_name: currentKiosk.name,
+                  role: formData.role,
+                  is_active: true,
+                },
+              ]);
+      const userId = authData?.user?.id;
+      if (!userId) throw new Error("Impossible de récupérer l'id utilisateur");
+
+      // 🔹 Insérer le kiosque
+      const { error: kioskError } = await supabase.from("kiosks").insert([
+        {
+          name: currentKiosk.name,
+          location: currentKiosk.location,
+          user_id: userId,
+          owner_id: user.id,
+        },
+      ]);
+
+      if (kioskError) throw kioskError;
+
+      Alert.alert("Succès", "Kiosque et utilisateur créés avec succès !");
+    }
+
+    setOpenPopup(false);
+    setCurrentKiosk({ id: null, name: "", location: "", email: "", password: "" });
+  } catch (e) {
+    Alert.alert("Erreur", e.message);
+  }
+}}
+
+>
+  Enregistrer
+</Button>
+
+    </Dialog.Actions>
+  </Dialog>
+</Portal>
+
 
         {/* Dialog transactions */}
         <Portal>

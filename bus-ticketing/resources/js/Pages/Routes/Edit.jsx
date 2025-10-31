@@ -150,7 +150,7 @@ export default function Edit({ routeData, cities }) {
               type="number"
               value={form.price}
               onChange={handleChange}
-              inputProps={{ min: 0 }}
+             
               fullWidth
               required
             />

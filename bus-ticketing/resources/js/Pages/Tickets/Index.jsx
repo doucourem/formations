@@ -65,26 +65,31 @@ export default function TicketsIndex({ tickets }) {
 
   // 🔹 Actions sur chaque ligne
   // 🔹 Actions sur chaque ligne
-const actions = [
-  { label: 'Voir', icon: <VisibilityIcon />, color: 'info', onClick: row => Inertia.get(route('ticket.show', row.id)) },
-  // Seul l'agent propriétaire du ticket peut modifier ou supprimer
-  ...(user.role === 'agent'
-    ? [
-        {
-          label: 'Éditer',
-          icon: <EditIcon />,
-          color: 'primary',
-          onClick: row =>  Inertia.get(route('ticket.edit', row.id)),
-        },
-        {
-          label: 'Supprimer',
-          icon: <DeleteIcon />,
-          color: 'error',
-          onClick: row => handleDelete(row.id),
-        },
-      ]
-    : []),
-];
+ const actions = [
+    { label: 'Voir', icon: <VisibilityIcon />, color: 'info', onClick: row => Inertia.get(route('ticket.show', row.id)) },
+    // Éditer : agent + rôles supérieurs
+    ...(['admin', 'manageragence', 'manager', 'agent'].includes(user.role)
+      ? [
+          {
+            label: 'Éditer',
+            icon: <EditIcon />,
+            color: 'primary',
+            onClick: row => Inertia.get(route('ticket.edit', row.id)),
+          },
+        ]
+      : []),
+    // Supprimer : seulement admin + manageragence + manager
+    ...(['admin', 'manageragence', 'manager'].includes(user.role)
+      ? [
+          {
+            label: 'Supprimer',
+            icon: <DeleteIcon />,
+            color: 'error',
+            onClick: row => handleDelete(row.id),
+          },
+        ]
+      : []),
+  ];
 
 
   // 🔹 Pagination sécurisée
@@ -107,7 +112,7 @@ const actions = [
       {/* HEADER */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h4">Tickets</Typography>
-        {(user.role === 'agent' || user.role === 'manageragence' || user.role === 'manager') && (
+        {(user.role === 'agent' || user.role === 'admin'|| user.role === 'manageragence' || user.role === 'manager') && (
   <Button
     variant="contained"
     color="primary"

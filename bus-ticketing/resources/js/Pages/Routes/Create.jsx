@@ -223,7 +223,7 @@ export default function Create({ cities }) {
                   handleStopChange(index, "price", e.target.value)
                 }
                 sx={{ width: 120 }}
-                inputProps={{ min: 0 }}
+              
               />
 
               <IconButton color="error" onClick={() => handleRemoveStop(index)}>
