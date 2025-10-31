@@ -139,7 +139,6 @@ export default function Edit({ routeData, cities }) {
               type="number"
               value={form.distance}
               onChange={handleChange}
-              inputProps={{ min: 0 }}
               fullWidth
               required
             />
@@ -222,7 +221,6 @@ export default function Edit({ routeData, cities }) {
                   handleStopChange(index, "distance_from_start", e.target.value)
                 }
                 sx={{ width: 160 }}
-                inputProps={{ min: 0 }}
               />
 
               <TextField
@@ -233,7 +231,6 @@ export default function Edit({ routeData, cities }) {
                   handleStopChange(index, "partial_price", e.target.value)
                 }
                 sx={{ width: 160 }}
-                inputProps={{ min: 0 }}
               />
 
               <IconButton color="error" onClick={() => handleRemoveStop(index)}>
