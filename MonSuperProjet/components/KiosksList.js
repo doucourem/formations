@@ -403,8 +403,8 @@ export default function KiosksTransactions() {
                   }
                 >
                   <Menu.Item onPress={() => { setFilterType("ALL"); setMenuVisible(false); }} title="Toutes" />
-                  <Menu.Item onPress={() => { setFilterType("CREDIT"); setMenuVisible(false); }} title="CREDIT" />
-                  <Menu.Item onPress={() => { setFilterType("DEBIT"); setMenuVisible(false); }} title="DEBIT" />
+                  <Menu.Item onPress={() => { setFilterType("CREDIT"); setMenuVisible(false); }} title="ENVOIE " />
+                  <Menu.Item onPress={() => { setFilterType("DEBIT"); setMenuVisible(false); }} title="PAIEMENT" />
                 </Menu>
               </View>
 

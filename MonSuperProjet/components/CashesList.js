@@ -16,6 +16,8 @@ export default function CashesList({ navigation }) {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
 
+  const MIN_BALANCE = 1000; // seuil minimal
+
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", fetchAll);
     return unsubscribe;
@@ -25,10 +27,6 @@ export default function CashesList({ navigation }) {
     await Promise.all([fetchCashes(), fetchKiosks(), fetchUsers()]);
   };
 
-  /**
-   * 🔹 Corrigé : Seul l'admin voit tout,
-   * les caissiers voient uniquement leur caisse.
-   */
   const fetchCashes = async () => {
     const {
       data: { user },
@@ -38,9 +36,8 @@ export default function CashesList({ navigation }) {
     if (userError) return Alert.alert("Erreur", userError.message);
     if (!user) return Alert.alert("Erreur", "Utilisateur non connecté");
 
-    // Récupérer le rôle de l'utilisateur
     const { data: profile, error: profileError } = await supabase
-      .from("users") // ou "profiles" selon ta structure
+      .from("users")
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
@@ -50,11 +47,8 @@ export default function CashesList({ navigation }) {
       return;
     }
 
-    // Si admin → tout afficher, sinon → filtrer
     let query = supabase.from("cashes").select("*");
-    if (profile?.role == "kiosque") {
-      query = query.eq("cashier_id", user.id);
-    }
+    if (profile?.role === "kiosque") query = query.eq("cashier_id", user.id);
 
     const { data, error } = await query;
     if (error) Alert.alert("Erreur", error.message);
@@ -70,8 +64,7 @@ export default function CashesList({ navigation }) {
     const { data, error } = await supabase
       .from("users")
       .select("id, full_name, email, role");
-    if (error) Alert.alert("Erreur", error.message);
-    else setUsers(data || []);
+    if (!error) setUsers(data || []);
   };
 
   const deleteCash = async (id) => {
@@ -152,12 +145,21 @@ export default function CashesList({ navigation }) {
         renderItem={({ item }) => {
           const kiosk = kiosks.find((k) => k.id === item.kiosk_id);
           const cashier = users.find((u) => u.id === item.cashier_id);
+          const belowMin = item.balance < MIN_BALANCE;
 
           return (
-            <Card style={[styles.card, { width: screenWidth * 0.95, alignSelf: "center" }]}>
+            <Card
+              style={[
+                styles.card,
+                { width: screenWidth * 0.95, alignSelf: "center" },
+                { backgroundColor: belowMin ? "#FEF2F2" : "#ECFDF5" },
+              ]}
+            >
               <Card.Title
                 title={item.name}
+                titleStyle={{ color: "#1F2937" }}
                 subtitle={`Client: ${kiosk?.name || "—"}`}
+                subtitleStyle={{ color: "#1F2937" }}
                 right={(props) => (
                   <View style={{ flexDirection: "row" }}>
                     {!item.closed && (
@@ -186,20 +188,15 @@ export default function CashesList({ navigation }) {
                 )}
               />
               <Card.Content>
-                <Text
-                  style={[
-                    styles.text,
-                    item.balance < 0 ? styles.negative : styles.positive,
-                  ]}
-                >
-                  {item.balance < 0
-                    ? `⚠️ Doit : ${Math.abs(item.balance)} FCFA`
-                    : `💰 Doit recevoir : ${item.balance} FCFA`}
+                <Text style={[styles.text, { color: "#1F2937", fontWeight: "bold" }]}>
+                  {belowMin
+                    ? `⚠️ Solde inférieur au seuil : ${item.balance} / ${MIN_BALANCE} FCFA`
+                    : `💰 Solde OK : ${item.balance} FCFA`}
                 </Text>
-                <Text style={styles.text}>
+                <Text style={[styles.text, { color: "#1F2937" }]}>
                   👤 Coursier : {cashier?.full_name || cashier?.email || "—"}
                 </Text>
-                <Text style={[styles.text, { color: item.closed ? "#EF4444" : "#10B981" }]}>
+                <Text style={[styles.text, { color: item.closed ? "#B91C1C" : "#166534" }]}>
                   📦 État : {item.closed ? "Clôturée" : "Ouverte"}
                 </Text>
               </Card.Content>
@@ -215,8 +212,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, paddingVertical: 10 },
   searchInput: { marginHorizontal: 16, marginBottom: 10 },
   card: { marginVertical: 6, borderRadius: 12, paddingVertical: 6 },
-  text: { fontSize: 16, fontWeight: "bold", marginVertical: 2 },
-  positive: { color: "green" },
-  negative: { color: "red" },
+  text: { fontSize: 16, marginVertical: 2 },
   addButton: { marginVertical: 10 },
 });

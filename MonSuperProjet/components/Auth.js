@@ -9,6 +9,7 @@ import {
   Provider as PaperProvider,
 } from "react-native-paper";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
 
 import supabase from "../supabaseClient";
 
@@ -16,16 +17,40 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const theme = useTheme();
+   const navigation = useNavigation(); // <-- IMPORTANT
+const signIn = async () => {
+  // Connexion avec email et mot de passe
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
-  const signIn = async () => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      Alert.alert("Erreur de connexion", error.message);
-      console.error("Erreur de connexion :", error.message);
-    } else {
-      Alert.alert("Succès", "✅ Connexion réussie !");
-    }
-  };
+  if (authError) {
+    Alert.alert("Erreur de connexion", authError.message);
+    console.error("Erreur de connexion :", authError.message);
+    return;
+  }
+
+  // Récupérer le profil depuis la table 'users' avec l'email
+  const { data: userProfile, error: profileError } = await supabase
+    .from("users")
+     .select("id, email, full_name, role") // <- rôle inclus
+    .eq("auth_id", authData.user.id)
+    .maybeSingle();
+
+  if (profileError || !userProfile) {
+    console.error("Erreur récupération profil :", profileError?.message);
+    Alert.alert("Erreur", "Impossible de récupérer le profil utilisateur");
+    return;
+  }
+
+  //console.log("Profil utilisateurffff :", userProfile);
+  Alert.alert("Succès", "✅ Connexion réussie !");
+  // Redirection vers le Drawer
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "MainDrawer", params: { user: userProfile } }],
+  });
+};
+
+
 
   const signUp = async () => {
     const { error } = await supabase.auth.signUp({ email, password });

@@ -1,13 +1,6 @@
-import React from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
-import { Button, Text } from "react-native-paper";
-
-const { width, height } = Dimensions.get("window");
-
 export default function DashboardMenu({ navigation, user }) {
-  // largeur responsive avec min/max
   const buttonWidth = Math.min(Math.max(width * 0.45, 120), 160);
-  const topPadding = height * 0.1; // 10% de la hauteur de l'écran
+  const topPadding = height * 0.1;
 
   const menuItems = [
     { label: "Caisse", route: "Caisse" },
@@ -18,13 +11,17 @@ export default function DashboardMenu({ navigation, user }) {
     { label: "Utilisateurs", route: "Utilisateurs" },
   ];
 
+  // Filtrer le menu selon le rôle
+  const filteredMenu = user?.role === "kiosque"
+    ? menuItems.filter(item => ["Caisse", "Transactions"].includes(item.label))
+    : menuItems;
+
   return (
     <View style={[styles.container, { paddingTop: topPadding }]}>
       <Text variant="headlineMedium" style={styles.title}>
         📌 Menu principal
       </Text>
 
-      {/* Bouton Login si pas connecté */}
       {!user ? (
         <Button
           mode="outlined"
@@ -34,8 +31,7 @@ export default function DashboardMenu({ navigation, user }) {
           Se connecter
         </Button>
       ) : (
-        // Boutons du menu (seulement si user connecté)
-        menuItems.map((item) => (
+        filteredMenu.map(item => (
           <Button
             key={item.route}
             mode="contained"
@@ -49,19 +45,3 @@ export default function DashboardMenu({ navigation, user }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "flex-start", // menu en haut
-    alignItems: "center",
-    paddingHorizontal: 10,
-  },
-  title: {
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  menuButton: {
-    marginVertical: 8,
-  },
-});

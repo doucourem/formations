@@ -50,8 +50,8 @@ class RouteController extends Controller
         $validated = $request->validate([
             'departure_city_id' => 'required|exists:cities,id|different:arrival_city_id',
             'arrival_city_id' => 'required|exists:cities,id',
-            'distance' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
+            'distance' => 'required|numeric',
+            'price' => 'required|numeric',
             'stops' => 'array',
             'stops.*.city_id' => 'required|exists:cities,id',
             'stops.*.to_city_id' => 'required|exists:cities,id',
@@ -126,14 +126,14 @@ public function update(Request $request, $id)
         'departure_city_id' => 'required|exists:cities,id|different:arrival_city_id',
         'arrival_city_id' => 'required|exists:cities,id',
         'distance' => 'required|numeric|min:0',
-        'price' => 'required|numeric|min:0',
+        'price' => 'required|numeric',
         'stops' => 'array',
         'stops.*.id' => 'nullable|exists:route_stops,id', // 👈 pour savoir si le stop existe déjà
         'stops.*.city_id' => 'required|exists:cities,id',
         'stops.*.to_city_id' => 'nullable|exists:cities,id',
         'stops.*.order' => 'required|integer|min:1',
         'stops.*.distance_from_start' => 'nullable|numeric|min:0',
-        'stops.*.partial_price' => 'nullable|numeric|min:0',
+        'stops.*.partial_price' => 'nullable|numeric',
     ]);
 
     DB::transaction(function () use ($validated, $id) {
