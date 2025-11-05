@@ -7,12 +7,12 @@ export default function AddCashScreen({ navigation }) {
   const { width: screenWidth } = useWindowDimensions();
   const [name, setName] = useState("");
   const [balance, setBalance] = useState("");
+  const [minBalance, setMinBalance] = useState(""); // ✅ nouvel état pour le seuil minimum
   const [kioskId, setKioskId] = useState(null);
   const [cashierId, setCashierId] = useState(null);
   const [kiosks, setKiosks] = useState([]);
   const [users, setUsers] = useState([]);
 
-  // Autocomplete states
   const [kioskQuery, setKioskQuery] = useState("");
   const [cashierQuery, setCashierQuery] = useState("");
 
@@ -29,19 +29,27 @@ export default function AddCashScreen({ navigation }) {
 
   const fetchCashiers = async () => {
     const { data, error } = await supabase.from("users").select("id, full_name, email, role")
-    .eq("role", "kiosque")
-    ;
+      .eq("role", "kiosque");
     if (error) Alert.alert("Erreur", error.message);
     else setUsers(data || []);
   };
 
   const handleSubmit = async () => {
-    if (!name || !balance || !kioskId || !cashierId) {
+    if (!name || !balance || !minBalance || !kioskId || !cashierId) {
       return Alert.alert("Erreur", "Tous les champs sont requis.");
     }
+
+    const numericBalance = parseFloat(balance);
+    const numericMinBalance = parseFloat(minBalance);
+
+    if (numericBalance < numericMinBalance) {
+      return Alert.alert("Erreur", "Le montant initial doit être supérieur ou égal au seuil minimum.");
+    }
+
     const { error } = await supabase.from("cashes").insert([
-      { name, balance: parseFloat(balance), kiosk_id: kioskId, cashier_id: cashierId, closed: false },
+      { name, balance: numericBalance, min_balance: numericMinBalance, kiosk_id: kioskId, cashier_id: cashierId, closed: false },
     ]);
+
     if (error) Alert.alert("Erreur", error.message);
     else {
       Alert.alert("✅ Succès", "Caisse ajoutée avec succès !");
@@ -49,7 +57,6 @@ export default function AddCashScreen({ navigation }) {
     }
   };
 
-  // Filtered lists for autocomplete
   const filteredKiosks = kiosks.filter(k => k.name.toLowerCase().includes(kioskQuery.toLowerCase()));
   const filteredCashiers = users.filter(u => (u.full_name || u.email).toLowerCase().includes(cashierQuery.toLowerCase()));
 
@@ -65,9 +72,16 @@ export default function AddCashScreen({ navigation }) {
             style={styles.input}
           />
           <TextInput
-            label="Seuil"
+            label="Montant initial (FCFA)"
             value={balance}
             onChangeText={setBalance}
+            keyboardType="numeric"
+            style={styles.input}
+          />
+          <TextInput
+            label="Seuil minimum (FCFA)"
+            value={minBalance}
+            onChangeText={setMinBalance}
             keyboardType="numeric"
             style={styles.input}
           />

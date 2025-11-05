@@ -186,7 +186,7 @@ export default function CashesList({ navigation }) {
     renderItem={({ item }) => {
       const kiosk = kiosks.find((k) => k.id === item.kiosk_id);
       const cashier = users.find((u) => u.id === item.cashier_id);
-      const belowMin = item.balance < MIN_BALANCE;
+      const belowMin = item.balance < item.min_balance;
 
       return (
         <Card
@@ -235,7 +235,7 @@ export default function CashesList({ navigation }) {
     style={[styles.text, { color: "#1F2937", fontWeight: "bold" }]}
   >
     {belowMin
-      ? `⚠️ Solde inférieur au seuil : ${item.balance} / ${MIN_BALANCE} FCFA`
+      ? `⚠️ Solde inférieur au seuil : ${item.balance} / ${item.min_balance} FCFA`
       : `💰 Solde OK : ${item.balance} FCFA`}
   </Text>
   <Text style={[styles.text, { color: "#1F2937" }]}>

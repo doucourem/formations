@@ -17,6 +17,7 @@ export default function EditCashScreen({ route, navigation }) {
 
   const [name, setName] = useState(cash.name);
   const [balance, setBalance] = useState(cash.balance.toString());
+  const [minBalance, setMinBalance] = useState(cash.min_balance?.toString() || ""); // ✅ seuil minimum
   const [kioskId, setKioskId] = useState(cash.kiosk_id);
   const [cashierId, setCashierId] = useState(cash.cashier_id);
   const [kiosks, setKiosks] = useState([]);
@@ -34,6 +35,7 @@ export default function EditCashScreen({ route, navigation }) {
     const { data, error } = await supabase.from("kiosks").select("id, name");
     if (error) Alert.alert("Erreur", error.message);
     else setKiosks(data || []);
+
     const currentKiosk = data?.find(k => k.id === kioskId);
     if (currentKiosk) setKioskQuery(currentKiosk.name);
   };
@@ -41,20 +43,40 @@ export default function EditCashScreen({ route, navigation }) {
   const fetchCashiers = async () => {
     const { data, error } = await supabase
       .from("users")
-      .select("id, full_name, email, role").eq("role", "kiosque");
+      .select("id, full_name, email, role")
+      .eq("role", "kiosque");
     if (error) Alert.alert("Erreur", error.message);
     else setUsers(data || []);
+
     const currentCashier = data?.find(u => u.id === cashierId);
-    if (currentCashier) setCashierQuery(currentCashier.full_name || currentCashier.email);
+    if (currentCashier)
+      setCashierQuery(currentCashier.full_name || currentCashier.email);
   };
 
   const handleUpdate = async () => {
-    if (!name || !balance || !kioskId || !cashierId)
+    if (!name || !balance || !minBalance || !kioskId || !cashierId) {
       return Alert.alert("Erreur", "Tous les champs sont requis.");
+    }
+
+    const numericBalance = parseFloat(balance);
+    const numericMinBalance = parseFloat(minBalance);
+
+    if (numericBalance < numericMinBalance) {
+      return Alert.alert(
+        "Erreur",
+        "Le solde doit être supérieur ou égal au seuil minimum."
+      );
+    }
 
     const { error } = await supabase
       .from("cashes")
-      .update({ name, balance: parseFloat(balance), kiosk_id: kioskId, cashier_id: cashierId })
+      .update({
+        name,
+        balance: numericBalance,
+        min_balance: numericMinBalance,
+        kiosk_id: kioskId,
+        cashier_id: cashierId,
+      })
       .eq("id", cash.id);
 
     if (error) Alert.alert("Erreur", error.message);
@@ -64,16 +86,38 @@ export default function EditCashScreen({ route, navigation }) {
     }
   };
 
-  const filteredKiosks = kiosks.filter(k => k.name.toLowerCase().includes(kioskQuery.toLowerCase()));
-  const filteredCashiers = users.filter(u => (u.full_name || u.email).toLowerCase().includes(cashierQuery.toLowerCase()));
+  const filteredKiosks = kiosks.filter(k =>
+    k.name.toLowerCase().includes(kioskQuery.toLowerCase())
+  );
+  const filteredCashiers = users.filter(u =>
+    (u.full_name || u.email).toLowerCase().includes(cashierQuery.toLowerCase())
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Card style={[styles.card, { width: screenWidth - 20 }]}>
         <Card.Title title="Modifier la Caisse" />
         <Card.Content>
-          <TextInput label="Nom" value={name} onChangeText={setName} style={styles.input} />
-          <TextInput label="Solde" keyboardType="numeric" value={balance} onChangeText={setBalance} style={styles.input} />
+          <TextInput
+            label="Nom"
+            value={name}
+            onChangeText={setName}
+            style={styles.input}
+          />
+          <TextInput
+            label="Solde"
+            keyboardType="numeric"
+            value={balance}
+            onChangeText={setBalance}
+            style={styles.input}
+          />
+          <TextInput
+            label="Seuil minimum"
+            keyboardType="numeric"
+            value={minBalance}
+            onChangeText={setMinBalance}
+            style={styles.input}
+          />
 
           <Text style={styles.label}>Client</Text>
           <TextInput

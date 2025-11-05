@@ -30,7 +30,7 @@ export default function TransactionsListCaisse({ route }) {
         acc[dateKey].transactions.push(tx);
         const amount = Number(tx.amount);
         acc[dateKey].total += amount;
-        if (tx.type === "CREDIT") acc[dateKey].totalCredit += amount;
+        if (tx.type === "DEBIT") acc[dateKey].totalCredit += amount;
         else acc[dateKey].totalDebit += amount;
 
         return acc;
@@ -88,7 +88,7 @@ export default function TransactionsListCaisse({ route }) {
         );
       }}
       renderItem={({ item }) => {
-        const isCredit = item.type === "CREDIT";
+        const isCredit = item.type === "DEBIT";
         const color = isCredit ? "#22C55E" : "#EF4444"; // vert pour crédit, rouge pour débit
 
         return (
