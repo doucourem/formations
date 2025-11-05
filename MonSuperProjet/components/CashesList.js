@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Card, Text, Button, IconButton, TextInput } from "react-native-paper";
 import supabase from "../supabaseClient";
+import TransactionsListCaisse from "./TransactionsListCaisse";
 
 export default function CashesList({ navigation }) {
   const { width: screenWidth } = useWindowDimensions();
@@ -15,8 +16,10 @@ export default function CashesList({ navigation }) {
   const [kiosks, setKiosks] = useState([]);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
+  const [profile, setProfile] = useState(null); // ✅ nouveau
+  const [hasProfile, setHasProfile] = useState(true);
 
-  const MIN_BALANCE = 1000; // seuil minimal
+  const MIN_BALANCE = 1000;
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", fetchAll);
@@ -36,7 +39,7 @@ export default function CashesList({ navigation }) {
     if (userError) return Alert.alert("Erreur", userError.message);
     if (!user) return Alert.alert("Erreur", "Utilisateur non connecté");
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from("users")
       .select("role")
       .eq("id", user.id)
@@ -47,8 +50,22 @@ export default function CashesList({ navigation }) {
       return;
     }
 
+    if (!profileData) {
+      setHasProfile(false);
+      setProfile(null);
+      Alert.alert(
+        "Profil manquant",
+        "Votre profil kiosque n’est pas encore créé. Veuillez contacter un administrateur."
+      );
+      setCashes([]);
+      return;
+    } else {
+      setProfile(profileData);
+      setHasProfile(true);
+    }
+
     let query = supabase.from("cashes").select("*");
-    if (profile?.role === "kiosque") query = query.eq("cashier_id", user.id);
+    if (profileData.role === "kiosque") query = query.eq("cashier_id", user.id);
 
     const { data, error } = await query;
     if (error) Alert.alert("Erreur", error.message);
@@ -116,95 +133,140 @@ export default function CashesList({ navigation }) {
     return (
       cash.name.toLowerCase().includes(search.toLowerCase()) ||
       (kiosk?.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (cashier?.full_name || cashier?.email || "").toLowerCase().includes(search.toLowerCase())
+      (cashier?.full_name || cashier?.email || "")
+        .toLowerCase()
+        .includes(search.toLowerCase())
     );
   });
 
   return (
     <View style={styles.container}>
-      <TextInput
-        placeholder="Rechercher une caisse, client ou coursier..."
-        value={search}
-        onChangeText={setSearch}
-        style={styles.searchInput}
-      />
+  <TextInput
+    placeholder="Rechercher une caisse, client ou coursier..."
+    value={search}
+    onChangeText={setSearch}
+    style={styles.searchInput}
+  />
 
-      <Button
-        icon="plus"
-        mode="contained"
-        onPress={() => navigation.navigate("AddCash")}
-        style={[styles.addButton, { width: screenWidth * 0.9, alignSelf: "center" }]}
-      >
-        Ajouter une caisse
-      </Button>
+  {/* ✅ Bouton visible uniquement pour les profils kiosque */}
+  {profile && profile.role != "kiosque" && (
+    <Button
+      icon="plus"
+      mode="contained"
+      onPress={() => navigation.navigate("AddCash")}
+      style={[
+        styles.addButton,
+        {
+          width: screenWidth * 0.9,
+          alignSelf: "center",
+        },
+      ]}
+    >
+      Ajouter une caisse
+    </Button>
+  )}
 
-      <FlatList
-        contentContainerStyle={{ paddingBottom: 20 }}
-        data={filteredCashes}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => {
-          const kiosk = kiosks.find((k) => k.id === item.kiosk_id);
-          const cashier = users.find((u) => u.id === item.cashier_id);
-          const belowMin = item.balance < MIN_BALANCE;
+  {!hasProfile && (
+    <Text
+      style={{
+        textAlign: "center",
+        color: "#B91C1C",
+        marginVertical: 8,
+        fontWeight: "600",
+      }}
+    >
+      ⚠️ Votre profil kiosque n’est pas encore créé.
+    </Text>
+  )}
 
-          return (
-            <Card
-              style={[
-                styles.card,
-                { width: screenWidth * 0.95, alignSelf: "center" },
-                { backgroundColor: belowMin ? "#FEF2F2" : "#ECFDF5" },
-              ]}
-            >
-              <Card.Title
-                title={item.name}
-                titleStyle={{ color: "#1F2937" }}
-                subtitle={`Client: ${kiosk?.name || "—"}`}
-                subtitleStyle={{ color: "#1F2937" }}
-                right={(props) => (
-                  <View style={{ flexDirection: "row" }}>
-                    {!item.closed && (
-                      <IconButton
-                        {...props}
-                        icon="pencil"
-                        size={20}
-                        onPress={() => navigation.navigate("EditCash", { cash: item })}
-                      />
-                    )}
-                    <IconButton
-                      {...props}
-                      icon="delete"
-                      size={20}
-                      onPress={() => deleteCash(item.id)}
-                    />
-                    {!item.closed && (
-                      <IconButton
-                        {...props}
-                        icon="lock"
-                        size={20}
-                        onPress={() => closeCash(item)}
-                      />
-                    )}
-                  </View>
+  <FlatList
+    contentContainerStyle={{ paddingBottom: 20 }}
+    data={filteredCashes}
+    keyExtractor={(item) => item.id.toString()}
+    renderItem={({ item }) => {
+      const kiosk = kiosks.find((k) => k.id === item.kiosk_id);
+      const cashier = users.find((u) => u.id === item.cashier_id);
+      const belowMin = item.balance < MIN_BALANCE;
+
+      return (
+        <Card
+          style={[
+            styles.card,
+            { width: screenWidth * 0.95, alignSelf: "center" },
+            { backgroundColor: belowMin ? "#FEF2F2" : "#ECFDF5" },
+          ]}
+        >
+          <Card.Title
+            title={item.name}
+            titleStyle={{ color: "#1F2937" }}
+            subtitle={`Client: ${kiosk?.name || "—"}`}
+            subtitleStyle={{ color: "#1F2937" }}
+            right={(props) => (
+              <View style={{ flexDirection: "row" }}>
+                {!item.closed && (
+                  <IconButton
+                    {...props}
+                    icon="pencil"
+                    size={20}
+                    onPress={() =>
+                      navigation.navigate("EditCash", { cash: item })
+                    }
+                  />
                 )}
-              />
-              <Card.Content>
-                <Text style={[styles.text, { color: "#1F2937", fontWeight: "bold" }]}>
-                  {belowMin
-                    ? `⚠️ Solde inférieur au seuil : ${item.balance} / ${MIN_BALANCE} FCFA`
-                    : `💰 Solde OK : ${item.balance} FCFA`}
-                </Text>
-                <Text style={[styles.text, { color: "#1F2937" }]}>
-                  👤 Coursier : {cashier?.full_name || cashier?.email || "—"}
-                </Text>
-                <Text style={[styles.text, { color: item.closed ? "#B91C1C" : "#166534" }]}>
-                  📦 État : {item.closed ? "Clôturée" : "Ouverte"}
-                </Text>
-              </Card.Content>
-            </Card>
-          );
-        }}
-      />
-    </View>
+                <IconButton
+                  {...props}
+                  icon="delete"
+                  size={20}
+                  onPress={() => deleteCash(item.id)}
+                />
+                {!item.closed && (
+                  <IconButton
+                    {...props}
+                    icon="lock"
+                    size={20}
+                    onPress={() => closeCash(item)}
+                  />
+                )}
+              </View>
+            )}
+          />
+        <Card.Content>
+  <Text
+    style={[styles.text, { color: "#1F2937", fontWeight: "bold" }]}
+  >
+    {belowMin
+      ? `⚠️ Solde inférieur au seuil : ${item.balance} / ${MIN_BALANCE} FCFA`
+      : `💰 Solde OK : ${item.balance} FCFA`}
+  </Text>
+  <Text style={[styles.text, { color: "#1F2937" }]}>
+    👤 Coursier : {cashier?.full_name || cashier?.email || "—"}
+  </Text>
+  <Text
+    style={[
+      styles.text,
+      { color: item.closed ? "#B91C1C" : "#166534" },
+    ]}
+  >
+    📦 État : {item.closed ? "Clôturée" : "Ouverte"}
+  </Text>
+
+  {/* ✅ Nouveau bouton pour voir les transactions */}
+  <Button
+    mode="outlined"
+    icon="eye"
+    onPress={() => navigation.navigate("TransactionsListCaisse", { cashId: item.id })}
+    style={{ marginTop: 10 }}
+  >
+    Voir les transactions
+  </Button>
+</Card.Content>
+
+        </Card>
+      );
+    }}
+  />
+</View>
+
   );
 }
 

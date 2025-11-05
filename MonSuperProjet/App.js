@@ -27,6 +27,7 @@ import KiosksList from "./components/KiosksList";
 import UsersList from "./components/UsersList";
 import AddCashScreen from "./components/AddCashScreen";
 import EditCashScreen from "./components/EditCashScreen";
+import TransactionsListCaisse from "./components/TransactionsListCaisse";
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -131,9 +132,16 @@ function CashStack() {
         component={EditCashScreen}
         options={{ title: "Modifier Caisse" }}
       />
+      {/* Nouvelle page pour voir les transactions d’une caisse */}
+      <Stack.Screen
+        name="TransactionsListCaisse"
+        component={TransactionsListCaisse}
+        options={{ title: "Transactions" }}
+      />
     </Stack.Navigator>
   );
 }
+
 
 // === DRAWER NAVIGATOR ===
 function DrawerNavigator({ user }) {
