@@ -7,7 +7,7 @@ export const register = async (req, res) => {
   const { email, password, role } = req.body;
   const hashed = await bcrypt.hash(password, 10);
   const result = await pool.query(
-    'INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING id, email, role',
+    'INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) RETURNING id, username, role',
     [email, hashed, role || 'user']
   );
   res.json(result.rows[0]);
@@ -16,7 +16,7 @@ export const register = async (req, res) => {
 // Connexion
 export const login = async (req, res) => {
   const { email, password } = req.body;
-  const user = (await pool.query('SELECT * FROM users WHERE email=$1', [email])).rows[0];
+  const user = (await pool.query('SELECT * FROM users WHERE username=$1', [email])).rows[0];
   if (!user) return res.status(400).json({ msg: 'Utilisateur non trouvé' });
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
