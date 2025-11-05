@@ -5,6 +5,7 @@ import {
   MD3DarkTheme,
   Button,
   Text,
+  IconButton,
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
 import {
@@ -29,30 +30,25 @@ import EditCashScreen from "./components/EditCashScreen";
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
-const roleColors = {
-  admin: "#EF4444",   // rouge pour admin
-  kiosque: "#2563EB", // bleu pour kiosque
-};
 
+// Thème sombre personnalisé
 const theme = {
   ...MD3DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: "#4F46E5",      // violet profond pour boutons principaux
-    secondary: "#10B981",    // vert pour accents
-    accent: "#FBBF24",       // jaune pour alertes ou highlights
-    error: "#EF4444",        // rouge pour erreurs
-    success: "#22C55E",      // vert pour succès
-    background: "#111827",   // gris très foncé pour fond
-    surface: "#1F2937",      // gris foncé pour cartes ou drawer
-    onSurface: "#fcfbf8ff",    // texte clair sur surfaces sombres
-    onBackground: "#0b77e4ff", // texte clair sur le fond
-    disabled: "#6B7280",     // gris désactivé
-    placeholder: "#9CA3AF",  // gris clair pour placeholders
+    primary: "#4F46E5",
+    secondary: "#10B981",
+    accent: "#FBBF24",
+    error: "#EF4444",
+    success: "#22C55E",
+    background: "#111827",
+    surface: "#1F2937",
+    onSurface: "#FCFBF8",
+    onBackground: "#0B77E4",
+    disabled: "#6B7280",
+    placeholder: "#9CA3AF",
   },
 };
-
-
 
 // === STYLES GLOBAUX ===
 const styles = StyleSheet.create({
@@ -60,11 +56,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#0A0F1A",
+    backgroundColor: theme.colors.background,
   },
   drawerContainer: { flex: 1 },
-  drawerHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: "#334155" },
-  drawerFooter: { marginTop: "auto", padding: 16, borderTopWidth: 1, borderTopColor: "#334155" },
+  drawerHeader: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#334155",
+  },
+  drawerFooter: {
+    marginTop: "auto",
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#334155",
+  },
 });
 
 // === DRAWER CUSTOM ===
@@ -111,9 +116,21 @@ const CustomDrawerContent = ({ user, screens, ...props }) => (
 function CashStack() {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="CashesList" component={CashesList} options={{ title: "Caisse" }} />
-      <Stack.Screen name="AddCash" component={AddCashScreen} options={{ title: "Ajouter Caisse" }} />
-      <Stack.Screen name="EditCash" component={EditCashScreen} options={{ title: "Modifier Caisse" }} />
+      <Stack.Screen
+        name="CashesList"
+        component={CashesList}
+        options={{ title: "Caisse" }}
+      />
+      <Stack.Screen
+        name="AddCash"
+        component={AddCashScreen}
+        options={{ title: "Ajouter Caisse" }}
+      />
+      <Stack.Screen
+        name="EditCash"
+        component={EditCashScreen}
+        options={{ title: "Modifier Caisse" }}
+      />
     </Stack.Navigator>
   );
 }
@@ -138,8 +155,7 @@ function DrawerNavigator({ user }) {
   const role = user?.role || "kiosque";
   const screens = screensByRole[role] || screensByRole.kiosque;
 
-  // Définition des couleurs de fond selon rôle
-  const drawerBackground = role === "admin" ? "#111827" : "#1E3A8A"; // rouge foncé admin, bleu kiosque
+  const drawerBackground = role === "admin" ? "#111827" : "#1E3A8A";
 
   return (
     <Drawer.Navigator
@@ -149,7 +165,7 @@ function DrawerNavigator({ user }) {
       screenOptions={{
         headerStyle: { backgroundColor: theme.colors.surface },
         headerTintColor: theme.colors.onSurface,
-        drawerStyle: { backgroundColor: drawerBackground }, // <- fond dynamique
+        drawerStyle: { backgroundColor: drawerBackground },
         drawerActiveTintColor: theme.colors.primary,
         drawerInactiveTintColor: "#CBD5E1",
       }}
@@ -165,19 +181,32 @@ function DrawerNavigator({ user }) {
   );
 }
 
-
 // === APP CONTENT ===
 function AppContent({ user }) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="MainDrawer">
+    <Stack.Navigator>
+      {/* Drawer principal sans header */}
+      <Stack.Screen name="MainDrawer" options={{ headerShown: false }}>
         {() => <DrawerNavigator user={user} />}
       </Stack.Screen>
+
+      {/* Transactions fournisseurs avec header et bouton retour */}
       <Stack.Screen
         name="WholesalerTransactions"
         component={WholesalerTransactionsList}
-        options={({ route }) => ({
+        options={({ navigation, route }) => ({
           title: `Transactions - ${route.params.wholesalerName}`,
+          headerStyle: { backgroundColor: theme.colors.surface },
+          headerTintColor: theme.colors.onSurface,
+          headerLeft: () => (
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={() => navigation.goBack()}
+              color={theme.colors.primary}
+              style={{ marginLeft: 4 }}
+            />
+          ),
         })}
       />
     </Stack.Navigator>
@@ -191,36 +220,35 @@ export default function App() {
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
-      const { data } = await supabase.auth.getSession();
-      const authUser = data.session?.user;
+      try {
+        const { data } = await supabase.auth.getSession();
+        const authUser = data.session?.user;
 
-      if (authUser) {
-        // 🔹 On va chercher le rôle depuis la table users (public)
-        const { data: profile, error: profileError } = await supabase
-          .from("users")
-          .select("id, email, role, full_name")
-          .eq("id", authUser.id)
-          .maybeSingle();
+        if (authUser) {
+          const { data: profile, error } = await supabase
+            .from("users")
+            .select("id, email, role, full_name")
+            .eq("id", authUser.id)
+            .maybeSingle();
 
-        if (profileError) {
-          Alert.alert("Erreur", profileError.message);
-        } else {
-          setUser(profile);
+          if (error) {
+            Alert.alert("Erreur", error.message);
+          } else {
+            setUser(profile);
+          }
         }
+      } catch (err) {
+        Alert.alert("Erreur", err.message);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     fetchUserAndProfile();
 
-    // 🔄 Écoute du changement d'état
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        setUser(null);
-      } else {
-        fetchUserAndProfile();
-      }
+      if (!session) setUser(null);
+      else fetchUserAndProfile();
     });
 
     return () => listener.subscription.unsubscribe();
