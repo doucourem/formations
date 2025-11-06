@@ -67,6 +67,8 @@ export default function TransactionsList() {
     transactionType: "Vente UV",
     otherType: "",
   });
+  const [profile, setProfile] = useState(null);
+
 
   // === Auth utilisateur ===
   useEffect(() => {
@@ -79,69 +81,74 @@ export default function TransactionsList() {
   }, []);
 
   // === Récupération cashes + transactions ===
-  const fetchCashesAndTransactions = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
+const fetchCashesAndTransactions = useCallback(async () => {
+  if (!user) return;
+  setLoading(true);
 
-    try {
-      const { data: profile, error: profileError } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (profileError) throw profileError;
+  try {
+    // Récupérer le rôle de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    setProfile(profile); // ← Corrigé ici
 
-      const { data: kiosksData } = await supabase.from("kiosks").select("id, name");
+    const { data: kiosksData } = await supabase.from("kiosks").select("id, name");
 
-      let cashesData;
-      if (profile?.role === "kiosque") {
-        const { data, error } = await supabase
-          .from("cashes")
-          .select("id, name, kiosk_id, balance, min_balance")
-          .eq("cashier_id", user.id);
-        cashesData = data; if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from("cashes")
-          .select("id, name, kiosk_id, balance, min_balance");
-        cashesData = data; if (error) throw error;
-      }
-
-      const cashIds = cashesData.map((c) => c.id);
-      const { data: txData } = await supabase
-        .from("transactions")
-        .select("*")
-        .in("cash_id", cashIds)
-        .order("created_at", { ascending: false });
-
-      const cashBalances = {};
-      const enriched = txData.map((t) => {
-        const isCredit = t.type === "CREDIT";
-        const prev = cashBalances[t.cash_id] || 0;
-        const newBal = isCredit ? prev + t.amount : prev - t.amount;
-        cashBalances[t.cash_id] = newBal;
-
-        const cash = cashesData.find((c) => c.id === t.cash_id);
-        const kiosk = kiosksData.find((k) => k.id === cash?.kiosk_id);
-
-        return {
-          ...t,
-          cash_name: cash?.name,
-          kiosk_name: kiosk?.name,
-          balance_after: newBal,
-          below_min: cash ? newBal <= cash.min_balance : false, // ✅ alerte min_balance
-        };
-      });
-
-      setTransactions(enriched);
-      setCashes(cashesData);
-      setKiosks(kiosksData);
-      setLoading(false);
-    } catch (err) {
-      Alert.alert("Erreur", err.message);
-      setLoading(false);
+    let cashesData;
+    if (profile?.role === "kiosque") {
+      const { data, error } = await supabase
+        .from("cashes")
+        .select("id, name, kiosk_id, balance, min_balance")
+        .eq("cashier_id", user.id);
+      if (error) throw error;
+      cashesData = data;
+    } else {
+      const { data, error } = await supabase
+        .from("cashes")
+        .select("id, name, kiosk_id, balance, min_balance");
+      if (error) throw error;
+      cashesData = data;
     }
-  }, [user]);
+
+    const cashIds = cashesData.map((c) => c.id);
+    const { data: txData } = await supabase
+      .from("transactions")
+      .select("*")
+      .in("cash_id", cashIds)
+      .order("created_at", { ascending: false });
+
+    const cashBalances = {};
+    const enriched = txData.map((t) => {
+      const isCredit = t.type === "CREDIT";
+      const prev = cashBalances[t.cash_id] || 0;
+      const newBal = isCredit ? prev + t.amount : prev - t.amount;
+      cashBalances[t.cash_id] = newBal;
+
+      const cash = cashesData.find((c) => c.id === t.cash_id);
+      const kiosk = kiosksData.find((k) => k.id === cash?.kiosk_id);
+
+      return {
+        ...t,
+        cash_name: cash?.name,
+        kiosk_name: kiosk?.name,
+        balance_after: newBal,
+        below_min: cash ? newBal <= cash.min_balance : false,
+      };
+    });
+
+    setTransactions(enriched);
+    setCashes(cashesData);
+    setKiosks(kiosksData);
+    setLoading(false);
+  } catch (err) {
+    Alert.alert("Erreur", err.message);
+    setLoading(false);
+  }
+}, [user]);
+
 
   useEffect(() => {
     fetchCashesAndTransactions();
@@ -289,11 +296,6 @@ export default function TransactionsList() {
           </Text>
           <Text>Date : {new Date(item.created_at).toLocaleString()}</Text>
           <Text>Type : {item.transaction_type}</Text>
-          {item.below_min && (
-            <Text style={{ color: theme.colors.error, fontWeight: "bold", marginTop: 4 }}>
-              ⚠️ Solde critique : {formatCFA(item.balance_after)} (≤ {formatCFA(cashes.find(c => c.id === item.cash_id)?.min_balance || 0)})
-            </Text>
-          )}
         </Card.Content>
       </Card>
     );
@@ -419,15 +421,19 @@ export default function TransactionsList() {
         {/* Type de transaction */}
         <Text style={{ marginBottom: 6, fontWeight: "600", color: theme.colors.onSurface }}>Type :</Text>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: height * 0.02 }}>
-          <Button
-            mode={form.type === "CREDIT" ? "contained" : "outlined"}
-            onPress={() => setForm({ ...form, type: "CREDIT" })}
-            style={{ flex: 1, marginRight: width * 0.01 }}
-            buttonColor={form.type === "CREDIT" ? theme.colors.success : undefined}
-            textColor={form.type === "CREDIT" ? "white" : theme.colors.onSurface}
-          >
-            Envoie
-          </Button>
+       
+{profile?.role?.toLowerCase() !== "kiosque" && (
+  <Button
+    mode={form.type === "CREDIT" ? "contained" : "outlined"}
+    onPress={() => setForm({ ...form, type: "CREDIT" })}
+    style={{ flex: 1, marginRight: width * 0.01 }}
+    buttonColor={form.type === "CREDIT" ? theme.colors.success : undefined}
+    textColor={form.type === "CREDIT" ? "white" : theme.colors.onSurface}
+  >
+    Envoie
+  </Button>
+)}
+
           <Button
             mode={form.type === "DEBIT" ? "contained" : "outlined"}
             onPress={() => setForm({ ...form, type: "DEBIT" })}

@@ -15,15 +15,19 @@ import supabase from "../supabaseClient";
 
 // Format montant en CFA
 const formatCFA = (amount) =>
-  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", minimumFractionDigits: 0 }).format(amount);
+  new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "XOF",
+    minimumFractionDigits: 0,
+  }).format(amount);
 
 // Thème sombre optimisé
 const darkTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: "#10b981",   // vert pour Crédit / Paiement
-    accent: "#EF4444",    // rouge pour Débit / Demande de fonds
+    primary: "#10b981", // vert pour Crédit / Paiement
+    accent: "#EF4444",  // rouge pour Débit / Demande de fonds
     background: "#0A0F1A",
     surface: "#1E293B",
     text: "#F8FAFC",
@@ -80,12 +84,29 @@ export default function WholesalerTransactionsList({ route }) {
     }
   };
 
+  // Calcul du total de toutes les transactions
+  const totalTransactions = transactions.reduce((sum, t) => {
+    return sum + (t.type === "CREDIT" ? t.amount : -t.amount);
+  }, 0);
+
   return (
     <PaperProvider theme={darkTheme}>
       <View style={styles.container}>
         <Text variant="headlineMedium" style={styles.title}>
           Transactions du vendeur: {wholesalerName || ""}
         </Text>
+
+        {/* Affichage du total */}
+        <Card style={{ marginBottom: 16, backgroundColor: darkTheme.colors.primary }}>
+          <Card.Content>
+            <Text style={{ color: "#FFF", fontWeight: "bold", fontSize: 18, textAlign: "center" }}>
+              Total de toutes les transactions
+            </Text>
+            <Text style={{ color: "#FFF", fontSize: 16, textAlign: "center", marginTop: 4 }}>
+              {formatCFA(totalTransactions)}
+            </Text>
+          </Card.Content>
+        </Card>
 
         <Button
           mode="contained"
@@ -125,6 +146,7 @@ export default function WholesalerTransactionsList({ route }) {
           />
         )}
 
+        {/* Dialog création transaction */}
         <Portal>
           <Dialog visible={open} onDismiss={() => setOpen(false)}>
             <Dialog.Title style={{ color: darkTheme.colors.text }}>Créer une transaction</Dialog.Title>

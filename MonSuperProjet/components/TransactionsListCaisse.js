@@ -7,6 +7,9 @@ export default function TransactionsListCaisse({ route }) {
   const { cashId } = route.params;
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalBalance, setTotalBalance] = useState(0); // ← Nouveau état pour solde total
+  const [totalCredit, setTotalCredit] = useState(0);
+  const [totalDebit, setTotalDebit] = useState(0);
   const theme = useTheme();
 
   useEffect(() => {
@@ -21,7 +24,19 @@ export default function TransactionsListCaisse({ route }) {
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      // Groupement par date et calcul des totaux
+      // Calcul solde total
+      let totalC = 0;
+      let totalD = 0;
+      data.forEach(tx => {
+        const amount = Number(tx.amount);
+        if (tx.type === "DEBIT") totalC += amount;
+        else totalD += amount;
+      });
+      setTotalCredit(totalC);
+      setTotalDebit(totalD);
+      setTotalBalance(totalC - totalD);
+
+      // Groupement par date
       const grouped = data.reduce((acc, tx) => {
         const dateKey = new Date(tx.created_at).toLocaleDateString();
         if (!acc[dateKey])
@@ -36,8 +51,7 @@ export default function TransactionsListCaisse({ route }) {
         return acc;
       }, {});
 
-      // Transformer en sections pour SectionList
-      const sections = Object.keys(grouped).map((date) => ({
+      const sections = Object.keys(grouped).map(date => ({
         title: date,
         data: grouped[date].transactions,
         total: grouped[date].total,
@@ -66,53 +80,61 @@ export default function TransactionsListCaisse({ route }) {
     );
 
   return (
-    <SectionList
-      sections={transactions}
-      keyExtractor={(item) => item.id.toString()}
-      renderSectionHeader={({ section }) => {
-        const dailyBalance = section.totalCredit - section.totalDebit;
-        const balanceColor = dailyBalance >= 0 ? "#22C55E" : "#EF4444"; // vert positif, rouge négatif
+    <View style={{ flex: 1 }}>
+      {/* Solde total en haut */}
+      <Card style={{ margin: 10, borderRadius: 12, padding: 10, backgroundColor: "#F3F4F6" }}>
+  <Text style={{ fontWeight: "bold", fontSize: 18, marginBottom: 4, color: "#111827" }}>
+    Solde Total
+  </Text>
+  <Text style={{ color: "#1F2937", marginBottom: 2 }}>
+    Total Paiement: {totalCredit} FCFA | Total Envoie: {totalDebit} FCFA
+  </Text>
+  <Text style={{ fontWeight: "bold", color: totalBalance >= 0 ? "#22C55E" : "#EF4444" }}>
+    Balance: {totalBalance} FCFA
+  </Text>
+</Card>
 
-        return (
-          <View style={styles.sectionHeaderContainer}>
-            <Text style={[styles.sectionHeader, { color: theme.colors.primary }]}>
-              {section.title}
-            </Text>
-            <Text style={{ color: theme.colors.onSurface }}>
-              Total Paiement: {section.totalCredit} FCFA | Total envoie: {section.totalDebit} FCFA
-            </Text>
-            <Text style={{ color: balanceColor, fontWeight: "bold" }}>
-              Balance Journalière: {dailyBalance} FCFA
-            </Text>
-          </View>
-        );
-      }}
-      renderItem={({ item }) => {
-        const isCredit = item.type === "DEBIT";
-        const color = isCredit ? "#22C55E" : "#EF4444"; // vert pour crédit, rouge pour débit
 
-        return (
-          <Card
-            style={[
-              styles.card,
-              { backgroundColor: isCredit ? "#DCFCE7" : "#FEF2F2" },
-            ]}
-          >
-            <Card.Title
-              title={`${isCredit ? "➕" : "➖"} Montant: ${item.amount} FCFA`}
-              titleStyle={{ color: color, fontWeight: "bold" }}
-              subtitle={`Type: ${item.transaction_type} | Heure: ${new Date(
-                item.created_at
-              ).toLocaleTimeString()}`}
-              subtitleStyle={{ color: theme.colors.placeholder }}
-            />
-          </Card>
-        );
-      }}
-      contentContainerStyle={{ paddingBottom: 20 }}
-    />
+      <SectionList
+        sections={transactions}
+        keyExtractor={(item) => item.id.toString()}
+        renderSectionHeader={({ section }) => {
+          const dailyBalance = section.totalCredit - section.totalDebit;
+          const balanceColor = dailyBalance >= 0 ? "#22C55E" : "#EF4444";
+
+          return (
+            <View style={styles.sectionHeaderContainer}>
+              <Text style={[styles.sectionHeader, { color: theme.colors.primary }]}>{section.title}</Text>
+              <Text style={{ color: theme.colors.onSurface }}>
+                Total Paiement: {section.totalCredit} FCFA | Total Envoie: {section.totalDebit} FCFA
+              </Text>
+              <Text style={{ color: balanceColor, fontWeight: "bold" }}>
+                Balance Journalière: {dailyBalance} FCFA
+              </Text>
+            </View>
+          );
+        }}
+        renderItem={({ item }) => {
+          const isCredit = item.type === "DEBIT";
+          const color = isCredit ? "#22C55E" : "#EF4444";
+
+          return (
+            <Card style={[styles.card, { backgroundColor: isCredit ? "#DCFCE7" : "#FEF2F2" }]}>
+              <Card.Title
+                title={`${isCredit ? "➕" : "➖"} Montant: ${item.amount} FCFA`}
+                titleStyle={{ color: color, fontWeight: "bold" }}
+                subtitle={`Type: ${item.transaction_type} | Heure: ${new Date(item.created_at).toLocaleTimeString()}`}
+                subtitleStyle={{ color: theme.colors.placeholder }}
+              />
+            </Card>
+          );
+        }}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
+    </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },

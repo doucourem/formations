@@ -29,10 +29,10 @@ export const getTransactions = async (req, res) => {
  */
 export const addTransaction = async (req, res) => {
   try {
-    const { amount, type } = req.body;
+    const { amount, client_id } = req.body;
     const result = await pool.query(
-      'INSERT INTO transactions (user_id, amount, type) VALUES ($1, $2, $3) RETURNING *',
-      [req.user.id, amount, type]
+      'INSERT INTO transactions (user_id, amount_fcfa,client_id) VALUES ($1, $2, $3) RETURNING *',
+      [req.user.id, amount,client_id]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -54,12 +54,12 @@ export const updateTransaction = async (req, res) => {
 
     if (req.user.role === 'admin') {
       result = await pool.query(
-        'UPDATE transactions SET amount=$1, type=$2 WHERE id=$3 RETURNING *',
+        'UPDATE transactions SET amount_fcfa=$1, type=$2 WHERE id=$3 RETURNING *',
         [amount, type, id]
       );
     } else {
       result = await pool.query(
-        'UPDATE transactions SET amount=$1, type=$2 WHERE id=$3 AND user_id=$4 RETURNING *',
+        'UPDATE transactions SET amount_fcfa=$1, type=$2 WHERE id=$3 AND user_id=$4 RETURNING *',
         [amount, type, id, req.user.id]
       );
     }

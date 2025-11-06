@@ -149,6 +149,8 @@ export default function KiosksTransactions() {
     0
   );
 
+  const totalAllKiosks = Object.values(balances).reduce((sum, b) => sum + (b || 0), 0);
+
   const handleAddOrEditTransaction = async () => {
     if (!amount || !transactionType) return Alert.alert("Remplissez tous les champs !");
     const newAmount = parseFloat(amount);
@@ -200,7 +202,7 @@ export default function KiosksTransactions() {
             left={() => <List.Icon color={theme.colors.primary} icon="store" />}
             right={() => (
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <IconButton icon="pencil" iconColor={theme.colors.accent} onPress={() => handleOpenPopup(item)} />
+                <IconButton icon="pencil" iconColor={theme.colors.accent} onPress={() => setCurrentKiosk(item) || setOpenPopup(true)} />
                 <IconButton icon="delete" iconColor={theme.colors.error} onPress={() => deleteKiosk(item.id)} />
               </View>
             )}
@@ -233,6 +235,19 @@ export default function KiosksTransactions() {
     <PaperProvider theme={theme}>
       <View style={styles.container}>
         <Text style={styles.title}>Clients & Transactions</Text>
+
+        {/* Carte du total de tous les kiosques */}
+        <Card style={{ marginBottom: 16, backgroundColor: theme.colors.primary }}>
+          <Card.Content>
+            <Text style={{ color: "#FFF", fontWeight: "bold", fontSize: 18, textAlign: "center" }}>
+             CRÉDIT TOTAL DE TOUS LES KIOSQUES
+            </Text>
+            <Text style={{ color: "#FFF", fontSize: 16, textAlign: "center", marginTop: 4 }}>
+              {totalAllKiosks.toLocaleString("fr-FR")} XOF
+            </Text>
+          </Card.Content>
+        </Card>
+
         <Button
           mode="contained"
           onPress={() => setOpenPopup(true)}
@@ -248,131 +263,66 @@ export default function KiosksTransactions() {
         />
 
         {/* Dialog popup client */}
-       <Portal>
-  <Dialog visible={openPopup} onDismiss={() => setOpenPopup(false)}>
-    <Dialog.Title>
-      {currentKiosk.id ? "Modifier client" : "Ajouter client"}
-    </Dialog.Title>
-
-    <Dialog.Content>
-      <TextInput
-        label="Nom"
-        value={currentKiosk.name || ""}
-        onChangeText={(text) =>
-          setCurrentKiosk({ ...currentKiosk, name: text })
-        }
-        style={styles.input}
-      />
-
-      <TextInput
-        label="Lieu"
-        value={currentKiosk.location || ""}
-        onChangeText={(text) =>
-          setCurrentKiosk({ ...currentKiosk, location: text })
-        }
-        style={styles.input}
-      />
-
-      <TextInput
-        label="Email"
-        value={currentKiosk.email || ""}
-        onChangeText={(text) =>
-          setCurrentKiosk({ ...currentKiosk, email: text })
-        }
-        style={styles.input}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <TextInput
-        label="Mot de passe"
-        value={currentKiosk.password || ""}
-        onChangeText={(text) =>
-          setCurrentKiosk({ ...currentKiosk, password: text })
-        }
-        style={styles.input}
-        secureTextEntry
-      />
-    </Dialog.Content>
-
-    <Dialog.Actions>
-      <Button onPress={() => setOpenPopup(false)}>Annuler</Button>
-      <Button
-  mode="contained"
- onPress={async () => {
-  const emailTrimmed = (currentKiosk.email || "").trim();
-  const password = currentKiosk.password;
-
-  if (!currentKiosk.name || !currentKiosk.location || !emailTrimmed || !password) {
-    return Alert.alert("Erreur", "Veuillez remplir tous les champs !");
-  }
-
-  try {
-    if (currentKiosk.id) {
-      // Modifier kiosque existant
-      await supabase
-        .from("kiosks")
-        .update({
-          name: currentKiosk.name,
-          location: currentKiosk.location,
-          email: emailTrimmed,
-        })
-        .eq("id", currentKiosk.id);
-
-      Alert.alert("Succès", "Kiosque modifié avec succès !");
-    } else {
-      // 1️⃣ Créer utilisateur Supabase Auth
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: emailTrimmed,
-        password: password,
-      });
-      if (signUpError) throw signUpError;
-
-      const userId = authData?.user?.id;
-      if (!userId) throw new Error("Impossible de récupérer l'id utilisateur");
-
-      // 2️⃣ Insérer dans table users
-      const { error: insertError } = await supabase.from("users").insert([
-        {
-          id: userId,
-          email: emailTrimmed,
-          full_name: currentKiosk.name,
-          role: "kiosque",
-          is_active: true,
-        },
-      ]);
-      if (insertError) throw insertError;
-
-      // 3️⃣ Insérer le kiosque lié
-      const { error: kioskError } = await supabase.from("kiosks").insert([
-        {
-          name: currentKiosk.name,
-          location: currentKiosk.location,
-          user_id: userId,
-          owner_id: user.id,
-        },
-      ]);
-      if (kioskError) throw kioskError;
-
-      Alert.alert("Succès", "Kiosque et utilisateur créés avec succès !");
-    }
-
-    setOpenPopup(false);
-    setCurrentKiosk({ id: null, name: "", location: "", email: "", password: "" });
-  } catch (e) {
-    Alert.alert("Erreur", e.message);
-  }
-}}
-
-
->
-  Enregistrer
-</Button>
-
-    </Dialog.Actions>
-  </Dialog>
-</Portal>
-
+        <Portal>
+          <Dialog visible={openPopup} onDismiss={() => setOpenPopup(false)}>
+            <Dialog.Title>
+              {currentKiosk.id ? "Modifier client" : "Ajouter client"}
+            </Dialog.Title>
+            <Dialog.Content>
+              <TextInput
+                label="Nom"
+                value={currentKiosk.name || ""}
+                onChangeText={(text) =>
+                  setCurrentKiosk({ ...currentKiosk, name: text })
+                }
+                style={styles.input}
+              />
+              <TextInput
+                label="Lieu"
+                value={currentKiosk.location || ""}
+                onChangeText={(text) =>
+                  setCurrentKiosk({ ...currentKiosk, location: text })
+                }
+                style={styles.input}
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setOpenPopup(false)}>Annuler</Button>
+              <Button
+                mode="contained"
+                onPress={async () => {
+                  try {
+                    if (currentKiosk.id) {
+                      await supabase
+                        .from("kiosks")
+                        .update({
+                          name: currentKiosk.name,
+                          location: currentKiosk.location
+                        })
+                        .eq("id", currentKiosk.id)
+                        .eq("owner_id", user.id);
+                    } else {
+                      await supabase.from("kiosks").insert([
+                        {
+                          name: currentKiosk.name,
+                          location: currentKiosk.location,
+                          owner_id: user.id
+                        },
+                      ]);
+                    }
+                    setOpenPopup(false);
+                    fetchKiosks();
+                    Alert.alert("Succès", "Kiosque enregistré avec succès !");
+                  } catch (e) {
+                    Alert.alert("Erreur", e.message);
+                  }
+                }}
+              >
+                Enregistrer
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
 
         {/* Dialog transactions */}
         <Portal>
@@ -389,23 +339,6 @@ export default function KiosksTransactions() {
                 <Text style={{ color: theme.colors.onSurface }}>
                   Solde: {totalBalance.toLocaleString("fr-FR")} XOF
                 </Text>
-                <Menu
-                  visible={menuVisible}
-                  onDismiss={() => setMenuVisible(false)}
-                  anchor={
-                    <Button
-                      mode="outlined"
-                      textColor={theme.colors.onSurface}
-                      onPress={() => setMenuVisible(true)}
-                    >
-                      Filtrer: {filterType}
-                    </Button>
-                  }
-                >
-                  <Menu.Item onPress={() => { setFilterType("ALL"); setMenuVisible(false); }} title="Toutes" />
-                  <Menu.Item onPress={() => { setFilterType("CREDIT"); setMenuVisible(false); }} title="ENVOIE " />
-                  <Menu.Item onPress={() => { setFilterType("DEBIT"); setMenuVisible(false); }} title="PAIEMENT" />
-                </Menu>
               </View>
 
               <ScrollView>
@@ -438,7 +371,7 @@ export default function KiosksTransactions() {
                             </View>
                             <View style={{ flexDirection: "row" }}>
                               <IconButton icon="pencil" iconColor={theme.colors.accent} onPress={() => setEditingTransaction(t)} />
-                              <IconButton icon="delete" iconColor={theme.colors.error} onPress={() => handleDeleteTransaction(t)} />
+                              <IconButton icon="delete" iconColor={theme.colors.error} onPress={() => handleAddOrEditTransaction()} />
                             </View>
                           </Card.Content>
                         </Card>
