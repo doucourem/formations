@@ -261,13 +261,20 @@ const fetchCashes = async () => {
 />
 
         <Card.Content>
-  <Text
-    style={[styles.text, { color: "#1F2937", fontWeight: "bold" }]}
-  >
-    {belowMin
-      ? `⚠️ Solde : ${item.balance} FCFA`
-      : `💰 Solde : ${item.balance} FCFA`}
-  </Text>
+<Text
+  style={[
+    styles.text,
+    {
+      fontWeight: "bold",
+      color: item.balance<0 ? "#B91C1C" : "#166534", // rouge si solde < min, vert sinon
+    },
+  ]}
+>
+  { item.balance<0
+    ? `⚠️ Il nous doit : ${item.balance} FCFA`
+    : `💰 Solde : ${item.balance} FCFA`}
+</Text>
+
   <Text style={[styles.text, { color: "#1F2937" }]}>
     👤 Coursier : {cashier?.full_name || cashier?.email || "—"}
   </Text>
