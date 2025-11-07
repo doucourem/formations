@@ -4,7 +4,7 @@ import {
   View,
   FlatList,
   TouchableOpacity,
-  Alert,
+  Alert,Platform,
   ActivityIndicator,
   Dimensions,
 } from "react-native";
@@ -16,12 +16,14 @@ import {
   Text,
   Provider as PaperProvider,
   Card,
-  FAB,
+  FAB, 
+  
   SegmentedButtons,
   MD3DarkTheme,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import supabase from "../supabaseClient";
+import { Snackbar } from "react-native-paper";
 
 const { width, height } = Dimensions.get("window");
 
@@ -59,6 +61,8 @@ export default function TransactionsList() {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [snackbar, setSnackbar] = useState({ visible: false, message: "", color: "red" });
+
   const [form, setForm] = useState({
     cashId: null,
     cashQuery: "",
@@ -183,69 +187,146 @@ const fetchCashesAndTransactions = useCallback(async () => {
 
     setFilteredTransactions(filtered);
   }, [dateFilter, typeFilter, searchQuery, transactions]);
-
+const showAlert = (title, message) => {
+  if (Platform.OS === "web") {
+    window.alert(`${title ? title + "\n\n" : ""}${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
   // === CRUD transaction ===
-  const handleSaveTransaction = async () => {
-    const { cashId, amount, transactionType, type, otherType } = form;
-    if (!cashId || !amount) return Alert.alert("Champs requis", "Veuillez remplir tous les champs.");
+const handleSaveTransaction = async () => {
+  const { cashId, amount, transactionType, type, otherType } = form;
+  if (!cashId || !amount) {
+    showAlert("Erreur", "Veuillez remplir tous les champs.");
+    return;
+  }
 
-    try {
-      if (editMode && editingId) {
-        const { error } = await supabase
-          .from("transactions")
-          .update({
-            cash_id: cashId,
-            amount: parseFloat(amount),
-            type,
-            transaction_type: transactionType === "Autre" ? otherType : transactionType,
-          })
-          .eq("id", editingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("transactions").insert([{
-          cash_id: cashId,
-          amount: parseFloat(amount),
-          type,
-          transaction_type: transactionType === "Autre" ? otherType : transactionType,
-          created_at: new Date(),
-        }]);
-        if (error) throw error;
+  try {
+    const selectedCash = cashes.find((c) => c.id === cashId);
+    if (!selectedCash) throw new Error("Caisse introuvable.");
 
-        const selectedCash = cashes.find((c) => c.id === cashId);
-        if (selectedCash) {
-          const newBalance =
-            type === "CREDIT"
-              ? selectedCash.balance + parseFloat(amount)
-              : selectedCash.balance - parseFloat(amount);
-          await supabase.from("cashes").update({ balance: newBalance }).eq("id", cashId);
+    const montant = parseFloat(amount);
+   // 1️⃣ Récupérer toutes les transactions de la caisse
+const cashTransactions = transactions.filter(t => t.cash_id === cashId);
 
-          // ✅ alerte si min_balance atteint
-          if (newBalance <= selectedCash.min_balance) {
-            Alert.alert("⚠️ Attention", `Le solde de la caisse "${selectedCash.name}" a atteint le minimum (${selectedCash.min_balance} XOF).`);
-          }
-        }
-      }
+// 2️⃣ Calculer la somme totale des transactions existantes
+let totalTransactions = cashTransactions.reduce((sum, t) => {
+  return sum + (t.type === "CREDIT" ? t.amount : -t.amount);
+}, 0);
 
-      setDialogVisible(false);
-      setForm({ cashId: null, cashQuery: "", amount: "", type: "CREDIT", transactionType: "Vente UV", otherType: "" });
-      setEditMode(false);
-      setEditingId(null);
-      fetchCashesAndTransactions();
-    } catch (err) {
-      Alert.alert("Erreur", err.message);
+// 3️⃣ Ajouter la nouvelle transaction
+totalTransactions += type === "CREDIT" ? montant : -montant;
+
+// 4️⃣ Nouveau solde
+const newBalance = totalTransactions;
+
+
+    // 🚫 Vérification : bloquer le DEBIT si < min_balance
+    if (type === "CREDIT" && newBalance > selectedCash.min_balance) {
+      showAlert(
+        "Attention",
+        `⚠️ Solde est atteint au seuil max : cette opération ferait tomber la caisse "${newBalance}" sous le seuil minimal (${selectedCash.min_balance} XOF).`
+      );
+      return;
     }
+
+    if (editMode && editingId) {
+      const { error } = await supabase
+        .from("transactions")
+        .update({
+          cash_id: cashId,
+          amount: montant,
+          type,
+          transaction_type:
+            transactionType === "Autre" ? otherType : transactionType,
+        })
+        .eq("id", editingId);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("transactions").insert([
+        {
+          cash_id: cashId,
+          amount: montant,
+          type,
+          transaction_type:
+            transactionType === "Autre" ? otherType : transactionType,
+          created_at: new Date(),
+        },
+      ]);
+      if (error) throw error;
+
+      await supabase
+        .from("cashes")
+        .update({ balance: newBalance })
+        .eq("id", cashId);
+
+      if (newBalance <= selectedCash.min_balance) {
+        showAlert(
+          "Attention",
+          `⚠️ Le solde de la caisse "${selectedCash.name}" a atteint le minimum (${selectedCash.min_balance} XOF).`
+        );
+      }
+    }
+
+    // Réinitialisation
+    setDialogVisible(false);
+    setForm({
+      cashId: null,
+      cashQuery: "",
+      amount: "",
+      type: "CREDIT",
+      transactionType: "Vente UV",
+      otherType: "",
+    });
+    setEditMode(false);
+    setEditingId(null);
+    fetchCashesAndTransactions();
+
+    showAlert("Succès", "Transaction enregistrée avec succès ✅");
+  } catch (err) {
+    showAlert("Erreur", err.message);
+  }
+};
+
+
+const handleDeleteTransaction = (id) => {
+  const confirmDelete = () => {
+    supabase
+      .from("transactions")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) {
+          setSnackbar({
+            visible: true,
+            message: `Erreur : ${error.message}`,
+            color: theme.colors.error,
+          });
+          return;
+        }
+        fetchCashesAndTransactions();
+        setSnackbar({
+          visible: true,
+          message: "Transaction supprimée ✅",
+          color: theme.colors.success,
+        });
+      });
   };
 
-  const handleDeleteTransaction = async (id) => {
+  // ⚙️ Différencier plateformes
+  if (Platform.OS === "web") {
+    if (window.confirm("Supprimer cette transaction ?")) {
+      confirmDelete();
+    }
+  } else {
     Alert.alert("Confirmation", "Supprimer cette transaction ?", [
       { text: "Annuler", style: "cancel" },
-      { text: "Supprimer", style: "destructive", onPress: async () => {
-        const { error } = await supabase.from("transactions").delete().eq("id", id);
-        if (error) return Alert.alert("Erreur", error.message);
-        fetchCashesAndTransactions();
-      }},
+      { text: "Supprimer", style: "destructive", onPress: confirmDelete },
     ]);
-  };
+  }
+};
+
 
   const openEditDialog = (item) => {
     setEditMode(true);
@@ -486,6 +567,15 @@ const fetchCashesAndTransactions = useCallback(async () => {
 
         </Portal>
       </View>
+      <Snackbar
+  visible={snackbar.visible}
+  onDismiss={() => setSnackbar({ ...snackbar, visible: false })}
+  duration={3000}
+  style={{ backgroundColor: snackbar.color }}
+>
+  {snackbar.message}
+</Snackbar>
+
     </PaperProvider>
   );
 }

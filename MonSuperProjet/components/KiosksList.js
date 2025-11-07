@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   FlatList,
@@ -16,7 +16,6 @@ import {
   Portal,
   Dialog,
   TextInput,
-  Menu,
   IconButton,
   MD3DarkTheme,
 } from "react-native-paper";
@@ -69,9 +68,8 @@ export default function KiosksTransactions() {
   const [transactionType, setTransactionType] = useState("Vente UV");
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [filterType, setFilterType] = useState("ALL");
-  const [menuVisible, setMenuVisible] = useState(false);
 
-  // Auth
+  // === Auth ===
   useEffect(() => {
     const getUser = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -81,8 +79,11 @@ export default function KiosksTransactions() {
     getUser();
   }, []);
 
-  useEffect(() => { if (user) fetchKiosks(); }, [user]);
+  useEffect(() => { 
+    if (user) fetchKiosks(); 
+  }, [user]);
 
+  // === Fetch kiosks ===
   const fetchKiosks = async () => {
     const { data, error } = await supabase
       .from("kiosks")
@@ -96,23 +97,53 @@ export default function KiosksTransactions() {
     }
   };
 
+  // === Calculate cash balance ===
+  const calculateCashBalance = async (cashId) => {
+    const { data: transactions, error } = await supabase
+      .from("transactions")
+      .select("amount, type")
+      .eq("cash_id", cashId);
+
+    if (error) {
+      Alert.alert("Erreur", error.message);
+      return 0;
+    }
+
+    return transactions.reduce(
+      (sum, t) => sum + (t.type === "CREDIT" ? t.amount : -t.amount),
+      0
+    );
+  };
+
+  // === Fetch cashes and balances ===
   const fetchCashesAndBalances = async (kiosksData) => {
     const balancesTemp = {};
     const cashesTemp = {};
+
     for (const k of kiosksData) {
       const { data: cashes, error } = await supabase
         .from("cashes")
         .select("*")
         .eq("kiosk_id", k.id);
+
       if (!error && cashes) {
-        cashesTemp[k.id] = cashes;
-        balancesTemp[k.id] = cashes.reduce((sum, c) => sum + (c.balance || 0), 0);
+        const cashesWithBalance = await Promise.all(
+          cashes.map(async (c) => ({
+            ...c,
+            balance: await calculateCashBalance(c.id),
+          }))
+        );
+
+        cashesTemp[k.id] = cashesWithBalance;
+        balancesTemp[k.id] = cashesWithBalance.reduce((sum, c) => sum + (c.balance || 0), 0);
       }
     }
+
     setCashesMap(cashesTemp);
     setBalances(balancesTemp);
   };
 
+  // === Fetch transactions ===
   const fetchTransactions = async (cash) => {
     const { data, error } = await supabase
       .from("transactions")
@@ -133,6 +164,7 @@ export default function KiosksTransactions() {
     setOpenTransactionsDialog(true);
   };
 
+  // === Filtered & grouped transactions ===
   const filteredTransactions = selectedCash
     ? (filterType === "ALL"
         ? transactionsMap[selectedCash.id] || []
@@ -149,8 +181,13 @@ export default function KiosksTransactions() {
     0
   );
 
-  const totalAllKiosks = Object.values(balances).reduce((sum, b) => sum + (b || 0), 0);
+  // === Total all kiosks ===
+  const totalAllKiosks = useMemo(
+    () => Object.values(balances).reduce((sum, b) => sum + (b || 0), 0),
+    [balances]
+  );
 
+  // === Add or edit transaction ===
   const handleAddOrEditTransaction = async () => {
     if (!amount || !transactionType) return Alert.alert("Remplissez tous les champs !");
     const newAmount = parseFloat(amount);
@@ -175,6 +212,7 @@ export default function KiosksTransactions() {
     }
   };
 
+  // === Delete kiosk ===
   const deleteKiosk = async (id) => {
     Alert.alert("Confirmation", "Supprimer ce client ?", [
       { text: "Annuler", style: "cancel" },
@@ -189,6 +227,7 @@ export default function KiosksTransactions() {
     ]);
   };
 
+  // === Render kiosk ===
   const renderKiosk = ({ item }) => {
     const kioskCashes = cashesMap[item.id] || [];
     return (
@@ -240,7 +279,7 @@ export default function KiosksTransactions() {
         <Card style={{ marginBottom: 16, backgroundColor: theme.colors.primary }}>
           <Card.Content>
             <Text style={{ color: "#FFF", fontWeight: "bold", fontSize: 18, textAlign: "center" }}>
-             CRÉDIT TOTAL DE TOUS LES KIOSQUES
+             CRÉDIT TOTAL DE TOUS LES KIOSQUES
             </Text>
             <Text style={{ color: "#FFF", fontSize: 16, textAlign: "center", marginTop: 4 }}>
               {totalAllKiosks.toLocaleString("fr-FR")} XOF
@@ -262,7 +301,7 @@ export default function KiosksTransactions() {
           renderItem={renderKiosk}
         />
 
-        {/* Dialog popup client */}
+        {/* Popup client */}
         <Portal>
           <Dialog visible={openPopup} onDismiss={() => setOpenPopup(false)}>
             <Dialog.Title>
@@ -358,9 +397,7 @@ export default function KiosksTransactions() {
                             { backgroundColor: t.type === "CREDIT" ? "#064E3B" : "#7F1D1D" },
                           ]}
                         >
-                          <Card.Content
-                            style={styles.transactionContent}
-                          >
+                          <Card.Content style={styles.transactionContent}>
                             <View>
                               <Text style={{ color: theme.colors.onSurface }}>
                                 {t.transaction_type} - {t.amount.toLocaleString("fr-FR")} XOF

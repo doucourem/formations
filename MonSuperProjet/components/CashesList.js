@@ -30,47 +30,72 @@ export default function CashesList({ navigation }) {
     await Promise.all([fetchCashes(), fetchKiosks(), fetchUsers()]);
   };
 
-  const fetchCashes = async () => {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+ // Fonction pour calculer le solde d'une caisse
+const calculateCashBalance = async (cashId) => {
+  const { data: transactions, error } = await supabase
+    .from("transactions")
+    .select("amount, type")
+    .eq("cash_id", cashId);
 
-    if (userError) return Alert.alert("Erreur", userError.message);
-    if (!user) return Alert.alert("Erreur", "Utilisateur non connecté");
+  if (error) {
+    Alert.alert("Erreur", error.message);
+    return 0;
+  }
 
-    const { data: profileData, error: profileError } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+  let balance = 0;
+  transactions.forEach((tx) => {
+    balance += tx.type === "CREDIT" ? -tx.amount : tx.amount;
+  });
 
-    if (profileError) {
-      Alert.alert("Erreur", profileError.message);
-      return;
-    }
+  return balance;
+};
 
-    if (!profileData) {
-      setHasProfile(false);
-      setProfile(null);
-      Alert.alert(
-        "Profil manquant",
-        "Votre profil kiosque n’est pas encore créé. Veuillez contacter un administrateur."
-      );
-      setCashes([]);
-      return;
-    } else {
-      setProfile(profileData);
-      setHasProfile(true);
-    }
+// Dans fetchCashes, après avoir récupéré les cashes :
+const fetchCashes = async () => {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-    let query = supabase.from("cashes").select("*");
-    if (profileData.role === "kiosque") query = query.eq("cashier_id", user.id);
+  if (userError) return Alert.alert("Erreur", userError.message);
+  if (!user) return Alert.alert("Erreur", "Utilisateur non connecté");
 
-    const { data, error } = await query;
-    if (error) Alert.alert("Erreur", error.message);
-    else setCashes(data || []);
-  };
+  const { data: profileData, error: profileError } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) return Alert.alert("Erreur", profileError.message);
+
+  if (!profileData) {
+    setHasProfile(false);
+    setProfile(null);
+    setCashes([]);
+    return;
+  } else {
+    setProfile(profileData);
+    setHasProfile(true);
+  }
+
+  let query = supabase.from("cashes").select("*");
+  if (profileData.role === "kiosque") query = query.eq("cashier_id", user.id);
+
+  const { data, error } = await query;
+  if (error) return Alert.alert("Erreur", error.message);
+
+  if (data) {
+    // Calculer le solde réel pour chaque caisse
+    const cashesWithBalance = await Promise.all(
+      data.map(async (c) => ({
+        ...c,
+        balance: await calculateCashBalance(c.id), // ← solde réel
+      }))
+    );
+    setCashes(cashesWithBalance);
+  }
+};
+
 
   const fetchKiosks = async () => {
     const { data, error } = await supabase.from("kiosks").select("id, name");
@@ -240,7 +265,7 @@ export default function CashesList({ navigation }) {
     style={[styles.text, { color: "#1F2937", fontWeight: "bold" }]}
   >
     {belowMin
-      ? `⚠️ Solde : ${item.balance} / ${item.min_balance} FCFA`
+      ? `⚠️ Solde : ${item.balance} FCFA`
       : `💰 Solde : ${item.balance} FCFA`}
   </Text>
   <Text style={[styles.text, { color: "#1F2937" }]}>

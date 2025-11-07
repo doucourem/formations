@@ -42,9 +42,7 @@ export default function AddCashScreen({ navigation }) {
     const numericBalance = parseFloat(balance);
     const numericMinBalance = parseFloat(minBalance);
 
-    if (numericBalance < numericMinBalance) {
-      return Alert.alert("Erreur", "Le montant initial doit être supérieur ou égal au seuil minimum.");
-    }
+    
 
     const { error } = await supabase.from("cashes").insert([
       { name, balance: numericBalance, min_balance: numericMinBalance, kiosk_id: kioskId, cashier_id: cashierId, closed: false },

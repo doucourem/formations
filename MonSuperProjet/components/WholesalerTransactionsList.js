@@ -97,16 +97,38 @@ export default function WholesalerTransactionsList({ route }) {
         </Text>
 
         {/* Affichage du total */}
-        <Card style={{ marginBottom: 16, backgroundColor: darkTheme.colors.primary }}>
-          <Card.Content>
-            <Text style={{ color: "#FFF", fontWeight: "bold", fontSize: 18, textAlign: "center" }}>
-              Total de toutes les transactions
-            </Text>
-            <Text style={{ color: "#FFF", fontSize: 16, textAlign: "center", marginTop: 4 }}>
-              {formatCFA(totalTransactions)}
-            </Text>
-          </Card.Content>
-        </Card>
+       {/* Affichage du total */}
+<Card
+  style={{
+    marginBottom: 16,
+    backgroundColor: totalTransactions >= 0 ? "#7f1d1d" : "#064e3b", // vert foncé si positif, rouge foncé si négatif
+  }}
+>
+  <Card.Content>
+    <Text
+      style={{
+        color: "#F8FAFC",
+        fontWeight: "bold",
+        fontSize: 18,
+        textAlign: "center",
+      }}
+    >
+      Total de toutes les transactions
+    </Text>
+    <Text
+      style={{
+        color: totalTransactions >= 0 ? "#EF4444" : "# 10b981", // vert si positif, rouge si négatif
+        fontSize: 20,
+        fontWeight: "bold",
+        textAlign: "center",
+        marginTop: 4,
+      }}
+    >
+      {formatCFA(totalTransactions)}
+    </Text>
+  </Card.Content>
+</Card>
+
 
         <Button
           mode="contained"
