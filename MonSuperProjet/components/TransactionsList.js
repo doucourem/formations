@@ -260,13 +260,6 @@ const newBalance = totalTransactions;
         .from("cashes")
         .update({ balance: newBalance })
         .eq("id", cashId);
-
-      if (newBalance <= selectedCash.min_balance) {
-        showAlert(
-          "Attention",
-          `⚠️ Le solde de la caisse "${selectedCash.name}" a atteint le minimum (${selectedCash.min_balance} XOF).`
-        );
-      }
     }
 
     // Réinitialisation
