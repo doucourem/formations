@@ -272,7 +272,7 @@ const fetchCashes = async () => {
 >
   { item.balance<0
     ? `⚠️ Il nous doit : ${item.balance} FCFA`
-    : `💰 Solde : ${item.balance} FCFA`}
+    : `💰 Il a une avance : ${item.balance} FCFA`}
 </Text>
 
   <Text style={[styles.text, { color: "#1F2937" }]}>

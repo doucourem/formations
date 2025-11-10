@@ -1,76 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Menu, Button as PaperButton, Text, TextInput } from 'react-native-paper';
-import api from '../../api/api';
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { Menu, Button as PaperButton, Text, TextInput } from "react-native-paper";
+import api from "../../api/api";
 
 export default function TransactionForm({ refresh, transaction, onClose }) {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [amountFcfa, setAmountFcfa] = useState('');
-  const [type, setType] = useState('');
 
-  // Charger la liste des clients
+  // champs de transaction
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [amountFcfa, setAmountFcfa] = useState("");
+  const [type, setType] = useState("");
+  const [amountSent, setAmountSent] = useState("");
+  const [amountToPay, setAmountToPay] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [receiverName, setReceiverName] = useState("");
+  const [destination, setDestination] = useState("");
+  const [code, setCode] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Charger les clients
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const { data } = await api.get('/clients');
+        const { data } = await api.get("/clients");
         setClients(data);
       } catch (err) {
-        console.log('Erreur chargement clients', err);
+        console.log("Erreur chargement clients", err);
       }
     };
     fetchClients();
   }, []);
 
-  // Préremplir si on édite
+  // Préremplir si modification
   useEffect(() => {
     if (transaction) {
       setSelectedClient(
         clients.find((c) => c.id === transaction.client_id) || null
       );
-      setPhoneNumber(transaction.phone_number || '');
-      setAmountFcfa(transaction.amount_fcfa?.toString() || '');
-      setType(transaction.type || '');
+      setPhoneNumber(transaction.phone_number || "");
+      setAmountFcfa(transaction.amount_fcfa?.toString() || "");
+      setType(transaction.type || "");
+      setAmountSent(transaction.amount_sent?.toString() || "");
+      setAmountToPay(transaction.amount_to_pay?.toString() || "");
+      setSenderName(transaction.sender_name || "");
+      setReceiverName(transaction.receiver_name || "");
+      setDestination(transaction.destination || "");
+      setCode(transaction.code || "");
+      setNotes(transaction.notes || "");
     }
   }, [transaction, clients]);
 
-  // Envoi ou mise à jour
+  // Enregistrer ou mettre à jour
   const handleSubmit = async () => {
-    if (!selectedClient || !phoneNumber || !amountFcfa || !type) {
-      alert('Veuillez remplir tous les champs');
+    if (!selectedClient || !amountFcfa || !type) {
+      Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires.");
       return;
     }
 
     const payload = {
       client_id: selectedClient.id,
       phone_number: phoneNumber,
-      amount: parseFloat(amountFcfa),
+      amount_fcfa: parseFloat(amountFcfa),
       type,
+      amount_sent: parseFloat(amountSent) || 0,
+      amount_to_pay: parseFloat(amountToPay) || 0,
+      sender_name: senderName || null,
+      receiver_name: receiverName || null,
+      destination: destination || null,
+      code: code || null,
+      notes: notes || null,
     };
 
     try {
+      setIsSubmitting(true);
       if (transaction) {
         await api.put(`/transactions/${transaction.id}`, payload);
       } else {
-        await api.post('/transactions', payload);
+        await api.post("/transactions", payload);
       }
 
-      setSelectedClient(null);
-      setPhoneNumber('');
-      setAmountFcfa('');
-      setType('');
+      Alert.alert("Succès", "Transaction enregistrée !");
+      refresh?.();
       onClose?.();
-      refresh();
     } catch (err) {
-      console.log(err);
-      alert("Erreur lors de l'enregistrement de la transaction");
+      console.error(err);
+      Alert.alert("Erreur", "Échec de l'enregistrement de la transaction");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.label}>👤 Client</Text>
       <Menu
         visible={menuVisible}
@@ -82,7 +106,7 @@ export default function TransactionForm({ refresh, transaction, onClose }) {
             textColor="#e2e8f0"
             style={styles.menuButton}
           >
-            {selectedClient ? selectedClient.name : 'Sélectionner un client'}
+            {selectedClient ? selectedClient.name : "Sélectionner un client"}
           </PaperButton>
         }
       >
@@ -127,6 +151,52 @@ export default function TransactionForm({ refresh, transaction, onClose }) {
         placeholderTextColor="#94a3b8"
       />
 
+      <TextInput
+        placeholder="Montant envoyé"
+        keyboardType="numeric"
+        value={amountSent}
+        onChangeText={setAmountSent}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Montant à payer"
+        keyboardType="numeric"
+        value={amountToPay}
+        onChangeText={setAmountToPay}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Nom expéditeur"
+        value={senderName}
+        onChangeText={setSenderName}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Nom destinataire"
+        value={receiverName}
+        onChangeText={setReceiverName}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Destination"
+        value={destination}
+        onChangeText={setDestination}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Code / référence"
+        value={code}
+        onChangeText={setCode}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Notes"
+        value={notes}
+        onChangeText={setNotes}
+        style={[styles.input, { height: 60 }]}
+        multiline
+      />
+
       <View style={styles.buttonRow}>
         <PaperButton
           mode="contained"
@@ -134,8 +204,9 @@ export default function TransactionForm({ refresh, transaction, onClose }) {
           buttonColor="#10b981"
           textColor="white"
           style={styles.button}
+          disabled={isSubmitting}
         >
-          {transaction ? 'Modifier' : 'Ajouter'}
+          {transaction ? "Modifier" : "Ajouter"}
         </PaperButton>
         {onClose && (
           <PaperButton
@@ -143,39 +214,40 @@ export default function TransactionForm({ refresh, transaction, onClose }) {
             onPress={onClose}
             textColor="#f87171"
             style={styles.cancelButton}
+            disabled={isSubmitting}
           >
             Annuler
           </PaperButton>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1e293b', // fond sombre
+    backgroundColor: "#1e293b",
     borderRadius: 10,
     padding: 15,
     marginVertical: 10,
   },
   label: {
     marginBottom: 5,
-    fontWeight: 'bold',
-    color: '#f1f5f9',
+    fontWeight: "bold",
+    color: "#f1f5f9",
   },
   menuButton: {
-    borderColor: '#334155',
+    borderColor: "#334155",
     marginBottom: 10,
   },
   input: {
-    backgroundColor: '#0f172a',
-    color: '#f8fafc',
+    backgroundColor: "#0f172a",
+    color: "#f8fafc",
     marginBottom: 10,
   },
   buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 10,
   },
   button: {
@@ -184,6 +256,6 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    borderColor: '#f87171',
+    borderColor: "#f87171",
   },
 });

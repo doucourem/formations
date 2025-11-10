@@ -24,6 +24,8 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import supabase from "../supabaseClient";
 import { Snackbar } from "react-native-paper";
+import { Calendar } from "react-native-calendars";
+
 
 const { width, height } = Dimensions.get("window");
 
@@ -62,6 +64,9 @@ export default function TransactionsList() {
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [snackbar, setSnackbar] = useState({ visible: false, message: "", color: "red" });
+  const [selectedDate, setSelectedDate] = useState(null);
+const [calendarVisible, setCalendarVisible] = useState(false);
+
 
   const [form, setForm] = useState({
     cashId: null,
@@ -159,34 +164,60 @@ const fetchCashesAndTransactions = useCallback(async () => {
   }, [fetchCashesAndTransactions]);
 
   // === Filtrage combiné ===
-  useEffect(() => {
-    if (!transactions.length) return;
-    const now = new Date();
-    let filtered = transactions;
+useEffect(() => {
+  if (!transactions.length) return;
+  const now = new Date();
+  let filtered = transactions;
 
-    if (dateFilter === "today") {
-      filtered = filtered.filter((t) => new Date(t.created_at).toDateString() === now.toDateString());
-    } else if (dateFilter === "week") {
-      const firstDay = new Date(now);
-      firstDay.setDate(now.getDate() - now.getDay());
-      filtered = filtered.filter((t) => new Date(t.created_at) >= firstDay);
-    } else if (dateFilter === "month") {
-      filtered = filtered.filter(
-        (t) => new Date(t.created_at).getMonth() === now.getMonth() &&
-               new Date(t.created_at).getFullYear() === now.getFullYear()
+  if (dateFilter === "today") {
+    filtered = filtered.filter((t) => {
+      const txDate = new Date(t.created_at);
+      return (
+        txDate.getFullYear() === now.getFullYear() &&
+        txDate.getMonth() === now.getMonth() &&
+        txDate.getDate() === now.getDate()
       );
-    }
-
-    if (typeFilter !== "all") filtered = filtered.filter((t) => t.type === typeFilter);
-
-    if (searchQuery.trim().length > 0) {
-      filtered = filtered.filter((t) =>
-        t.cash_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    });
+  } else if (dateFilter === "week") {
+    const firstDay = new Date(now);
+    firstDay.setDate(now.getDate() - now.getDay());
+    firstDay.setHours(0, 0, 0, 0);
+    filtered = filtered.filter((t) => new Date(t.created_at) >= firstDay);
+  } else if (dateFilter === "month") {
+    filtered = filtered.filter((t) => {
+      const txDate = new Date(t.created_at);
+      return (
+        txDate.getFullYear() === now.getFullYear() &&
+        txDate.getMonth() === now.getMonth()
       );
-    }
+    });
+  }
 
-    setFilteredTransactions(filtered);
-  }, [dateFilter, typeFilter, searchQuery, transactions]);
+  if (typeFilter !== "all") {
+    filtered = filtered.filter((t) => t.type === typeFilter);
+  }
+
+  if (searchQuery.trim().length > 0) {
+    filtered = filtered.filter((t) =>
+      t.cash_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+
+  if (selectedDate) {
+    filtered = filtered.filter((t) => {
+      const txDate = new Date(t.created_at);
+      const selected = new Date(selectedDate);
+      return (
+        txDate.getFullYear() === selected.getFullYear() &&
+        txDate.getMonth() === selected.getMonth() &&
+        txDate.getDate() === selected.getDate()
+      );
+    });
+  }
+
+  setFilteredTransactions(filtered);
+}, [dateFilter, typeFilter, searchQuery, selectedDate, transactions]);
+
 const showAlert = (title, message) => {
   if (Platform.OS === "web") {
     window.alert(`${title ? title + "\n\n" : ""}${message}`);
@@ -343,13 +374,13 @@ const handleDeleteTransaction = (id) => {
     return (
       <Card style={[styles.card, { borderRadius: width * 0.02 }]}>
         <Card.Title
-          title={isCredit ? "Entrée" : "Paiement"}
+          title={isCredit ? "Envoie" : "Paiement"}
           subtitle={`${item.cash_name} — ${item.kiosk_name}`}
           left={(props) => (
             <MaterialCommunityIcons
               {...props}
-              name={isCredit ? "arrow-down-bold-circle" : "arrow-up-bold-circle"}
-              color={isCredit ? theme.colors.success : theme.colors.error}
+              name={isCredit ?"arrow-up-bold-circle":"arrow-down-bold-circle"}
+              color={isCredit ? theme.colors.error : theme.colors.success }
               size={width * 0.07}
             />
           )}
@@ -366,7 +397,7 @@ const handleDeleteTransaction = (id) => {
         />
         <Card.Content>
           <Text>
-            Montant : <Text style={{ fontWeight: "bold", color: isCredit ? theme.colors.success : theme.colors.error }}>{formatCFA(item.amount)}</Text>
+            Montant : <Text style={{ fontWeight: "bold", color: isCredit ? theme.colors.error : theme.colors.success  }}>{formatCFA(item.amount)}</Text>
           </Text>
           <Text>Date : {new Date(item.created_at).toLocaleString()}</Text>
           <Text>Type : {item.transaction_type}</Text>
@@ -396,8 +427,6 @@ const handleDeleteTransaction = (id) => {
           buttons={[
             { value: "all", label: "Toutes" },
             { value: "today", label: "Aujourd’hui" },
-            { value: "week", label: "Cette semaine" },
-            { value: "month", label: "Ce mois" },
           ]}
           style={{ marginBottom: height * 0.01 }}
         />
@@ -413,9 +442,42 @@ const handleDeleteTransaction = (id) => {
           style={{ marginBottom: height * 0.02 }}
         />
 
+<Button
+  mode="outlined"
+  onPress={() => setCalendarVisible(!calendarVisible)}
+  style={{ marginBottom: height * 0.015 }}
+  icon="calendar"
+>
+  {selectedDate ? `Filtrer : ${new Date(selectedDate).toLocaleDateString()}` : "Choisir une date"}
+</Button>
+
+{calendarVisible && (
+  <Calendar
+    onDayPress={(day) => {
+      setSelectedDate(day.dateString);
+      setCalendarVisible(false);
+    }}
+    markedDates={
+      selectedDate
+        ? { [selectedDate]: { selected: true, selectedColor: theme.colors.primary } }
+        : {}
+    }
+    theme={{
+      backgroundColor: theme.colors.background,
+      calendarBackground: theme.colors.surface,
+      dayTextColor: theme.colors.onSurface,
+      monthTextColor: theme.colors.onSurface,
+      arrowColor: theme.colors.primary,
+      todayTextColor: theme.colors.accent,
+    }}
+    style={{ marginBottom: height * 0.02, borderRadius: 12 }}
+  />
+)}
+
         {loading ? (
           <ActivityIndicator size="large" style={{ marginTop: height * 0.05 }} />
         ) : (
+          
           <FlatList
             data={filteredTransactions}
             keyExtractor={(i) => i.id.toString()}
@@ -439,7 +501,7 @@ const handleDeleteTransaction = (id) => {
         />
 
         <Portal>
-        <Portal>
+        
   <Dialog
     visible={dialogVisible}
     onDismiss={() => setDialogVisible(false)}
@@ -557,8 +619,6 @@ const handleDeleteTransaction = (id) => {
     </Dialog.Actions>
   </Dialog>
 </Portal>
-
-        </Portal>
       </View>
       <Snackbar
   visible={snackbar.visible}
