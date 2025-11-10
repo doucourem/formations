@@ -152,7 +152,7 @@ export default function WholesalerTransactionsList({ route }) {
                 { color: totalBalance >= 0 ? "#10b981" : "#EF4444" },
               ]}
             >
-              ⚖️ Solde global : {formatCFA(totalBalance)}
+              ⚖️ VOTRE DETTE : {formatCFA(totalBalance)}
             </Text>
           </Card.Content>
         </Card>

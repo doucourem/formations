@@ -126,13 +126,13 @@ const fetchCashes = async () => {
 
   const closeCash = async (cash) => {
     if (cash.closed) {
-      Alert.alert("Info", "Cette caisse est déjà clôturée.");
+      Alert.alert("Info", "Cette BOUTIQUE est déjà clôturée.");
       return;
     }
 
     Alert.alert(
-      "Clôturer la caisse",
-      `Voulez-vous vraiment clôturer la caisse "${cash.name}" ?`,
+      "Clôturer la BOUTIQUE",
+      `Voulez-vous vraiment clôturer la BOUTIQUE "${cash.name}" ?`,
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -167,7 +167,7 @@ const fetchCashes = async () => {
   return (
     <View style={styles.container}>
   <TextInput
-    placeholder="Rechercher une caisse, client ou coursier..."
+    placeholder="Rechercher une BOUTIQUE, client ou coursier..."
     value={search}
     onChangeText={setSearch}
     style={styles.searchInput}
@@ -187,7 +187,7 @@ const fetchCashes = async () => {
         },
       ]}
     >
-      Ajouter une caisse
+      Ajouter une BOUTIQUE
     </Button>
   )}
 

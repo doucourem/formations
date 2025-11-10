@@ -50,7 +50,7 @@ export default function AddCashScreen({ navigation }) {
 
     if (error) Alert.alert("Erreur", error.message);
     else {
-      Alert.alert("✅ Succès", "Caisse ajoutée avec succès !");
+      Alert.alert("✅ Succès", "BOUTIQUE ajoutée avec succès !");
       navigation.goBack();
     }
   };
@@ -61,10 +61,10 @@ export default function AddCashScreen({ navigation }) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Card style={[styles.card, { width: screenWidth - 20 }]}>
-        <Card.Title title="Nouvelle Caisse" />
+        <Card.Title title="Nouvelle BOUTIQUE" />
         <Card.Content>
           <TextInput
-            label="Nom de la caisse"
+            label="Nom de la BOUTIQUE"
             value={name}
             onChangeText={setName}
             style={styles.input}

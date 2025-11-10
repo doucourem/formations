@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert, Dimensions } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import {
   Provider as PaperProvider,
   MD3DarkTheme,
@@ -8,7 +8,10 @@ import {
   IconButton,
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
-import { createDrawerNavigator, DrawerContentScrollView } from "@react-navigation/drawer";
+import {
+  createDrawerNavigator,
+  DrawerContentScrollView,
+} from "@react-navigation/drawer";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import supabase from "./supabaseClient";
 
@@ -26,14 +29,10 @@ import AddCashScreen from "./components/AddCashScreen";
 import EditCashScreen from "./components/EditCashScreen";
 import TransactionsListCaisse from "./components/TransactionsListCaisse";
 
-// === DIMENSIONS & FONTS RESPONSIVE ===
-const { width, height } = Dimensions.get("window");
-const responsiveFont = (f) => Math.round(f * (width / 375));
-
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 
-// === THÈME SOMBRE PERSONNALISÉ ===
+// Thème sombre personnalisé
 const theme = {
   ...MD3DarkTheme,
   colors: {
@@ -62,13 +61,13 @@ const styles = StyleSheet.create({
   },
   drawerContainer: { flex: 1 },
   drawerHeader: {
-    padding: width * 0.05,
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#334155",
   },
   drawerFooter: {
     marginTop: "auto",
-    padding: width * 0.04,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#334155",
   },
@@ -78,16 +77,16 @@ const styles = StyleSheet.create({
 const CustomDrawerContent = ({ user, screens, ...props }) => (
   <View style={styles.drawerContainer}>
     <View style={styles.drawerHeader}>
-      <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontSize: responsiveFont(18) }}>
+      <Text variant="headlineSmall" style={{ color: theme.colors.onSurface }}>
         Tableau de bord
       </Text>
-      <Text style={{ color: "#CBD5E1", fontSize: responsiveFont(14), marginTop: height * 0.005 }}>
-        {user?.email}
-      </Text>
+      <Text style={{ color: "#CBD5E1" }}>{user?.email}</Text>
       <Button
         mode="outlined"
-        onPress={async () => await supabase.auth.signOut()}
-        style={{ marginTop: height * 0.015 }}
+        onPress={async () => {
+          await supabase.auth.signOut();
+        }}
+        style={{ marginTop: 10 }}
       >
         Déconnexion
       </Button>
@@ -100,13 +99,13 @@ const CustomDrawerContent = ({ user, screens, ...props }) => (
           mode="text"
           onPress={() => props.navigation.navigate(screen.name)}
           textColor="#CBD5E1"
-          style={{ justifyContent: "flex-start", paddingVertical: height * 0.012 }}
+          style={{ justifyContent: "flex-start" }}
         >
           {screen.name}
         </Button>
       ))}
       <View style={styles.drawerFooter}>
-        <Text style={{ color: "#94A3B8", fontSize: responsiveFont(12), textAlign: "center" }}>
+        <Text style={{ color: "#94A3B8", fontSize: 12, textAlign: "center" }}>
           © 2025 Ma Société - Version 1.0
         </Text>
       </View>
@@ -121,18 +120,19 @@ function CashStack() {
       <Stack.Screen
         name="CashesList"
         component={CashesList}
-        options={{ title: "Caisse" }}
+        options={{ title: "BOUTIQUE" }}
       />
       <Stack.Screen
         name="AddCash"
         component={AddCashScreen}
-        options={{ title: "Ajouter Caisse" }}
+        options={{ title: "Ajouter BOUTIQUE" }}
       />
       <Stack.Screen
         name="EditCash"
         component={EditCashScreen}
-        options={{ title: "Modifier Caisse" }}
+        options={{ title: "Modifier BOUTIQUE" }}
       />
+      {/* Nouvelle page pour voir les transactions d’une BOUTIQUE */}
       <Stack.Screen
         name="TransactionsListCaisse"
         component={TransactionsListCaisse}
@@ -142,15 +142,16 @@ function CashStack() {
   );
 }
 
+
 // === DRAWER NAVIGATOR ===
 function DrawerNavigator({ user }) {
   const screensByRole = {
     kiosque: [
-      { name: "Caisse", component: CashStack },
+      { name: "BOUTIQUE", component: CashStack },
       { name: "Transactions", component: TransactionsList },
     ],
     admin: [
-      { name: "Caisse", component: CashStack },
+      { name: "BOUTIQUE", component: CashStack },
       { name: "Transactions", component: TransactionsList },
       { name: "Opérateurs", component: OperatorsList },
       { name: "Fournisseurs", component: WholesalersList },
@@ -161,11 +162,14 @@ function DrawerNavigator({ user }) {
 
   const role = user?.role || "kiosque";
   const screens = screensByRole[role] || screensByRole.kiosque;
+
   const drawerBackground = role === "admin" ? "#111827" : "#1E3A8A";
 
   return (
     <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} user={user} screens={screens} />}
+      drawerContent={(props) => (
+        <CustomDrawerContent {...props} user={user} screens={screens} />
+      )}
       screenOptions={{
         headerStyle: { backgroundColor: theme.colors.surface },
         headerTintColor: theme.colors.onSurface,
@@ -175,7 +179,11 @@ function DrawerNavigator({ user }) {
       }}
     >
       {screens.map((screen) => (
-        <Drawer.Screen key={screen.name} name={screen.name} component={screen.component} />
+        <Drawer.Screen
+          key={screen.name}
+          name={screen.name}
+          component={screen.component}
+        />
       ))}
     </Drawer.Navigator>
   );
@@ -185,10 +193,12 @@ function DrawerNavigator({ user }) {
 function AppContent({ user }) {
   return (
     <Stack.Navigator>
+      {/* Drawer principal sans header */}
       <Stack.Screen name="MainDrawer" options={{ headerShown: false }}>
         {() => <DrawerNavigator user={user} />}
       </Stack.Screen>
 
+      {/* Transactions fournisseurs avec header et bouton retour */}
       <Stack.Screen
         name="WholesalerTransactions"
         component={WholesalerTransactionsList}
@@ -199,10 +209,10 @@ function AppContent({ user }) {
           headerLeft: () => (
             <IconButton
               icon="arrow-left"
-              size={width * 0.06} // responsive
+              size={24}
               onPress={() => navigation.goBack()}
               color={theme.colors.primary}
-              style={{ marginLeft: width * 0.01 }}
+              style={{ marginLeft: 4 }}
             />
           ),
         })}
@@ -229,8 +239,11 @@ export default function App() {
             .eq("id", authUser.id)
             .maybeSingle();
 
-          if (error) Alert.alert("Erreur", error.message);
-          else setUser(profile);
+          if (error) {
+            Alert.alert("Erreur", error.message);
+          } else {
+            setUser(profile);
+          }
         }
       } catch (err) {
         Alert.alert("Erreur", err.message);
@@ -252,9 +265,7 @@ export default function App() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ color: theme.colors.onSurface, fontSize: responsiveFont(16) }}>
-          Chargement...
-        </Text>
+        <Text style={{ color: theme.colors.onSurface }}>Chargement...</Text>
       </View>
     );
   }

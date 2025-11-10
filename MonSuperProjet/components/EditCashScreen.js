@@ -81,7 +81,7 @@ export default function EditCashScreen({ route, navigation }) {
 
     if (error) Alert.alert("Erreur", error.message);
     else {
-      Alert.alert("✅ Succès", "Caisse mise à jour !");
+      Alert.alert("✅ Succès", "BOUTIQUE mise à jour !");
       navigation.goBack();
     }
   };
@@ -96,7 +96,7 @@ export default function EditCashScreen({ route, navigation }) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Card style={[styles.card, { width: screenWidth - 20 }]}>
-        <Card.Title title="Modifier la Caisse" />
+        <Card.Title title="Modifier la BOUTIQUE" />
         <Card.Content>
           <TextInput
             label="Nom"
