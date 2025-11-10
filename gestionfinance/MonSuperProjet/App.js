@@ -5,6 +5,8 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator, DrawerContentScrollView } from "@react-navigation/drawer";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { AuthProvider, AuthContext } from "./api/context/AuthContext";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./api/queryClient"; // chemin correct
 
 // === IMPORTS ÉCRANS ===
 import LoginScreen from "./screens/Auth/LoginScreen";
@@ -13,6 +15,8 @@ import BalanceHistory from "./screens/Balance/BalanceHistory";
 import TransactionsList from "./screens/Transactions/TransactionList";
 import ClientList from "./screens/Clients/ClientList";
 import ClientForm from "./screens/Clients/ClientForm";
+import HistoryTab from "./screens/Transactions/HistoryTab";
+import ValidatedTab from "./screens/Transactions/ValidatedTab";
 
 // === NAVIGATEURS ===
 const Drawer = createDrawerNavigator();
@@ -80,10 +84,10 @@ const CustomDrawerContent = ({ user, screens, navigation, logout }) => (
 // === DRAWER NAVIGATOR ===
 function DrawerNavigator({ user, logout }) {
   const screens = [
-    { name: "Caisse", component: BalanceHistory },
+    { name: "Caisse", component: ValidatedTab },
     { name: "Transactions", component: TransactionsList },
     { name: "Opérateurs", component: ClientList },
-    { name: "Fournisseurs", component: ClientForm },
+    { name: "Fournisseurs", component: HistoryTab },
     // ajouter d'autres écrans si nécessaire
   ];
 
@@ -146,11 +150,13 @@ function RootNavigator() {
 export default function App() {
   return (
     <PaperProvider theme={theme}>
-      <AuthProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </AuthProvider>
+      </QueryClientProvider>
     </PaperProvider>
   );
 }
