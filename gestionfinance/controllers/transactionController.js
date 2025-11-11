@@ -29,10 +29,12 @@ export const getTransactions = async (req, res) => {
  */
 export const addTransaction = async (req, res) => {
   try {
-    const { amount, client_id } = req.body;
+    const { amount, client_id, amount_gnf ,
+        amount_to_pay,
+        fee_amount} = req.body;
     const result = await pool.query(
-      'INSERT INTO transactions (user_id, amount_fcfa,client_id) VALUES ($1, $2, $3) RETURNING *',
-      [req.user.id, amount,client_id]
+      'INSERT INTO transactions (user_id, amount_fcfa,client_id, amount_gnf ,amount_to_pay,fee_amount) VALUES ($1, $2, $3,$4, $5, $6) RETURNING *',
+      [req.user.id, amount,client_id, amount_gnf , amount_to_pay,fee_amount]
     );
     res.json(result.rows[0]);
   } catch (err) {

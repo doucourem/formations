@@ -45,12 +45,18 @@ export default function TransactionForm({ refresh, settings, currentUser }) {
       alert('Veuillez remplir tous les champs');
       return;
     }
-
+ const amountGNF = parseFloat(amountFcfa || 0) * (settings?.exchangeRate || 20);
+  const feePercentage = parseFloat(currentUser?.personalFeePercentage || settings?.feePercentage || 0);
+  const feeAmount = parseFloat(amountFcfa || 0) * feePercentage / 100;
+  const totalToPay = parseFloat(amountFcfa || 0) + feeAmount;
     try {
       await api.post('/transactions', {
         client_id: selectedClient?.id || null,
         phone_number: phoneNumber,
-        amount_fcfa: parseFloat(amountFcfa),
+        amount_gnf : amountGNF,
+        amount_to_pay: totalToPay,
+        fee_amount: feeAmount,
+        amount: parseFloat(amountFcfa),
         type,
       });
       setSelectedClient(null);

@@ -94,15 +94,29 @@ const CustomDrawerContent = ({ user, screens, ...props }) => (
 
     <DrawerContentScrollView {...props}>
       {screens.map((screen) => (
-        <Button
-          key={screen.name}
-          mode="text"
-          onPress={() => props.navigation.navigate(screen.name)}
-          textColor="#CBD5E1"
-          style={{ justifyContent: "flex-start" }}
-        >
-          {screen.name}
-        </Button>
+       <Button
+  key={screen.name}
+  mode="text"
+  onPress={() => props.navigation.navigate(screen.name)}
+  textColor="#CBD5E1"
+  style={{
+    alignSelf: "stretch",
+    borderRadius: 0,
+    paddingVertical: 6,
+  }}
+  contentStyle={{
+    justifyContent: "flex-start",
+    paddingLeft: 16,
+  }}
+  labelStyle={{
+    textAlign: "left",
+    fontSize: 15,
+  }}
+>
+  {screen.name}
+</Button>
+
+
       ))}
       <View style={styles.drawerFooter}>
         <Text style={{ color: "#94A3B8", fontSize: 12, textAlign: "center" }}>
@@ -147,15 +161,18 @@ function CashStack() {
 function DrawerNavigator({ user }) {
   const screensByRole = {
     kiosque: [
-      { name: "BOUTIQUE", component: CashStack },
+
       { name: "Transactions", component: TransactionsList },
+            { name: "BOUTIQUE", component: CashStack },
     ],
     admin: [
+       { name: "Transactions", component: TransactionsList },
       { name: "BOUTIQUE", component: CashStack },
-      { name: "Transactions", component: TransactionsList },
-      { name: "Opérateurs", component: OperatorsList },
+     
+     
       { name: "Fournisseurs", component: WholesalersList },
       { name: "Clients", component: KiosksList },
+       { name: "Opérateurs", component: OperatorsList },
       { name: "Utilisateurs", component: UsersList },
     ],
   };

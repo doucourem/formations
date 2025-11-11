@@ -247,24 +247,7 @@ export default function KiosksTransactions() {
             )}
           />
 
-          {kioskCashes.map((c) => (
-            <List.Item
-              key={c.id}
-              title={`${c.name} - Solde: ${c.balance?.toLocaleString("fr-FR")} XOF`}
-              description="Voir opérations"
-              titleStyle={{ color: theme.colors.onSurface, fontSize: isTablet ? 16 : 14 }}
-              descriptionStyle={{ color: theme.colors.placeholder, fontSize: isTablet ? 13 : 11 }}
-              left={() => <List.Icon color={theme.colors.success} icon="cash" />}
-              right={() => (
-                <IconButton
-                  icon="eye"
-                  iconColor={theme.colors.primary}
-                  onPress={() => handleOpenTransactions(c)}
-                />
-              )}
-              onPress={() => handleOpenTransactions(c)}
-            />
-          ))}
+         
         </Card.Content>
       </Card>
     );

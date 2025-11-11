@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { View, FlatList, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { Text, FAB, IconButton, Card, Button } from "react-native-paper";
@@ -10,10 +11,9 @@ export default function TransactionList() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [showSendMoney, setShowSendMoney] = useState(false); // ✅ Ajout
+  const [showSendMoney, setShowSendMoney] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
 
-  // 🔹 Charger transactions + clients
   const fetchData = async () => {
     try {
       const [transRes, clientsRes] = await Promise.all([
@@ -34,7 +34,6 @@ export default function TransactionList() {
     fetchData();
   }, []);
 
-  // 🔹 Actions CRUD
   const handleAdd = () => {
     setEditingTransaction(null);
     setShowSendMoney(false);
@@ -82,21 +81,20 @@ export default function TransactionList() {
 
   return (
     <View style={styles.container}>
-      {/* 🔹 Barre d’action principale */}
       {!showForm && !showSendMoney && (
         <View style={styles.header}>
-          <Text style={styles.title}>Liste des Transactions</Text>
+          <Text style={styles.title}>💳 Liste des Transactions</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Button
               mode="contained"
               icon="send"
-              buttonColor="#3b82f6"
+              buttonColor="#2563eb"
               textColor="white"
               onPress={() => {
                 setShowForm(false);
                 setShowSendMoney(true);
               }}
-              style={styles.createButton}
+              style={styles.actionButton}
             >
               Envoyer
             </Button>
@@ -106,7 +104,7 @@ export default function TransactionList() {
               buttonColor="#10b981"
               textColor="white"
               onPress={handleAdd}
-              style={styles.createButton}
+              style={styles.actionButton}
             >
               Créer
             </Button>
@@ -114,12 +112,8 @@ export default function TransactionList() {
         </View>
       )}
 
-      {/* 🔹 Choix du contenu à afficher */}
       {showSendMoney ? (
-        <SendMoneyForm
-          refresh={fetchData}
-          onClose={() => setShowSendMoney(false)}
-        />
+        <SendMoneyForm refresh={fetchData} onClose={() => setShowSendMoney(false)} />
       ) : showForm ? (
         <TransactionForm
           transaction={editingTransaction}
@@ -164,7 +158,6 @@ export default function TransactionList() {
             />
           )}
 
-          {/* 🔹 Bouton flottant pour accès rapide */}
           <FAB
             icon="plus"
             label="Ajouter"
@@ -179,32 +172,49 @@ export default function TransactionList() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10, backgroundColor: "#0f172a" },
+  container: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: "#0f172a", // bleu nuit profond
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 14,
   },
-  title: { color: "#f8fafc", fontSize: 18, fontWeight: "bold" },
-  createButton: { borderRadius: 8 },
+  title: {
+    color: "#f1f5f9",
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  actionButton: {
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+  },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { color: "#f8fafc", marginTop: 10 },
+  loadingText: { color: "#e2e8f0", marginTop: 10 },
   card: {
     marginBottom: 10,
-    backgroundColor: "#1e293b",
-    borderRadius: 10,
-    elevation: 3,
+    backgroundColor: "#1e293b", // gris bleuté
+    borderRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#334155",
   },
   cardActions: { flexDirection: "row", justifyContent: "flex-end", paddingRight: 5 },
-  clientName: { fontWeight: "bold", fontSize: 16, marginBottom: 5, color: "#f1f5f9" },
-  text: { color: "#e2e8f0", marginVertical: 2 },
+  clientName: { fontWeight: "bold", fontSize: 16, marginBottom: 5, color: "#f8fafc" },
+  text: { color: "#cbd5e1", marginVertical: 2 },
   amount: { fontWeight: "bold", color: "#10b981" },
-  emptyText: { textAlign: "center", marginTop: 30, color: "#94a3b8" },
+  emptyText: { textAlign: "center", marginTop: 30, color: "#94a3b8", fontSize: 16 },
   fab: {
     position: "absolute",
     right: 20,
     bottom: 30,
     backgroundColor: "#10b981",
+    elevation: 5,
+    borderRadius: 30,
   },
 });

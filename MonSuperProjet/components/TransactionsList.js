@@ -416,7 +416,7 @@ const handleDeleteTransaction = (id) => {
         </Text>
 
         <TextInput
-          placeholder="🔍 Rechercher une caisse..."
+          placeholder="🔍 Rechercher une boutique..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           style={{ marginBottom: height * 0.015 }}
@@ -438,7 +438,7 @@ const handleDeleteTransaction = (id) => {
           onValueChange={setTypeFilter}
           buttons={[
             { value: "all", label: "Tous" },
-            { value: "CREDIT", label: "Entrée" },
+            { value: "CREDIT", label: "Envoie" },
             { value: "DEBIT", label: "Paiement" },
           ]}
           style={{ marginBottom: height * 0.02 }}

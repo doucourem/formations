@@ -17,6 +17,7 @@ import ClientList from "./screens/Clients/ClientList";
 import ClientForm from "./screens/Clients/ClientForm";
 import HistoryTab from "./screens/Transactions/HistoryTab";
 import ValidatedTab from "./screens/Transactions/ValidatedTab";
+import dashboard from "./screens/users/Dashboard";
 
 // === NAVIGATEURS ===
 const Drawer = createDrawerNavigator();
@@ -84,10 +85,12 @@ const CustomDrawerContent = ({ user, screens, navigation, logout }) => (
 // === DRAWER NAVIGATOR ===
 function DrawerNavigator({ user, logout }) {
   const screens = [
-    { name: "Caisse", component: ValidatedTab },
+    { name: "Validées", component: ValidatedTab },
     { name: "Transactions", component: TransactionsList },
-    { name: "Opérateurs", component: ClientList },
-    { name: "Fournisseurs", component: HistoryTab },
+    { name: "Mes Clients", component: ClientList },
+    { name: "Historique", component: HistoryTab },
+{ name: "Dashboard", component: dashboard },
+    
     // ajouter d'autres écrans si nécessaire
   ];
 

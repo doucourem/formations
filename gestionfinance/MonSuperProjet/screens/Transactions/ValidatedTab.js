@@ -1,158 +1,167 @@
-import React, { useState, useMemo } from "react";
-import { View, Text, FlatList, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView } from "react-native";
-import { useQuery, useMutation, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React, { useState, useMemo, useEffect } from "react";
+import { View, Text, TextInput, FlatList, TouchableOpacity, ScrollView, Image, StyleSheet } from "react-native";
+import { useQuery } from "@tanstack/react-query";
+
+import { Check, Copy, Eye, X, RefreshCw } from "lucide-react";
 import api from "../../api/api";
-import Icon from "react-native-vector-icons/Feather"; // pour les icônes
 
-// Création du query client
-const queryClient = new QueryClient();
+export default function ValidatedTab() {
 
-export default function HistoryTab() {
   const [searchClient, setSearchClient] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedProof, setSelectedProof] = useState(null);
+  const [copiedProof, setCopiedProof] = useState(false);
 
-  // Récupération des clients
-  const { data: clients = [], isLoading: clientsLoading } = useQuery({
-    queryKey: ["clients"],
-    queryFn: async () => {
-      const res = await api.get("/clients");
-      return Array.isArray(res.data) ? res.data : [];
-    },
-  });
+const { data: clients = [], isLoading: clientsLoading } = useQuery({
+  queryKey: ["clients"],
+  queryFn: async () => {
+    const res = await api.get("/clients");
+    return Array.isArray(res.data) ? res.data : [];
+  },
+});
 
-  // Récupération des transactions
-  const { data: transactions = [], isLoading: transactionsLoading, error: transactionsError } = useQuery({
-    queryKey: ["transactions"],
-    queryFn: async () => {
-      const res = await api.get("/transactions");
-      return Array.isArray(res.data) ? res.data : [];
-    },
-  });
+const { data: transactions = [], isLoading: transactionsLoading, error, refetch } = useQuery({
+  queryKey: ["transactions"],
+  queryFn: async () => {
+    const res = await api.get("/transactions");
+    return Array.isArray(res.data) ? res.data : [];
+  },
+  staleTime: 0,
+  retry: 3,
+});
 
-  // Suppression transaction
-  const deleteTransactionMutation = useMutation({
-    mutationFn: async (id) => await api.delete(`/transactions/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["transactions"] }),
-  });
+const filteredTransactions = Array.isArray(transactions) && Array.isArray(clients)
+  ? transactions.filter((t) => {
+      const client = clients.find((c) => c.id === t.client_id);
+      if (!client || t.isDeleted) return false;
 
-  // Filtrage des transactions avec liaison client
-  const filteredTransactions = useMemo(() => {
-    if (!Array.isArray(transactions) || !Array.isArray(clients)) return [];
+      // Filtre par nom ou téléphone
+      if (
+        searchClient &&
+        !client.name?.toLowerCase().includes(searchClient.toLowerCase()) &&
+        !t.phone_number?.includes(searchClient)
+      )
+        return false;
 
-    return transactions.filter(t => {
-      // Lier au client
-      const client = clients.find(c => c.id === t.client_id);
+      // Filtre par date
+      
 
-      if (!client) return false;
+      return true;
+    })
+  : [];
 
-      // Filtrage par statut non validé
-      const matchesStatus = t.status !== "validated";
 
-      // Filtrage par recherche client
-      const matchesSearch = !searchClient
-        || client.name.toLowerCase().includes(searchClient.toLowerCase())
-        || (t.phoneNumber && t.phoneNumber.includes(searchClient));
 
-      // Filtrage par date
-      const matchesDate = !selectedDate || (new Date(t.createdAt).toISOString().split("T")[0] === selectedDate);
 
-      return matchesStatus && matchesSearch && matchesDate;
-    });
-  }, [transactions, clients, searchClient, selectedDate]);
-
-  // Totaux
-  const totalSent = filteredTransactions.reduce((sum, t) => sum + parseFloat(t.amountFCFA || 0), 0);
-  const totalFees = filteredTransactions.reduce((sum, t) => sum + parseFloat(t.feeAmount || 0), 0);
-
-  // Affichage transaction
-  const renderItem = ({ item }) => {
-    const client = clients.find(c => c.id === item.client_id);
-    if (!client) return null;
-
-    return (
-      <View style={[styles.row, item.status === "cancelled" && styles.cancelledRow]}>
-        <Text style={styles.date}>{new Date(item.createdAt).toLocaleTimeString()}</Text>
-        <Text style={styles.client}>{client.name}</Text>
-        <Text style={styles.phone}>{item.phone}</Text>
-        <View style={styles.amountContainer}>
-          <Text style={styles.amount}>{item.amount} FCFA</Text>
-          <Text style={styles.fee}>{item.feeAmount || 0} FCFA</Text>
-        </View>
-        <View style={styles.status}>
-          {item.status === "pending" && <Icon name="clock" size={16} />}
-          {item.status === "seen" && <Icon name="eye" size={16} />}
-          {item.status === "validated" && <Icon name="check" size={16} />}
-          {item.status === "cancelled" && <Icon name="x" size={16} />}
-          <Text>{item.status}</Text>
-        </View>
-        <View style={styles.actions}>
-          {item.status === "pending" && (
-            <TouchableOpacity
-              onPress={() =>
-                Alert.alert("Confirmer", "Supprimer cette transaction ?", [
-                  { text: "Annuler" },
-                  { text: "Supprimer", onPress: () => deleteTransactionMutation.mutate(item.id) },
-                ])
-              }
-            >
-              <Text style={styles.delete}>Supprimer</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
+  const handleCopyProof = async () => {
+    if (!selectedProof) return;
+    try {
+      await navigator.clipboard.writeText(selectedProof.proof);
+      setCopiedProof(true);
+     // toast({ title: "Copié !", description: "Preuve copiée dans le presse-papiers" });
+      setTimeout(() => setCopiedProof(false), 2000);
+    } catch {
+      //toast({ title: "Erreur", description: "Impossible de copier", variant: "destructive" });
+    }
   };
 
-  if (transactionsLoading || clientsLoading) return <Text>Chargement...</Text>;
-  if (transactionsError) return <Text>Erreur chargement</Text>;
+  const renderTransaction = ({ item }) => {
+    const client = clients.find((c) => c.id === item.client_id);
+    if (!client) return null;
+
+    const statusColors = {
+      pending: "#ffb300",
+      seen: "#007bff",
+      validated: "#2ecc71",
+      cancelled: "#e74c3c",
+    };
+
+    return  (
+    <View style={styles.card}>
+      <View style={styles.row}>
+        <Text style={styles.date}>{new Date(item.created_at).toLocaleTimeString()}</Text>
+        <View style={[styles.avatar, { backgroundColor: '#4ade80' }]}>
+          <Text style={styles.avatarText}>{client.name}</Text>
+        </View>
+        <Text style={styles.clientName}>{client.name}</Text>
+        <Text>{item.phoneNumber}</Text>
+        <Text>{parseFloat(item.amount_fcfa).toLocaleString()} FCFA</Text>
+        <TouchableOpacity onPress={() => setSelectedProof(item)} style={styles.button}>
+          <Eye size={20} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+if (transactionsLoading || clientsLoading) return <Text>Chargement...</Text>;
+
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.filters}>
-        <TextInput
-          placeholder="Rechercher par client"
-          value={searchClient}
-          onChangeText={setSearchClient}
-          style={styles.input}
-        />
-        <TextInput
-          placeholder="Sélectionner une date (YYYY-MM-DD)"
-          value={selectedDate}
-          onChangeText={setSelectedDate}
-          style={styles.input}
-        />
+    <View style={{ flex: 1, padding: 10 }}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Transactions Validées</Text>
+        <Text>{filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}</Text>
+        <TouchableOpacity onPress={() => { refetch(); toast({ title: "Actualisation" }); }} style={styles.refresh}>
+          <RefreshCw size={20} />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.totals}>
-        <Text>Total Envoyé: {totalSent} FCFA</Text>
-        <Text>Total Frais: {totalFees} FCFA</Text>
-      </View>
+      <TextInput
+        placeholder="Rechercher par client ou numéro..."
+        value={searchClient}
+        onChangeText={setSearchClient}
+        style={styles.input}
+      />
 
       <FlatList
         data={filteredTransactions}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-        ListEmptyComponent={<Text style={styles.empty}>Aucune transaction trouvée</Text>}
+        renderItem={renderTransaction}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
-    </ScrollView>
+
+      {selectedProof && (
+        <View style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Preuve de Paiement</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity onPress={handleCopyProof}>
+                {copiedProof ? <Check size={20} /> : <Copy size={20} />}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setSelectedProof(null)}>
+                <X size={20} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          {selectedProof.proofType === "image" ? (
+            <Image source={{ uri: selectedProof.proof }} style={styles.image} />
+          ) : (
+            <ScrollView style={styles.proofText}>
+              <Text>{selectedProof.proof}</Text>
+            </ScrollView>
+          )}
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  filters: { flexDirection: "row", gap: 10, marginBottom: 10 },
-  input: { flex: 1, borderWidth: 1, borderColor: "#ccc", padding: 8, borderRadius: 5 },
-  totals: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  row: { flexDirection: "row", padding: 10, borderBottomWidth: 1, borderColor: "#eee", alignItems: "center" },
-  cancelledRow: { backgroundColor: "#ffe5e5" },
-  date: { flex: 1 },
-  client: { flex: 2 },
-  phone: { flex: 2 },
-  amountContainer: { flex: 2 },
-  amount: { fontWeight: "bold" },
-  fee: { color: "green" },
-  status: { flex: 1, flexDirection: "row", alignItems: "center", gap: 5 },
-  actions: { flex: 1 },
-  delete: { color: "red" },
-  empty: { textAlign: "center", marginTop: 20, color: "#888" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  title: { fontSize: 18, fontWeight: "bold" },
+  refresh: { padding: 5 },
+  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 5, paddingHorizontal: 8, marginBottom: 10 },
+  card: { padding: 10, marginBottom: 8, backgroundColor: "#fff", borderRadius: 8 },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  date: { fontSize: 12 },
+  avatar: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+  avatarText: { color: "#fff", fontWeight: "bold" },
+  clientName: { flex: 1, marginLeft: 5 },
+  button: { padding: 5 },
+  modal: { position: "absolute", top: 50, left: 20, right: 20, bottom: 50, backgroundColor: "#fff", borderRadius: 10, padding: 10 },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  modalTitle: { fontSize: 16, fontWeight: "bold" },
+  modalButtons: { flexDirection: "row", gap: 10 },
+  image: { width: "100%", height: 300, resizeMode: "contain", borderRadius: 8 },
+  proofText: { padding: 10, backgroundColor: "#f0f0f0", borderRadius: 8 },
 });
