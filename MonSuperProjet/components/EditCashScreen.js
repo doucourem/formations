@@ -6,7 +6,6 @@ import {
   useWindowDimensions,
   FlatList,
   TouchableOpacity,
-  View,
 } from "react-native";
 import { TextInput, Button, Card, Text } from "react-native-paper";
 import supabase from "../supabaseClient";
@@ -17,18 +16,24 @@ export default function EditCashScreen({ route, navigation }) {
 
   const [name, setName] = useState(cash.name);
   const [balance, setBalance] = useState(cash.balance.toString());
-  const [minBalance, setMinBalance] = useState(cash.min_balance?.toString() || ""); // ✅ seuil minimum
+  const [minBalance, setMinBalance] = useState(cash.min_balance?.toString() || "");
+
   const [kioskId, setKioskId] = useState(cash.kiosk_id);
-  const [cashierId, setCashierId] = useState(cash.cashier_id);
+  const [courierId, setCourierId] = useState(cash.cashier_id);
+  const [sellerId, setSellerId] = useState(cash.seller_id);
+
   const [kiosks, setKiosks] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [couriers, setCouriers] = useState([]);
+  const [sellers, setSellers] = useState([]);
 
   const [kioskQuery, setKioskQuery] = useState("");
-  const [cashierQuery, setCashierQuery] = useState("");
+  const [courierQuery, setCourierQuery] = useState("");
+  const [sellerQuery, setSellerQuery] = useState("");
 
   useEffect(() => {
     fetchKiosks();
-    fetchCashiers();
+    fetchCouriers();
+    fetchSellers();
   }, []);
 
   const fetchKiosks = async () => {
@@ -40,33 +45,39 @@ export default function EditCashScreen({ route, navigation }) {
     if (currentKiosk) setKioskQuery(currentKiosk.name);
   };
 
-  const fetchCashiers = async () => {
+  const fetchCouriers = async () => {
     const { data, error } = await supabase
       .from("users")
       .select("id, full_name, email, role")
       .eq("role", "kiosque");
     if (error) Alert.alert("Erreur", error.message);
-    else setUsers(data || []);
+    else setCouriers(data || []);
 
-    const currentCashier = data?.find(u => u.id === cashierId);
-    if (currentCashier)
-      setCashierQuery(currentCashier.full_name || currentCashier.email);
+    const currentCourier = data?.find(u => u.id === courierId);
+    if (currentCourier) setCourierQuery(currentCourier.full_name || currentCourier.email);
+  };
+
+  const fetchSellers = async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, full_name, email, role")
+      .eq("role", "grossiste");
+    if (error) Alert.alert("Erreur", error.message);
+    else setSellers(data || []);
+
+    const currentSeller = data?.find(u => u.id === sellerId);
+    if (currentSeller) setSellerQuery(currentSeller.full_name || currentSeller.email);
   };
 
   const handleUpdate = async () => {
-    if (!name || !balance || !minBalance || !kioskId || !cashierId) {
+    if (!name || !balance || !minBalance || !kioskId || !courierId || !sellerId) {
       return Alert.alert("Erreur", "Tous les champs sont requis.");
     }
 
     const numericBalance = parseFloat(balance);
     const numericMinBalance = parseFloat(minBalance);
 
-    if (numericBalance < numericMinBalance) {
-      return Alert.alert(
-        "Erreur",
-        "Le solde doit être supérieur ou égal au seuil minimum."
-      );
-    }
+
 
     const { error } = await supabase
       .from("cashes")
@@ -75,7 +86,8 @@ export default function EditCashScreen({ route, navigation }) {
         balance: numericBalance,
         min_balance: numericMinBalance,
         kiosk_id: kioskId,
-        cashier_id: cashierId,
+        cashier_id: courierId,
+        seller_id: sellerId,
       })
       .eq("id", cash.id);
 
@@ -86,39 +98,20 @@ export default function EditCashScreen({ route, navigation }) {
     }
   };
 
-  const filteredKiosks = kiosks.filter(k =>
-    k.name.toLowerCase().includes(kioskQuery.toLowerCase())
-  );
-  const filteredCashiers = users.filter(u =>
-    (u.full_name || u.email).toLowerCase().includes(cashierQuery.toLowerCase())
-  );
+  const filteredKiosks = kiosks.filter(k => k.name.toLowerCase().includes(kioskQuery.toLowerCase()));
+  const filteredCouriers = couriers.filter(u => (u.full_name || u.email || "").toLowerCase().includes(courierQuery.toLowerCase()));
+  const filteredSellers = sellers.filter(u => (u.full_name || u.email || "").toLowerCase().includes(sellerQuery.toLowerCase()));
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Card style={[styles.card, { width: screenWidth - 20 }]}>
         <Card.Title title="Modifier la BOUTIQUE" />
         <Card.Content>
-          <TextInput
-            label="Nom"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-          />
-          <TextInput
-            label="Solde"
-            keyboardType="numeric"
-            value={balance}
-            onChangeText={setBalance}
-            style={styles.input}
-          />
-          <TextInput
-            label="Seuil minimum"
-            keyboardType="numeric"
-            value={minBalance}
-            onChangeText={setMinBalance}
-            style={styles.input}
-          />
+          <TextInput label="Nom" value={name} onChangeText={setName} style={styles.input} />
+          <TextInput label="Solde" keyboardType="numeric" value={balance} onChangeText={setBalance} style={styles.input} />
+          <TextInput label="Seuil minimum" keyboardType="numeric" value={minBalance} onChangeText={setMinBalance} style={styles.input} />
 
+          {/* Sélection kiosque */}
           <Text style={styles.label}>Client</Text>
           <TextInput
             placeholder="Rechercher un client..."
@@ -126,37 +119,52 @@ export default function EditCashScreen({ route, navigation }) {
             onChangeText={text => { setKioskQuery(text); setKioskId(null); }}
             style={styles.input}
           />
-          {filteredKiosks.length > 0 && (
+          {kioskQuery.length > 0 && filteredKiosks.length > 0 && (
             <FlatList
               data={filteredKiosks}
               keyExtractor={item => item.id.toString()}
               renderItem={({ item }) => (
-                <TouchableOpacity
-                  onPress={() => { setKioskId(item.id); setKioskQuery(item.name); }}
-                  style={styles.autocompleteItem}
-                >
+                <TouchableOpacity onPress={() => { setKioskId(item.id); setKioskQuery(item.name); }} style={styles.autocompleteItem}>
                   <Text>{item.name}</Text>
                 </TouchableOpacity>
               )}
             />
           )}
 
+          {/* Sélection coursier */}
           <Text style={styles.label}>Coursier</Text>
           <TextInput
             placeholder="Rechercher un coursier..."
-            value={cashierQuery}
-            onChangeText={text => { setCashierQuery(text); setCashierId(null); }}
+            value={courierQuery}
+            onChangeText={text => { setCourierQuery(text); setCourierId(null); }}
             style={styles.input}
           />
-          {filteredCashiers.length > 0 && (
+          {courierQuery.length > 0 && filteredCouriers.length > 0 && (
             <FlatList
-              data={filteredCashiers}
+              data={filteredCouriers}
               keyExtractor={item => item.id.toString()}
               renderItem={({ item }) => (
-                <TouchableOpacity
-                  onPress={() => { setCashierId(item.id); setCashierQuery(item.full_name || item.email); }}
-                  style={styles.autocompleteItem}
-                >
+                <TouchableOpacity onPress={() => { setCourierId(item.id); setCourierQuery(item.full_name || item.email); }} style={styles.autocompleteItem}>
+                  <Text>{item.full_name || item.email}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+
+          {/* Sélection vendeur */}
+          <Text style={styles.label}>Vendeur</Text>
+          <TextInput
+            placeholder="Rechercher un vendeur..."
+            value={sellerQuery}
+            onChangeText={text => { setSellerQuery(text); setSellerId(null); }}
+            style={styles.input}
+          />
+          {sellerQuery.length > 0 && filteredSellers.length > 0 && (
+            <FlatList
+              data={filteredSellers}
+              keyExtractor={item => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity onPress={() => { setSellerId(item.id); setSellerQuery(item.full_name || item.email); }} style={styles.autocompleteItem}>
                   <Text>{item.full_name || item.email}</Text>
                 </TouchableOpacity>
               )}
@@ -178,5 +186,5 @@ const styles = StyleSheet.create({
   input: { marginBottom: 12 },
   label: { fontWeight: "bold", marginTop: 12, marginBottom: 6 },
   autocompleteItem: { padding: 8, borderBottomWidth: 1, borderBottomColor: "#ddd" },
-  submitButton: { marginTop: 20 },
+  submitButton: { marginTop: 20},
 });

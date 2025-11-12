@@ -114,6 +114,14 @@ const fetchCashesAndTransactions = useCallback(async () => {
         .eq("cashier_id", user.id);
       if (error) throw error;
       cashesData = data;
+    }
+    else if (profile?.role === "grossiste") {
+      const { data, error } = await supabase
+        .from("cashes")
+        .select("id, name, kiosk_id, balance, min_balance")
+        .eq("seller_id", user.id);
+      if (error) throw error;
+      cashesData = data;
     } else {
       const { data, error } = await supabase
         .from("cashes")
@@ -570,6 +578,7 @@ const handleDeleteTransaction = (id) => {
             Envoie
           </Button>
         )}
+        {profile?.role?.toLowerCase() !== "grossiste" && (
         <Button
           mode={form.type === "DEBIT" ? "contained" : "outlined"}
           onPress={() => setForm({ ...form, type: "DEBIT" })}
@@ -579,6 +588,7 @@ const handleDeleteTransaction = (id) => {
         >
           Paiement
         </Button>
+         )}
       </View>
 
       {/* Type spécifique */}

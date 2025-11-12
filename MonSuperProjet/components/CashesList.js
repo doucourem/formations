@@ -80,7 +80,7 @@ const fetchCashes = async () => {
 
   let query = supabase.from("cashes").select("*");
   if (profileData.role === "kiosque") query = query.eq("cashier_id", user.id);
-
+  if (profileData.role === "grossiste") query = query.eq("seller_id", user.id);
   const { data, error } = await query;
   if (error) return Alert.alert("Erreur", error.message);
 
@@ -174,7 +174,7 @@ const fetchCashes = async () => {
   />
 
   {/* ✅ Bouton visible uniquement pour les profils kiosque */}
-  {profile && profile.role != "kiosque" && (
+  {profile && profile.role == "admin" && (
     <Button
       icon="plus"
       mode="contained"
@@ -229,7 +229,7 @@ const fetchCashes = async () => {
   right={(props) => (
     <View style={{ flexDirection: "row" }}>
       {/* ✅ Autorisé uniquement si le profil n’est PAS "kiosque" */}
-      {profile?.role !== "kiosque" && !item.closed && (
+      {profile?.role === "admin" && !item.closed && (
         <IconButton
           {...props}
           icon="pencil"
@@ -239,7 +239,7 @@ const fetchCashes = async () => {
           }
         />
       )}
-      {profile?.role !== "kiosque" && (
+      {profile?.role === "admin" && (
         <IconButton
           {...props}
           icon="delete"

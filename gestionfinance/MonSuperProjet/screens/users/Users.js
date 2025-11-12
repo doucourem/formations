@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import Toast from "react-native-toast-message";
+import api from "../../api/api";
+//import Toast from "react-native-toast-message";
 
 export default function UsersTab({ onOpenUserModal }) {
   const [editingUser, setEditingUser] = useState(null);
@@ -18,22 +18,22 @@ export default function UsersTab({ onOpenUserModal }) {
 
   // Mutation pour update user
   const updateUserMutation = useMutation(
-    ({ id, data }) => apiRequest("PATCH", `/api/users/${id}`, data),
+    ({ id, data }) => api.get( `/api/users/${id}`),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["/api/users"]);
         setEditingUser(null);
-        Toast.show({ type: "success", text1: "Utilisateur modifié" });
+      //  Toast.show({ type: "success", text1: "Utilisateur modifié" });
       },
       onError: () => {
-        Toast.show({ type: "error", text1: "Erreur", text2: "Impossible de modifier l'utilisateur" });
+      //  Toast.show({ type: "error", text1: "Erreur", text2: "Impossible de modifier l'utilisateur" });
       },
     }
   );
 
   // Mutation pour activer/désactiver
   const toggleUserStatusMutation = useMutation(
-    ({ id, isActive }) => apiRequest("PATCH", `/api/users/${id}`, { isActive }),
+    ({ id, isActive }) => api("PATCH", `/api/users/${id}`),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(["/api/users"]);

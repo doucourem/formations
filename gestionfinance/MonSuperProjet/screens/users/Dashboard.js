@@ -1,42 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  DeviceEventEmitter,
+} from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Coins, FileText } from "lucide-react-native";
 import api from "../../api/api";
-import Icon from "react-native-vector-icons/Feather";
-
-interface DailyStats {
-  totalSent: number;
-  totalPaid: number;
-  globalDebt: number;
-}
-
-interface UserSummary {
-  id: number;
-  name: string;
-  email: string;
-  totalSent: number;
-  totalPaid: number;
-  previousDebt: number;
-  currentDebt: number;
-  transactionCount: number;
-}
-
-interface SystemSettings {
-  mainBalanceGNF: string;
-}
+import Icon from "react-native-vector-icons/Feather"; // ✅ On garde Feather uniquement
 
 export default function DashboardTab() {
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [selectedUserName, setSelectedUserName] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [selectedUserName, setSelectedUserName] = useState("");
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const queryClient = useQueryClient();
-  
 
-  const { data: dailyStats, isLoading: statsLoading } = useQuery<DailyStats>({
-    queryKey: ["/api/stats/daily"],
+  // --- 📊 Stats journalières ---
+  const { data: dailyStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["/stats/daily"],
     queryFn: async () => {
-      const res = await fetch("/api/stats/daily", { credentials: "include" });
+      const res = await api.get("/stats/daily");
       if (!res.ok) return { totalSent: 0, totalPaid: 0, globalDebt: 0 };
       return res.json();
     },
@@ -44,28 +31,27 @@ export default function DashboardTab() {
     staleTime: 30000,
   });
 
+  // --- 👥 Résumés utilisateurs ---
+  const { data: userSummaries = [], isLoading: summariesLoading } = useQuery({
+    queryKey: ["/api/users"],
+    queryFn: async () => {
+      try {
+        const res = await api.get("/users");
+        return Array.isArray(res.data) ? res.data : [];
+      } catch (error) {
+        console.error("🔴 Erreur chargement stats utilisateurs:", error);
+        return [];
+      }
+    },
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
 
-
-const { data: userSummaries, isLoading: summariesLoading } = useQuery<UserSummary>({
-  queryKey: ["/api/stats/users"],
-  queryFn: async () => {
-    try {
-      const res = await api.get("/stats/users"); // api.get() déjà configuré avec credentials / headers
-      return Array.isArray(res.data) ? res.data : [];
-    } catch (error) {
-      console.error("🔴 Error fetching user stats:", error);
-      return [];
-    }
-  },
-  refetchInterval: 60000, // toutes les 60s
-  staleTime: 30000,       // données fraîches pendant 30s
-});
-
-
-  const { data: settings, isLoading: settingsLoading } = useQuery<SystemSettings>({
+  // --- ⚙️ Paramètres système ---
+  const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ["/api/system/settings"],
     queryFn: async () => {
-      const res = await fetch("/api/system/settings", { credentials: "include" });
+      const res = await api.get("/api/system/settings");
       if (!res.ok) return { mainBalanceGNF: "0" };
       return res.json();
     },
@@ -73,31 +59,33 @@ const { data: userSummaries, isLoading: summariesLoading } = useQuery<UserSummar
     staleTime: 30000,
   });
 
+  // --- 🔁 Rafraîchissement automatique quand balance mise à jour ---
   useEffect(() => {
     const handleBalanceUpdate = () => {
-      console.log("💰 Balance update received — refreshing queries...");
+      console.log("💰 Mise à jour balance reçue — rafraîchissement...");
       queryClient.invalidateQueries({ queryKey: ["/api/stats/daily"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/system/settings"] });
     };
 
-    // ✅ Abonnement à l’événement
     const subscription = DeviceEventEmitter.addListener("balance-updated", handleBalanceUpdate);
-
-    // ✅ Nettoyage
     return () => subscription.remove();
   }, [queryClient]);
 
-  const openReportModal = (userId: number, userName: string) => {
+  const openReportModal = (userId, userName) => {
     setSelectedUserId(userId);
     setSelectedUserName(userName);
     setIsReportModalOpen(true);
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("fr-FR", { style: "decimal", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("fr-FR", {
+      style: "decimal",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
 
-  const getInitials = (name: string) =>
+  const getInitials = (name = "") =>
     name
       .split(" ")
       .map((n) => n[0])
@@ -114,22 +102,24 @@ const { data: userSummaries, isLoading: summariesLoading } = useQuery<UserSummar
 
   return (
     <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* Stats Cards */}
+      {/* 🟠 Cartes de statistiques */}
       <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 16 }}>
         <View style={[styles.card, { backgroundColor: "#FF7F50" }]}>
           <Text style={styles.cardTitle}>Dette Globale</Text>
-          <Text style={styles.cardValue}>{formatCurrency(dailyStats?.globalDebt || 0)} FCFA</Text>
-          <AlertTriangle size={32} color="#FFDAB9" />
+          <Text style={styles.cardValue}>{formatCurrency(dailyStats?.globalDebt)} FCFA</Text>
+          <Icon name="alert-triangle" size={32} color="#FFDAB9" />
         </View>
         <View style={[styles.card, { backgroundColor: "#8A2BE2" }]}>
           <Text style={styles.cardTitle}>Solde Principal (GNF)</Text>
-          <Text style={styles.cardValue}>{formatCurrency(parseFloat(settings?.mainBalanceGNF || "0"))} GNF</Text>
-          <Coins size={32} color="#E6E6FA" />
+          <Text style={styles.cardValue}>
+            {formatCurrency(parseFloat(settings?.mainBalanceGNF || "0"))} GNF
+          </Text>
+          <Icon name="dollar-sign" size={32} color="#E6E6FA" />
         </View>
       </View>
 
-      {/* Users Table */}
-      <ScrollView horizontal showsHorizontalScrollIndicator>
+      {/* 👤 Tableau des utilisateurs */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={{ minWidth: 800 }}>
           <View style={styles.tableHeader}>
             <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Utilisateur</Text>
@@ -151,20 +141,35 @@ const { data: userSummaries, isLoading: summariesLoading } = useQuery<UserSummar
               renderItem={({ item }) => (
                 <View style={styles.tableRow}>
                   <View style={[styles.tableCell, { flex: 2, flexDirection: "row", alignItems: "center" }]}>
-                    <View style={styles.avatar}>{getInitials(item.name)}</View>
+                    <View style={styles.avatar}>
+                      <Text style={{ color: "#fff", fontWeight: "bold" }}>{getInitials(item.name)}</Text>
+                    </View>
                     <View style={{ marginLeft: 8 }}>
-                      <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
+                      <Text style={{ fontWeight: "bold" }}>{item.first_name}</Text>
                       <Text style={{ color: "#555" }}>{item.email}</Text>
                     </View>
                   </View>
                   <Text style={styles.tableCell}>{formatCurrency(item.totalSent)} FCFA</Text>
                   <Text style={[styles.tableCell, { color: "green" }]}>{formatCurrency(item.totalPaid)} FCFA</Text>
                   <Text style={styles.tableCell}>{formatCurrency(item.previousDebt)} FCFA</Text>
-                  <Text style={[styles.tableCell, { backgroundColor: "#FFA500", color: "#fff", borderRadius: 4, paddingHorizontal: 4 }]}>
+                  <Text
+                    style={[
+                      styles.tableCell,
+                      {
+                        backgroundColor: "#FFA500",
+                        color: "#fff",
+                        borderRadius: 4,
+                        paddingHorizontal: 4,
+                      },
+                    ]}
+                  >
                     {formatCurrency(item.currentDebt)} FCFA
                   </Text>
-                  <TouchableOpacity style={styles.reportButton} onPress={() => openReportModal(item.id, item.name)}>
-                    <FileText size={16} color="#000" />
+                  <TouchableOpacity
+                    style={styles.reportButton}
+                    onPress={() => openReportModal(item.id, item.name)}
+                  >
+                    <Icon name="file-text" size={16} color="#000" />
                     <Text style={{ marginLeft: 4 }}>Rapport</Text>
                   </TouchableOpacity>
                 </View>
@@ -174,13 +179,15 @@ const { data: userSummaries, isLoading: summariesLoading } = useQuery<UserSummar
         </View>
       </ScrollView>
 
-      {/* Modal */}
+      {/* 🧾 Modal (à implémenter) */}
+      {/* 
       <UserReportModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         userId={selectedUserId || 0}
         userName={selectedUserName}
-      />
+      /> 
+      */}
     </ScrollView>
   );
 }
@@ -198,8 +205,27 @@ const styles = StyleSheet.create({
   cardValue: { color: "#fff", fontSize: 20, fontWeight: "bold", marginVertical: 8 },
   tableHeader: { flexDirection: "row", backgroundColor: "#EEE", paddingVertical: 8 },
   tableHeaderCell: { flex: 1, fontSize: 12, fontWeight: "bold", paddingHorizontal: 8 },
-  tableRow: { flexDirection: "row", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#EEE", alignItems: "center" },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
+    alignItems: "center",
+  },
   tableCell: { flex: 1, paddingHorizontal: 8, fontSize: 12 },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#6200EE", justifyContent: "center", alignItems: "center", color: "#fff", fontWeight: "bold" },
-  reportButton: { flexDirection: "row", alignItems: "center", padding: 4, backgroundColor: "#DDD", borderRadius: 4 },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#6200EE",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  reportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 4,
+    backgroundColor: "#DDD",
+    borderRadius: 4,
+  },
 });

@@ -1,24 +1,31 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert, useWindowDimensions, FlatList, TouchableOpacity } from "react-native";
+import { ScrollView, StyleSheet, Alert, useWindowDimensions, FlatList, TouchableOpacity } from "react-native";
 import { Card, TextInput, Text, Button } from "react-native-paper";
 import supabase from "../supabaseClient";
 
 export default function AddCashScreen({ navigation }) {
   const { width: screenWidth } = useWindowDimensions();
+
   const [name, setName] = useState("");
   const [balance, setBalance] = useState("");
-  const [minBalance, setMinBalance] = useState(""); // ✅ nouvel état pour le seuil minimum
+  const [minBalance, setMinBalance] = useState("");
+
   const [kioskId, setKioskId] = useState(null);
-  const [cashierId, setCashierId] = useState(null);
+  const [courierId, setCourierId] = useState(null);
+  const [sellerId, setSellerId] = useState(null);
+
   const [kiosks, setKiosks] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [couriers, setCouriers] = useState([]);
+  const [sellers, setSellers] = useState([]);
 
   const [kioskQuery, setKioskQuery] = useState("");
-  const [cashierQuery, setCashierQuery] = useState("");
+  const [courierQuery, setCourierQuery] = useState("");
+  const [sellerQuery, setSellerQuery] = useState("");
 
   useEffect(() => {
     fetchKiosks();
-    fetchCashiers();
+    fetchCouriers();
+    fetchSellers();
   }, []);
 
   const fetchKiosks = async () => {
@@ -27,25 +34,42 @@ export default function AddCashScreen({ navigation }) {
     else setKiosks(data || []);
   };
 
-  const fetchCashiers = async () => {
-    const { data, error } = await supabase.from("users").select("id, full_name, email, role")
+  const fetchCouriers = async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, full_name, email, role")
       .eq("role", "kiosque");
     if (error) Alert.alert("Erreur", error.message);
-    else setUsers(data || []);
+    else setCouriers(data || []);
+  };
+
+  const fetchSellers = async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, full_name, email, role")
+      .eq("role", "grossiste");
+    if (error) Alert.alert("Erreur", error.message);
+    else setSellers(data || []);
   };
 
   const handleSubmit = async () => {
-    if (!name || !balance || !minBalance || !kioskId || !cashierId) {
+    if (!name || !balance || !minBalance || !kioskId || !courierId || !sellerId) {
       return Alert.alert("Erreur", "Tous les champs sont requis.");
     }
 
     const numericBalance = parseFloat(balance);
     const numericMinBalance = parseFloat(minBalance);
 
-    
-
     const { error } = await supabase.from("cashes").insert([
-      { name, balance: numericBalance, min_balance: numericMinBalance, kiosk_id: kioskId, cashier_id: cashierId, closed: false },
+      {
+        name,
+        balance: numericBalance,
+        min_balance: numericMinBalance,
+        kiosk_id: kioskId,
+        cashier_id: courierId,
+        seller_id: sellerId,
+        closed: false
+      },
     ]);
 
     if (error) Alert.alert("Erreur", error.message);
@@ -55,8 +79,15 @@ export default function AddCashScreen({ navigation }) {
     }
   };
 
-  const filteredKiosks = kiosks.filter(k => k.name.toLowerCase().includes(kioskQuery.toLowerCase()));
-  const filteredCashiers = users.filter(u => (u.full_name || u.email).toLowerCase().includes(cashierQuery.toLowerCase()));
+  const filteredKiosks = kiosks.filter(k =>
+    k.name.toLowerCase().includes(kioskQuery.toLowerCase())
+  );
+  const filteredCouriers = couriers.filter(u =>
+    (u.full_name || u.email || "").toLowerCase().includes(courierQuery.toLowerCase())
+  );
+  const filteredSellers = sellers.filter(u =>
+    (u.full_name || u.email || "").toLowerCase().includes(sellerQuery.toLowerCase())
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -84,14 +115,15 @@ export default function AddCashScreen({ navigation }) {
             style={styles.input}
           />
 
-          <Text style={styles.label}>Sélectionner un client :</Text>
+          {/* Sélection kiosque */}
+          <Text style={styles.label}>Sélectionner un kiosque :</Text>
           <TextInput
-            placeholder="Rechercher un client..."
+            placeholder="Rechercher un kiosque..."
             value={kioskQuery}
             onChangeText={text => { setKioskQuery(text); setKioskId(null); }}
             style={styles.input}
           />
-          {filteredKiosks.length > 0 && (
+          {kioskQuery.length > 0 && filteredKiosks.length > 0 && (
             <FlatList
               data={filteredKiosks}
               keyExtractor={item => item.id.toString()}
@@ -106,20 +138,44 @@ export default function AddCashScreen({ navigation }) {
             />
           )}
 
+          {/* Sélection coursier */}
           <Text style={styles.label}>Sélectionner un coursier :</Text>
           <TextInput
-            placeholder="Rechercher un coursier ..."
-            value={cashierQuery}
-            onChangeText={text => { setCashierQuery(text); setCashierId(null); }}
+            placeholder="Rechercher un coursier..."
+            value={courierQuery}
+            onChangeText={text => { setCourierQuery(text); setCourierId(null); }}
             style={styles.input}
           />
-          {filteredCashiers.length > 0 && (
+          {courierQuery.length > 0 && filteredCouriers.length > 0 && (
             <FlatList
-              data={filteredCashiers}
+              data={filteredCouriers}
               keyExtractor={item => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  onPress={() => { setCashierId(item.id); setCashierQuery(item.full_name || item.email); }}
+                  onPress={() => { setCourierId(item.id); setCourierQuery(item.full_name || item.email); }}
+                  style={styles.autocompleteItem}
+                >
+                  <Text>{item.full_name || item.email}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+
+          {/* Sélection vendeur */}
+          <Text style={styles.label}>Sélectionner un vendeur :</Text>
+          <TextInput
+            placeholder="Rechercher un vendeur..."
+            value={sellerQuery}
+            onChangeText={text => { setSellerQuery(text); setSellerId(null); }}
+            style={styles.input}
+          />
+          {sellerQuery.length > 0 && filteredSellers.length > 0 && (
+            <FlatList
+              data={filteredSellers}
+              keyExtractor={item => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => { setSellerId(item.id); setSellerQuery(item.full_name || item.email); }}
                   style={styles.autocompleteItem}
                 >
                   <Text>{item.full_name || item.email}</Text>

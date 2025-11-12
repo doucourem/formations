@@ -18,7 +18,9 @@ import ClientForm from "./screens/Clients/ClientForm";
 import HistoryTab from "./screens/Transactions/HistoryTab";
 import ValidatedTab from "./screens/Transactions/ValidatedTab";
 import dashboard from "./screens/users/Dashboard";
-
+import UsersTab from "./screens/users/Users";
+import Payments from "./screens/Payments/Payments";
+import Reports from "./screens/Payments/Reports";
 // === NAVIGATEURS ===
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -90,7 +92,8 @@ function DrawerNavigator({ user, logout }) {
     { name: "Mes Clients", component: ClientList },
     { name: "Historique", component: HistoryTab },
 { name: "Dashboard", component: dashboard },
-    
+{ name: "Payments", component: Payments },
+    { name: "Reports", component: Reports },
     // ajouter d'autres écrans si nécessaire
   ];
 

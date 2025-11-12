@@ -37,7 +37,7 @@ export default function UsersList() {
 
   const roles = [
     { label: "Couriser", value: "kiosque" },
-    { label: "Grossiste", value: "grossiste" },
+    { label: "Vendeur", value: "grossiste" },
     { label: "Admin", value: "admin" },
   ];
 
@@ -85,6 +85,25 @@ export default function UsersList() {
     setOpenDialog(true);
   };
 
+  const resetPassword = async (userId, newPassword) => {
+  if (!newPassword || newPassword.length < 6) {
+    return Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères.");
+  }
+
+  try {
+    const { error } = await supabase.rpc("reset_user_password", {
+      user_uuid: userId,
+      new_password: newPassword,
+    });
+
+    if (error) throw error;
+
+    Alert.alert("Succès", "Mot de passe mis à jour !");
+  } catch (err) {
+    Alert.alert("Erreur", err.message);
+  }
+};
+
   const handleSubmit = async () => {
     if (!formData.email || !formData.full_name || (!editingUser && !formData.password)) {
       setError("Veuillez remplir tous les champs obligatoires.");
@@ -94,6 +113,8 @@ export default function UsersList() {
     const emailTrimmed = formData.email.trim().toLowerCase();
 
     try {
+
+    
       if (editingUser) {
 
         console.log(editingUser);
@@ -109,6 +130,10 @@ export default function UsersList() {
           .eq("id", editingUser.id);
   console.log(editingUser);
         if (error) throw error;
+
+          if ( formData.password) {
+  await resetPassword(editingUser.id, formData.password);
+}
         Alert.alert("Succès", "Utilisateur mis à jour.");
         setOpenDialog(false);
         fetchUsers();
@@ -233,7 +258,7 @@ export default function UsersList() {
                 style={styles.input}
                 textColor={theme.colors.onSurface}
               />
-              {!editingUser && (
+              
                 <TextInput
                   label="Mot de passe"
                   secureTextEntry
@@ -242,7 +267,7 @@ export default function UsersList() {
                   style={styles.input}
                   textColor={theme.colors.onSurface}
                 />
-              )}
+             
               <TextInput
                 label="Nom complet"
                 value={formData.full_name}
