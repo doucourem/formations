@@ -1,48 +1,49 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
-import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import api from "../../api/api";
-const queryClient = new QueryClient();
 
 const paymentSchema = z.object({
   userId: z.string().min(1, "Utilisateur requis"),
-  amountFCFA: z.string().min(1, "Montant requis").refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Montant invalide"),
+  amountFCFA: z
+    .string()
+    .min(1, "Montant requis")
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Montant invalide"),
 });
 
 export default function PaymentsTab() {
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const queryClient = useQueryClient();
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Form
   const { control, handleSubmit, reset } = useForm({
     resolver: zodResolver(paymentSchema),
     defaultValues: { userId: "", amountFCFA: "" },
   });
 
-  // Fetch users
-  const { data: users, isLoading: usersLoading } = useQuery({
+  const [selectedUserId, setSelectedUserId] = useState("");
+
+  // Récupération des utilisateurs
+  const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      const res = await  api.get("/users");
-      if (!res.ok) throw new Error("Erreur récupération utilisateurs");
-      return res.json();
+      const res = await api.get("/users");
+      return res.data;
     },
   });
 
-  // Fetch user summary
+  // Récupération du résumé utilisateur
   const { data: userSummary, isLoading: summaryLoading } = useQuery({
     queryKey: ["userSummary", selectedUserId],
     queryFn: async () => {
-      const res = await  api.get(`/reports/user/${selectedUserId}`);
-      if (!res.ok) throw new Error("Impossible de récupérer le résumé utilisateur");
-      const dailyReports = await res.json();
-      const totalSent = dailyReports.reduce((sum, day) => sum + day.totalSent, 0);
-      const totalPaid = dailyReports.reduce((sum, day) => sum + day.totalPaid, 0);
-      const previousDebt = dailyReports.length > 0 ? dailyReports[dailyReports.length - 1].previousDebt : 0;
-      const currentDebt = dailyReports.length > 0 ? dailyReports[0].remainingDebt : 0;
+      const res = await api.get(`/reports/user/${selectedUserId}`);
+      const dailyReports = res.data || [];
+      const totalSent = dailyReports.reduce((sum, day) => sum + (day.totalSent || 0), 0);
+      const totalPaid = dailyReports.reduce((sum, day) => sum + (day.totalPaid || 0), 0);
+      const previousDebt = dailyReports.length > 0 ? dailyReports[dailyReports.length - 1].previousDebt || 0 : 0;
+      const currentDebt = dailyReports.length > 0 ? dailyReports[0].remainingDebt || 0 : 0;
       return { totalSent, totalPaid, previousDebt, currentDebt };
     },
     enabled: !!selectedUserId,
@@ -51,14 +52,12 @@ export default function PaymentsTab() {
   // Mutation paiement
   const validatePaymentMutation = useMutation({
     mutationFn: async (data) => {
-      const res = await  api.get("/payments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ userId: parseInt(data.userId), amount: data.amountFCFA, validatedBy: 3 }),
+      const res = await api.post("/payments", {
+        userId: parseInt(data.userId),
+        amount: data.amountFCFA,
+        validatedBy: 3,
       });
-      if (!res.ok) throw new Error("Erreur validation paiement");
-      return res.json();
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["userSummary", selectedUserId]);
@@ -74,7 +73,6 @@ export default function PaymentsTab() {
   });
 
   const onSubmit = (data) => validatePaymentMutation.mutate(data);
-
   const formatCurrency = (amount) => Number(amount).toLocaleString("fr-FR");
 
   return (
@@ -84,7 +82,6 @@ export default function PaymentsTab() {
       <View style={styles.card}>
         <Text style={styles.title}>Validation de Paiement</Text>
 
-        {/* Select user */}
         <Controller
           control={control}
           name="userId"
@@ -99,10 +96,10 @@ export default function PaymentsTab() {
                   .map((user) => (
                     <TouchableOpacity
                       key={user.id}
-                      style={[styles.option, field.value === user.id.toString() && styles.selectedOption]}
+                      style={[styles.option, field.value === String(user.id) && styles.selectedOption]}
                       onPress={() => {
-                        field.onChange(user.id.toString());
-                        setSelectedUserId(user.id.toString());
+                        field.onChange(String(user.id));
+                        setSelectedUserId(String(user.id));
                       }}
                     >
                       <Text>{user.first_name} {user.last_name} ({user.username})</Text>
@@ -113,7 +110,6 @@ export default function PaymentsTab() {
           )}
         />
 
-        {/* Amount input */}
         <Controller
           control={control}
           name="amountFCFA"
@@ -132,7 +128,7 @@ export default function PaymentsTab() {
         />
 
         <TouchableOpacity
-          style={[styles.button, !selectedUserId && styles.buttonDisabled]}
+          style={[styles.button, (!selectedUserId || validatePaymentMutation.isLoading) && styles.buttonDisabled]}
           onPress={handleSubmit(onSubmit)}
           disabled={!selectedUserId || validatePaymentMutation.isLoading}
         >
@@ -140,7 +136,6 @@ export default function PaymentsTab() {
         </TouchableOpacity>
       </View>
 
-      {/* User summary */}
       <View style={styles.card}>
         <Text style={styles.title}>Résumé Utilisateur</Text>
         {summaryLoading ? (

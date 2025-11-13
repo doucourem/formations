@@ -10,6 +10,9 @@ import notificationRoutes from './routes/notifications.js';
 import balanceRoutes from './routes/balance.js';
 import usersRoutes from './routes/users.js';
 import statsroutesRoutes from './routes/stats.routes.js';
+import apiRouter from "./controllers/usersController.js";
+
+
 
 dotenv.config();
 
@@ -27,6 +30,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/balance', balanceRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/stats', statsroutesRoutes);
+app.use("/api", apiRouter);
 
 // Route de test
 app.get('/', (req, res) => {
