@@ -25,7 +25,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import supabase from "../supabaseClient";
 import { Snackbar } from "react-native-paper";
 import { Calendar } from "react-native-calendars";
-
+import { sendAndSaveMessage } from "./sendAndSaveMessage";
 
 const { width, height } = Dimensions.get("window");
 
@@ -123,28 +123,21 @@ const fetchCashesAndTransactions = useCallback(async () => {
     const { data: kiosksData } = await supabase.from("kiosks").select("id, name");
 
     let cashesData;
-    if (profile?.role === "kiosque") {
-      const { data, error } = await supabase
-        .from("cashes")
-        .select("id, name, kiosk_id, balance, min_balance")
-        .eq("cashier_id", user.id);
-      if (error) throw error;
-      cashesData = data;
-    }
-    else if (profile?.role === "grossiste") {
-      const { data, error } = await supabase
-        .from("cashes")
-        .select("id, name, kiosk_id, balance, min_balance")
-        .eq("seller_id", user.id);
-      if (error) throw error;
-      cashesData = data;
-    } else {
-      const { data, error } = await supabase
-        .from("cashes")
-        .select("id, name, kiosk_id, balance, min_balance");
-      if (error) throw error;
-      cashesData = data;
-    }
+
+if (profile?.role === "kiosque" || profile?.role === "grossiste") {
+  const { data, error } = await supabase
+    .from("cashes")
+    .select("id, name, kiosk_id, balance, min_balance")
+    .or(`cashier_id.eq.${user.id},seller_id.eq.${user.id}`); // récupère les caisses liées à l'id de l'utilisateur, qu'il soit kiosque ou grossiste
+  if (error) throw error;
+  cashesData = data;
+} else {
+  const { data, error } = await supabase
+    .from("cashes")
+    .select("id, name, kiosk_id, balance, min_balance");
+  if (error) throw error;
+  cashesData = data;
+}
 
     const cashIds = cashesData.map((c) => c.id);
     const { data: txData } = await supabase
@@ -309,6 +302,21 @@ const newBalance = totalTransactions;
           created_at: new Date(),
         },
       ]);
+
+      const isCredit = type === "CREDIT";
+      const message = `
+NOUVELLE TRANSACTION 📄
+
+🆔 Cash ID : ${cashId}
+💰 Montant : ${montant}
+🔁 Type : ${isCredit ? "Envoie" : "Paiement"}
+🔎 Catégorie : ${transactionType}
+🕒 Créé le : ${new Date().toLocaleString()}
+`;
+
+       const success = await sendAndSaveMessage("whatsapp:+22373368889", message);
+          
+      
       if (error) throw error;
 
       await supabase

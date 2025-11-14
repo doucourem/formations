@@ -231,25 +231,55 @@ export default function KiosksTransactions() {
   const renderKiosk = ({ item }) => {
     const kioskCashes = cashesMap[item.id] || [];
     return (
-      <Card style={styles.card}>
-        <Card.Content>
-          <List.Item
-            title={item.name}
-            description={`Lieu: ${item.location}\nSolde total: ${balances[item.id]?.toLocaleString("fr-FR")} XOF`}
-            titleStyle={{ color: theme.colors.onSurface, fontSize: isTablet ? 18 : 16 }}
-            descriptionStyle={{ color: theme.colors.placeholder, fontSize: isTablet ? 14 : 12 }}
-            left={() => <List.Icon color={theme.colors.primary} icon="store" />}
-            right={() => (
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <IconButton icon="pencil" iconColor={theme.colors.accent} onPress={() => setCurrentKiosk(item) || setOpenPopup(true)} />
-                <IconButton icon="delete" iconColor={theme.colors.error} onPress={() => deleteKiosk(item.id)} />
-              </View>
-            )}
-          />
+    <Card style={[styles.card, { width: "100%" }]} elevation={3}>
+  <Card.Content>
+    <View style={styles.kioskHeader}>
+      <List.Icon color={theme.colors.primary} icon="store" style={styles.kioskIcon} />
+      
+      <View style={styles.kioskInfo}>
+        <Text style={[styles.kioskTitle, { fontSize: isTablet ? 18 : 16 }]}>
+          {item.name}
+        </Text>
+        <Text style={[styles.kioskDescription, { fontSize: isTablet ? 14 : 12 }]}>
+          Lieu: {item.location}
+        </Text>
+        <Text
+          style={[
+            styles.kioskBalance,
+            { 
+              fontSize: isTablet ? 14 : 12,
+              color: (balances[item.id] || 0) >= 0 ? theme.colors.success : theme.colors.error,
+            }
+          ]}
+        >
+          {balances[item.id] < 0
+            ? `⚠️ Il nous doit : ${(balances[item.id] || 0).toLocaleString("fr-FR")} FCFA`
+            : `💰 Il a une avance : ${(balances[item.id] || 0).toLocaleString("fr-FR")} FCFA`}
+        </Text>
+      </View>
 
-         
-        </Card.Content>
-      </Card>
+      <View style={styles.kioskActions}>
+        <IconButton
+          icon="pencil"
+          iconColor={theme.colors.accent}
+          size={isTablet ? 28 : 24}
+          onPress={() => {
+            setCurrentKiosk(item);
+            setOpenPopup(true);
+          }}
+        />
+        <IconButton
+          icon="delete"
+          iconColor={theme.colors.error}
+          size={isTablet ? 28 : 24}
+          onPress={() => deleteKiosk(item.id)}
+        />
+      </View>
+    </View>
+  </Card.Content>
+</Card>
+
+
     );
   };
 
@@ -426,4 +456,32 @@ const styles = StyleSheet.create({
   transactionsHeader: { marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   transactionCard: { marginBottom: 6 },
   transactionContent: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  kioskHeader: {
+  flexDirection: "row",
+  alignItems: "flex-start",
+  flexWrap: "wrap", // permet aux éléments de se réorganiser sur petits écrans
+},
+kioskIcon: {
+  marginRight: 8,
+},
+kioskInfo: {
+  flex: 1,
+  minWidth: 150,
+},
+kioskTitle: {
+  color: theme.colors.onSurface,
+  fontWeight: "bold",
+},
+kioskDescription: {
+  color: theme.colors.placeholder,
+},
+kioskBalance: {
+  marginTop: 2,
+},
+kioskActions: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginLeft: 8,
+},
+
 });

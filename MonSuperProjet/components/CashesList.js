@@ -248,7 +248,7 @@ const fetchCashes = async () => {
         />
       )}
       {/* ✅ Le kiosque peut quand même clôturer sa caisse */}
-      {!item.closed && (
+      {profile?.role === "admin" &&  !item.closed && (
         <IconButton
           {...props}
           icon="lock"

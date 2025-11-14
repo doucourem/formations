@@ -28,6 +28,7 @@ import UsersList from "./components/UsersList";
 import AddCashScreen from "./components/AddCashScreen";
 import EditCashScreen from "./components/EditCashScreen";
 import TransactionsListCaisse from "./components/TransactionsListCaisse";
+import SendMessageScreen from "./components/SendMessageScreen";
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -168,7 +169,7 @@ function DrawerNavigator({ user }) {
     admin: [
        { name: "Transactions", component: TransactionsList },
       { name: "BOUTIQUE", component: CashStack },
-     
+     { name: "BOUTIQUE2", component: SendMessageScreen },
      
       { name: "Fournisseurs", component: WholesalersList },
       { name: "Clients", component: KiosksList },
