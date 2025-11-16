@@ -8,16 +8,12 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\NotificationController;
+
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\NotificationController;
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,62 +21,111 @@ use App\Http\Controllers\NotificationController;
 |--------------------------------------------------------------------------
 */
 
-// Route principale pour la page d'accueil
+// Page d'accueil
 Route::get('/', function () {
-    // La méthode Inertia::render() pointe vers le composant React (HomePage.jsx)
-    return Inertia::render('HomePage', [
-        // Vous pouvez passer ici des données dynamiques si besoin (ex: liste des trajets)
-        // 'trajets' => App\Models\Trajet::all(),
-    ]);
+    return Inertia::render('HomePage');
 })->name('home');
-// Page d’accueil publique (redirige vers login si non connecté)
-/*Route::get('/', function () {
-    return redirect()->route('login');
+
+// Webhook pour rechercher les billets (public)
+Route::post('/webhook/tickets/search', [TicketController::class, 'webhookSearch']);
+
+// Webhook Twilio WhatsApp (public)
+Route::post('/twilio/webhook', function(Request $request) {
+    $from = $request->input('From'); // numéro WhatsApp utilisateur
+    $body = $request->input('Body'); // message utilisateur
+
+    preg_match('/(.+)->(.+)\s+(\d{4}-\d{2}-\d{2})/', $body, $matches);
+
+    if (!$matches) {
+        $reply = "Format invalide. Exemple : Bamako -> Kayes 2025-11-15";
+    } else {
+        [$all, $departure, $arrival, $date] = $matches;
+
+        $ticketsResponse = app(TicketController::class)
+            ->webhookSearch(new Request([
+                'departure' => trim($departure),
+                'arrival' => trim($arrival),
+                'date' => trim($date),
+            ]));
+
+        $tickets = $ticketsResponse->getData()->tickets;
+
+        if (count($tickets) === 0) {
+            $reply = "Aucun billet trouvé pour $departure -> $arrival le $date";
+        } else {
+            $reply = "Billets disponibles :\n";
+            foreach ($tickets as $t) {
+                $reply .= "ID: {$t->ticket_id}, Départ: {$t->departure_time}, Arrivée: {$t->arrival_time}, Siège: {$t->seat_number}, Prix: {$t->price} FCFA\n";
+            }
+        }
+    }
+
+    $twiml = new \Twilio\TwiML\MessagingResponse();
+    $twiml->message($reply);
+    return response($twiml, 200)->header('Content-Type', 'application/xml');
 });
 
-*/
 
-// Groupe protégé (authentifié + email vérifié)
+Route::post('/twilio/select-ticket', function(Request $request) {
+    $from = $request->input('From');
+    $body = $request->input('Body'); // l'utilisateur envoie l'ID du billet
+
+    $ticketId = trim($body);
+
+    $ticket = \App\Models\Ticket::with('trip.route', 'startStop', 'endStop')->find($ticketId);
+
+    if (!$ticket) {
+        $reply = "Billet introuvable. Veuillez vérifier l'ID.";
+    } elseif ($ticket->status !== 'reserved') {
+        $reply = "Ce billet n'est pas disponible.";
+    } else {
+        // Marquer le billet comme réservé par ce numéro (ou user)
+        $ticket->update([
+            'status' => 'paid', // ou 'reserved_by_whatsapp' selon ton workflow
+            'client_name' => $from,
+        ]);
+
+        $reply = "Billet ID {$ticket->id} réservé avec succès ✅\n";
+        $reply .= "Départ: {$ticket->trip->route->departureCity->name}\n";
+        $reply .= "Arrivée: {$ticket->trip->route->arrivalCity->name}\n";
+        $reply .= "Siège: {$ticket->seat_number}\n";
+        $reply .= "Prix: {$ticket->price} FCFA";
+    }
+
+    $twiml = new \Twilio\TwiML\MessagingResponse();
+    $twiml->message($reply);
+    return response($twiml, 200)->header('Content-Type', 'application/xml');
+});
+
+
+// Routes protégées (auth + email vérifié)
 Route::middleware(['auth', 'verified'])->group(function () {
 
+    // Notifications SMS/WhatsApp
+    Route::get('/send-sms', [NotificationController::class, 'sendSms']);
+    Route::get('/send-whatsapp', [NotificationController::class, 'sendWhatsapp']);
 
-Route::get('/send-sms', [NotificationController::class, 'sendSms']);
-Route::get('/send-whatsapp', [NotificationController::class, 'sendWhatsapp']);
-
-    // Tableau de bord
+    // Dashboard
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
-    // Gestion du profil
+    // Profil utilisateur
     Route::prefix('profile')->group(function () {
         Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
     });
 
-    // Villes CRUD
+    // CRUD
     Route::resource('cities', CityController::class);
-
-    // Agences CRUD
     Route::resource('agencies', AgencyController::class);
-
-    // Bus CRUD
     Route::resource('buses', BusController::class);
-
-    // Routes (trajets) CRUD
-    //Route::resource('routes', TripRouteController::class);
-    Route::resource('busroutes', TripRouteController::class);
-
-    // Voyages CRUD
+    Route::resource('busroutes', TripRouteController::class); // Routes
     Route::resource('trips', TripController::class);
-
-    // Tickets CRUD
     Route::resource('ticket', TicketController::class);
-
-    // Utilisateurs CRUD
     Route::resource('users', UserController::class);
 });
 
-// Authentification (login, register, logout, etc.)
+// Auth routes (login, register, logout...)
 require __DIR__ . '/auth.php';

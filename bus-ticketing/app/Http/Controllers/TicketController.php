@@ -337,7 +337,51 @@ class TicketController extends Controller
     {
         $user = Auth::user();
         if (!in_array($user->role, ['agent', 'manageragence', 'admin'])) {
-            
+
         }
     }
+public function webhookSearch(Request $request)
+{
+    // Récupération des critères envoyés par le webhook
+    $departure = $request->input('departure'); // ville départ
+    $arrival = $request->input('arrival');     // ville arrivée
+    $date = $request->input('date');           // date souhaitée (YYYY-MM-DD)
+
+    $ticketsQuery = Ticket::with([
+        'trip.route.departureCity',
+        'trip.route.arrivalCity',
+        'trip.bus',
+        'startStop.city',
+        'endStop.city',
+    ])->whereHas('trip.route', function ($q) use ($departure, $arrival) {
+        if ($departure) $q->whereHas('departureCity', fn($c) => $c->where('name', 'like', "%$departure%"));
+        if ($arrival) $q->whereHas('arrivalCity', fn($c) => $c->where('name', 'like', "%$arrival%"));
+    });
+
+    if ($date) {
+        $ticketsQuery->whereHas('trip', fn($t) => $t->whereDate('departure_at', $date));
+    }
+
+    $tickets = $ticketsQuery->orderBy('trip.departure_at')->get();
+
+    // Format simple pour renvoyer dans un chat WhatsApp
+    $response = $tickets->map(fn($ticket) => [
+        'ticket_id' => $ticket->id,
+        'trip_id' => $ticket->trip_id,
+        'departure' => $ticket->trip->route->departureCity->name ?? '-',
+        'arrival' => $ticket->trip->route->arrivalCity->name ?? '-',
+        'departure_time' => optional($ticket->trip->departure_at)->format('d/m/Y H:i'),
+        'arrival_time' => optional($ticket->trip->arrival_at)->format('d/m/Y H:i'),
+        'seat_number' => $ticket->seat_number,
+        'price' => $ticket->price,
+        'status' => $ticket->status,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'count' => $tickets->count(),
+        'tickets' => $response,
+    ]);
+}
+
 }

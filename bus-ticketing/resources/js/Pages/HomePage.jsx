@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   AppBar, Toolbar, Typography, IconButton, Button, Container, Box, CssBaseline,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-  Divider, createTheme, ThemeProvider, Card, CardContent, Grid
+  Divider, createTheme, ThemeProvider, Card, Grid
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
@@ -64,33 +64,59 @@ export default function HomePage() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: 3 }}>
         {/* HERO */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-          <Box textAlign="center" py={10} sx={{
+          <Box textAlign="center" py={8} sx={{
             borderRadius: 5,
             background: darkMode
               ? "linear-gradient(135deg,#111,#222)"
               : "linear-gradient(135deg,#e6fff0,#ffffff)",
             boxShadow: 6,
-            mb: 6
+            mb: 4
           }}>
-            <Typography variant="h2" fontWeight="900" color="success.main">🎫 Votre Billet en 3 Minutes</Typography>
+            <Typography variant="h3" fontWeight="900" color="success.main">🎫 Votre Billet en 3 Minutes</Typography>
             <Typography variant="h5" mt={2} color="text.secondary">Réservation ultra-rapide via WhatsApp</Typography>
             <Button variant="contained" color="success" size="large" href={whatsappLink} target="_blank" startIcon={<WhatsAppIcon />}
               sx={{
-                mt: 5, py: 1.8, px: 5, borderRadius: "20px", fontSize: "1.1rem", fontWeight: 800,
-                boxShadow: "0 8px 20px rgba(0,168,89,0.4)",
-                "&:hover": { transform: "scale(1.05)", boxShadow: "0 10px 25px rgba(0,200,117,0.5)" }
+                mt: 4, py: 1.5, px: 5, borderRadius: "20px", fontSize: "1.05rem", fontWeight: 800,
+                boxShadow: "0 6px 12px rgba(0,168,89,0.3)",
+                "&:hover": { transform: "scale(1.03)", boxShadow: "0 8px 16px rgba(0,200,117,0.4)" }
               }}>
               Envoyer "Billet" sur WhatsApp
             </Button>
           </Box>
         </motion.div>
 
+        {/* PUBLICITÉ / PROMO */}
+        <Box
+          my={3}
+          p={3}
+          textAlign="center"
+          sx={{
+            borderRadius: 3,
+            background: darkMode ? "#1A1A1A" : "#E6F7FF",
+            boxShadow: 3,
+            cursor: "pointer",
+            transition: "0.3s",
+            "&:hover": {
+              transform: "scale(1.02)",
+              boxShadow: "0 8px 20px rgba(0,0,0,0.2)"
+            }
+          }}
+          onClick={() => window.open("https://www.toppromo.com", "_blank")}
+        >
+          <Typography variant="h5" fontWeight="700" color={darkMode ? "#00a859" : "#0077B6"}>
+            🚀 Promo spéciale : Réservez maintenant et obtenez 10% de réduction !
+          </Typography>
+          <Typography variant="body2" mt={1} color="text.secondary">
+            Offre valable jusqu’au 31 décembre 2025. Cliquez pour profiter.
+          </Typography>
+        </Box>
+
         {/* TARIFS */}
         <Box py={4}>
-          <Typography variant="h4" fontWeight="700" mb={3} textAlign="center">💰 Tarifs & Trajets</Typography>
+          <Typography variant="h4" fontWeight="700" mb={2} textAlign="center">💰 Tarifs & Trajets</Typography>
           <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
             <Table>
               <TableHead>
@@ -114,27 +140,42 @@ export default function HomePage() {
         </Box>
 
         {/* PARTENAIRES */}
-        <Box py={4}>
-          <Typography variant="h4" fontWeight="700" mb={3} textAlign="center">🚌 Compagnies Partenaires</Typography>
-          <Box display="flex" justifyContent="center" flexWrap="wrap" gap={3}>
-            {["Sonef","STM","Toupac","Aga Transport"].map(c=>
-              <Card key={c} sx={{ p:2, minWidth:120, textAlign:"center", borderRadius:3, boxShadow:3, "&:hover":{transform:"translateY(-3px)", boxShadow:"0 8px 20px rgba(0,0,0,0.2)", transition:"0.3s"} }}>
-                <Typography fontWeight="bold">{c}</Typography>
-              </Card>
-            )}
-          </Box>
-        </Box>
+{/* AVIS SUR LES COMPAGNIES */}
+<Box py={4}>
+  <Typography variant="h4" fontWeight="700" mb={2} textAlign="center">
+    🚌 Avis sur les compagnies
+  </Typography>
+  <Grid container spacing={3} justifyContent="center">
+    {[
+      { company: "Sonef", review: "Bus ultraconfortable et personnel courtois." },
+      { company: "STM", review: "Horaires respectés et prise en charge rapide." },
+      { company: "Toupac", review: "Billets fiables et service professionnel." },
+      { company: "Aga Transport", review: "Trajets agréables et sécurité assurée." }
+    ].map((a, i) => (
+      <Grid item xs={12} sm={6} md={3} key={i}>
+        <motion.div whileHover={{ scale: 1.02 }}>
+          <Card sx={{ p: 2, textAlign: "center", boxShadow: 2, borderRadius: 2 }}>
+            <Typography fontWeight="bold">{a.company}</Typography>
+            <Typography variant="body2" color="text.secondary" mt={1}>
+              “{a.review}”
+            </Typography>
+          </Card>
+        </motion.div>
+      </Grid>
+    ))}
+  </Grid>
+</Box>
 
         {/* AVIS */}
         <Box py={4} sx={{ backgroundColor: darkMode?"#111":"#f0f4f8", borderRadius:3 }}>
-          <Typography variant="h4" fontWeight="700" mb={3} textAlign="center">⭐ Avis des Clients</Typography>
-          <Grid container spacing={3} justifyContent="center">
+          <Typography variant="h4" fontWeight="700" mb={2} textAlign="center">⭐ Avis des Clients</Typography>
+          <Grid container spacing={2} justifyContent="center">
             {testimonials.map((t,i)=>
               <Grid item xs={12} sm={4} key={i}>
                 <motion.div whileHover={{ scale:1.03 }}>
-                  <Card sx={{ p:3, textAlign:"center", boxShadow:3 }}>
+                  <Card sx={{ p:2.5, textAlign:"center", boxShadow:3 }}>
                     <Typography fontWeight="bold">{t.name}</Typography>
-                    <Typography fontSize="0.95rem" mt={1}>{t.comment}</Typography>
+                    <Typography fontSize="0.9rem" mt={1}>{t.comment}</Typography>
                   </Card>
                 </motion.div>
               </Grid>
@@ -144,10 +185,10 @@ export default function HomePage() {
 
         {/* AVANTAGES */}
         <Box py={4} textAlign="center">
-          <Typography variant="h4" fontWeight="700" mb={3}>✅ Pourquoi Choisir Billet Rapide Mali ?</Typography>
-          <Box display="flex" flexWrap="wrap" justifyContent="center" gap={3}>
+          <Typography variant="h4" fontWeight="700" mb={2}>✅ Pourquoi Choisir Billet Rapide Mali ?</Typography>
+          <Box display="flex" flexWrap="wrap" justifyContent="center" gap={2}>
             {advantages.map((a,i)=>
-              <Card key={i} sx={{ p:2, minWidth:140, borderRadius:3, display:"flex", flexDirection:"column", alignItems:"center", boxShadow:3 }}>
+              <Card key={i} sx={{ p:2, minWidth:130, borderRadius:3, display:"flex", flexDirection:"column", alignItems:"center", boxShadow:3 }}>
                 <Box fontSize="2rem" mb={1}>{a.icon}</Box>
                 <Typography fontWeight="bold">{a.title}</Typography>
               </Card>
@@ -157,23 +198,23 @@ export default function HomePage() {
 
         {/* RESERVATION */}
         <Box py={4} textAlign="center">
-          <Typography variant="h4" fontWeight="700" mb={3}>📝 Réserver Maintenant</Typography>
-          <Card sx={{ borderRadius:"16px", p:4, display:"inline-block", boxShadow:5 }}>
-            <Typography mb={2}>Cliquez ci-dessous pour commencer votre réservation via WhatsApp</Typography>
+          <Typography variant="h4" fontWeight="700" mb={2}>📝 Réserver Maintenant</Typography>
+          <Card sx={{ borderRadius:"16px", p:3.5, display:"inline-block", boxShadow:5 }}>
+            <Typography mb={1.5}>Cliquez ci-dessous pour commencer votre réservation via WhatsApp</Typography>
             <Button variant="contained" color="success" size="large" href={whatsappLink} target="_blank" startIcon={<WhatsAppIcon />}
-              sx={{ mt:2, py:1.8, px:5, borderRadius:"20px", fontWeight:700, fontSize:"1rem", boxShadow:"0 8px 20px rgba(0,168,89,0.4)", "&:hover":{ transform:"scale(1.05)" } }}>
+              sx={{ mt:2, py:1.5, px:5, borderRadius:"20px", fontWeight:700, fontSize:"1rem", boxShadow:"0 8px 20px rgba(0,168,89,0.4)", "&:hover":{ transform:"scale(1.05)" } }}>
               Envoyer "Billet" sur WhatsApp
             </Button>
-            <Typography mt={2} fontSize="0.9rem" color="text.secondary">Numéro WhatsApp officiel : <strong>{whatsappNumber}</strong></Typography>
+            <Typography mt={1.5} fontSize="0.85rem" color="text.secondary">Numéro WhatsApp officiel : <strong>{whatsappNumber}</strong></Typography>
           </Card>
         </Box>
 
         {/* FOOTER */}
-        <Divider sx={{ my:4 }} />
-        <Box textAlign="center" py={3}>
+        <Divider sx={{ my:3 }} />
+        <Box textAlign="center" py={2}>
           <Typography variant="body2">Email : contact@billetrapide-mali.ml</Typography>
-          <Typography variant="body2" mt={1}>Adresse : Bamako, Mali</Typography>
-          <Typography variant="body2" mt={1}>© {new Date().getFullYear()} Billet Rapide Mali — Tous droits réservés.</Typography>
+          <Typography variant="body2" mt={0.5}>Adresse : Bamako, Mali</Typography>
+          <Typography variant="body2" mt={0.5}>© {new Date().getFullYear()} Billet Rapide Mali — Tous droits réservés.</Typography>
         </Box>
       </Container>
 
