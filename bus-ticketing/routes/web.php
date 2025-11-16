@@ -11,6 +11,13 @@ use App\Http\Controllers\TicketController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\NotificationController;
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
+
 
 /*
 |--------------------------------------------------------------------------
@@ -18,13 +25,27 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
-// Page d’accueil publique (redirige vers login si non connecté)
+// Route principale pour la page d'accueil
 Route::get('/', function () {
+    // La méthode Inertia::render() pointe vers le composant React (HomePage.jsx)
+    return Inertia::render('HomePage', [
+        // Vous pouvez passer ici des données dynamiques si besoin (ex: liste des trajets)
+        // 'trajets' => App\Models\Trajet::all(),
+    ]);
+})->name('home');
+// Page d’accueil publique (redirige vers login si non connecté)
+/*Route::get('/', function () {
     return redirect()->route('login');
 });
 
+*/
+
 // Groupe protégé (authentifié + email vérifié)
 Route::middleware(['auth', 'verified'])->group(function () {
+
+
+Route::get('/send-sms', [NotificationController::class, 'sendSms']);
+Route::get('/send-whatsapp', [NotificationController::class, 'sendWhatsapp']);
 
     // Tableau de bord
     Route::get('/dashboard', function () {
