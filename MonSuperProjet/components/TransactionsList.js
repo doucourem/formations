@@ -26,8 +26,7 @@ import supabase from "../supabaseClient";
 import { Snackbar } from "react-native-paper";
 import { Calendar } from "react-native-calendars";
 import { sendAndSaveMessage } from "./sendAndSaveMessage";
-
-const { width, height } = Dimensions.get("window");
+const { width, height } = Dimensions.get('window');
 
 const theme = {
   ...MD3DarkTheme,
@@ -104,6 +103,9 @@ const [transactionTypes, setTransactionTypes] = useState([]);
     loadUser();
   }, []);
 
+
+
+
   // === Récupération cashes + transactions ===
 const fetchCashesAndTransactions = useCallback(async () => {
   if (!user) return;
@@ -129,7 +131,10 @@ if (profile?.role === "kiosque" || profile?.role === "grossiste") {
     .from("cashes")
     .select("id, name, kiosk_id, balance, min_balance")
     .or(`cashier_id.eq.${user.id},seller_id.eq.${user.id}`); // récupère les caisses liées à l'id de l'utilisateur, qu'il soit kiosque ou grossiste
-  if (error) throw error;
+if (error) {
+  console.error("Supabase error:", error);
+  throw error;
+}
   cashesData = data;
 } else {
   const { data, error } = await supabase
@@ -165,9 +170,38 @@ if (profile?.role === "kiosque" || profile?.role === "grossiste") {
       };
     });
 
-    setTransactions(enriched);
-    setCashes(cashesData);
-    setKiosks(kiosksData);
+// Pré-sélection automatique si une seule caisse existe
+// Mise à jour des données principales
+setTransactions(enriched);
+setCashes(cashesData);
+setKiosks(kiosksData);
+console.log(cashesData)
+// Pré-sélection automatique
+if (cashesData.length === 1) {
+  const uniqueCash = cashesData[0];
+  console.log(uniqueCash.id)
+  setForm((prev) => {
+    if (prev.cashId === uniqueCash.id) return prev;
+    return {
+      ...prev,
+      cashId: uniqueCash.id,
+      cashQuery: uniqueCash.name,
+    };
+  });
+ 
+} else if (profile?.role === "kiosque" || profile?.role === "grossiste") {
+  // Si plusieurs caisses mais que l'utilisateur est un vendeur, on peut pré-sélectionner la première
+  const userCash = cashesData.find(c => c.cashier_id === user.id || c.seller_id === user.id);
+  if (userCash) {
+    setForm((prev) => ({
+      ...prev,
+      cashId: userCash.id,
+      cashQuery: userCash.name,
+    }));
+  }
+}
+
+
     setLoading(false);
   } catch (err) {
     Alert.alert("Erreur", err.message);
@@ -245,7 +279,7 @@ const showAlert = (title, message) => {
   // === CRUD transaction ===
 const handleSaveTransaction = async () => {
   const { cashId, amount, transactionType, type, otherType } = form;
-  if (!cashId || !amount) {
+  if ( !amount) {
     showAlert("Erreur", "Veuillez remplir tous les champs.");
     return;
   }
@@ -303,11 +337,14 @@ const newBalance = totalTransactions;
         },
       ]);
 
-      const isCredit = type === "CREDIT";
-      const message = `
+     const selectedCash = cashes.find(c => c.id === cashId);
+
+const isCredit = type === "CREDIT";
+
+const message = `
 NOUVELLE TRANSACTION 📄
 
-🆔 Cash ID : ${cashId}
+🏦 Caisse : ${selectedCash?.name || "Inconnue"}
 💰 Montant : ${montant}
 🔁 Type : ${isCredit ? "Envoie" : "Paiement"}
 🔎 Catégorie : ${transactionType}
@@ -535,16 +572,16 @@ const handleDeleteTransaction = (id) => {
         />
 
        <Portal>
-  <Dialog
-    visible={dialogVisible}
-    onDismiss={() => setDialogVisible(false)}
-    style={{
-      backgroundColor: theme.colors.surface,
-      borderRadius: width * 0.04,
-      marginHorizontal: width * 0.03, // responsive margin
-      maxHeight: height * 0.85,       // pas trop grand sur mobile
-    }}
-  >
+ <Dialog
+  visible={dialogVisible}
+  onDismiss={() => setDialogVisible(false)}
+  style={{
+    backgroundColor: theme.colors.surface,
+    borderRadius: width * 0.04,    // OK
+    marginHorizontal: width * 0.03, 
+    maxHeight: height * 0.85,      // OK
+  }}
+>
     <Dialog.Title
       style={{
         textAlign: "center",
@@ -564,58 +601,95 @@ const handleDeleteTransaction = (id) => {
     >
       <Dialog.Content>
         {/* Rechercher une caisse */}
-        <TextInput
-          label="Rechercher une caisse"
-          value={form.cashQuery}
-          onChangeText={(text) => setForm({ ...form, cashQuery: text })}
-          mode="outlined"
-          style={{ marginBottom: height * 0.01 }}
-          right={<TextInput.Icon icon="magnify" />}
+      {/* Sélection de la caisse */}
+{cashes.length > 1 ? (
+  <>
+    {/* 🔍 Recherche si plusieurs caisses */}
+    <TextInput
+      label="Rechercher une caisse"
+      value={form.cashQuery}
+      onChangeText={(text) =>
+        setForm({ ...form, cashQuery: text })
+      }
+      mode="outlined"
+      style={{ marginBottom: height * 0.01 }}
+      right={<TextInput.Icon icon="magnify" />}
+    />
+
+    {/* Liste filtrée */}
+    {form.cashQuery.length > 0 && (
+      <View
+        style={{
+          maxHeight: height * 0.25,
+          borderWidth: 1,
+          borderColor: "#475569",
+          borderRadius: width * 0.02,
+          overflow: "hidden",
+          marginBottom: height * 0.015,
+        }}
+      >
+        <FlatList
+          data={cashes.filter((c) =>
+            c.name.toLowerCase().includes(form.cashQuery.toLowerCase())
+          )}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() =>
+                setForm({
+                  ...form,
+                  cashId: item.id,
+                  cashQuery: item.name,
+                })
+              }
+              style={{
+                paddingVertical: height * 0.012,
+                paddingHorizontal: width * 0.03,
+                backgroundColor:
+                  form.cashId === item.id ? theme.colors.primary : "transparent",
+              }}
+            >
+              <Text
+                style={{
+                  color:
+                    form.cashId === item.id
+                      ? "white"
+                      : theme.colors.onSurface,
+                  fontWeight: form.cashId === item.id ? "600" : "normal",
+                }}
+              >
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          )}
         />
-        {form.cashQuery.length > 0 && (
-          <View
-            style={{
-              maxHeight: height * 0.25,
-              borderWidth: 1,
-              borderColor: "#475569",
-              borderRadius: width * 0.02,
-              overflow: "hidden",
-              marginBottom: height * 0.015,
-            }}
-          >
-            <FlatList
-              data={cashes.filter((c) =>
-                c.name.toLowerCase().includes(form.cashQuery.toLowerCase())
-              )}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  onPress={() =>
-                    setForm({ ...form, cashId: item.id, cashQuery: item.name })
-                  }
-                  style={{
-                    paddingVertical: height * 0.012,
-                    paddingHorizontal: width * 0.03,
-                    backgroundColor:
-                      form.cashId === item.id ? "#1E3A8A" : "transparent",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color:
-                        form.cashId === item.id
-                          ? "white"
-                          : theme.colors.onSurface,
-                      fontWeight: form.cashId === item.id ? "600" : "normal",
-                    }}
-                  >
-                    {item.name}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        )}
+      </View>
+    )}
+  </>
+) : (
+  /* 🏦 Caisse auto si une seule */
+  
+  cashes.length === 1  ? (
+    <View
+      style={{
+        marginBottom: height * 0.02,
+        padding: width * 0.03,
+        backgroundColor: theme.dark ? "#1e293b" : "#F1F5F9",
+        borderRadius: width * 0.02,
+        borderWidth: 1,
+        borderColor: theme.dark ? "#64748B" : "#CBD5E1",
+      }}
+    >
+      <Text style={{ marginBottom: 10 }}>
+        🏦 Caisse sélectionnée automatiquement :{" "}
+        <Text style={{ fontWeight: "bold", color: theme.colors.primary }}>
+          {form.cashQuery || cashes[0].name}
+        </Text>
+      </Text>
+    </View>
+  ) : null
+)}
+
 
         {/* Montant */}
         <TextInput
@@ -723,7 +797,8 @@ const handleDeleteTransaction = (id) => {
     <Dialog.Actions
       style={{ justifyContent: "space-between", paddingHorizontal: width * 0.04 }}
     >
-      <Button onPress={() => setDialogVisible(false)} textColor="#64748B">
+      <Button onPress={() => setDialogVisible(false)} textColor="white"
+         buttonColor={theme.colors.error}>
         Annuler
       </Button>
       <Button
