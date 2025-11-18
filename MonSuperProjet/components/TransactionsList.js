@@ -279,56 +279,86 @@ const showAlert = (title, message) => {
   // === CRUD transaction ===
 const handleSaveTransaction = async () => {
   const { cashId, amount, transactionType, type, otherType } = form;
-  if ( !amount) {
+
+  if (!amount) {
     showAlert("Erreur", "Veuillez remplir tous les champs.");
     return;
   }
 
   try {
-    const selectedCash = cashes.find((c) => c.id === cashId);
+
+    // 🟦 1 — Si l'utilisateur est "grossiste", on remplace automatiquement la caisse
+    let finalCashId = cashId;
+
+
+if (profile?.role?.toLowerCase() === "grossiste") {
+  // Récupérer la caisse directement depuis Supabase
+  const { data: userCashArray, error } = await supabase
+    .from("cashes")
+    .select("id, name, balance, min_balance")
+    .eq("seller_id", user.id)
+    .limit(1);
+
+  if (error) {
+    showAlert("Erreur", "Impossible de récupérer la caisse du grossiste.");
+    return;
+  }
+
+  if (!userCashArray || userCashArray.length === 0) {
+    showAlert("Erreur", "Aucune caisse n'est associée à votre compte.");
+    return;
+  }
+
+  // On prend la première caisse trouvée
+  finalCashId = userCashArray[0].id;
+}
+
+
+    // 🟦 2 — Vérifier la caisse sélectionnée
+    const selectedCash = cashes.find((c) => c.id === finalCashId);
     if (!selectedCash) throw new Error("Caisse introuvable.");
 
     const montant = parseFloat(amount);
-   // 1️⃣ Récupérer toutes les transactions de la caisse
-const cashTransactions = transactions.filter(t => t.cash_id === cashId);
 
-// 2️⃣ Calculer la somme totale des transactions existantes
-let totalTransactions = cashTransactions.reduce((sum, t) => {
-  return sum + (t.type === "CREDIT" ? t.amount : -t.amount);
-}, 0);
+    // 🟦 3 — Calcul du solde actuel
+    const cashTransactions = transactions.filter(t => t.cash_id === finalCashId);
 
-// 3️⃣ Ajouter la nouvelle transaction
-totalTransactions += type === "CREDIT" ? montant : -montant;
+    let totalTransactions = cashTransactions.reduce((sum, t) => {
+      return sum + (t.type === "CREDIT" ? t.amount : -t.amount);
+    }, 0);
 
-// 4️⃣ Nouveau solde
-const newBalance = totalTransactions;
+    // Nouveau solde après la transaction
+    const newBalance = totalTransactions + (type === "CREDIT" ? montant : -montant);
 
-
-    // 🚫 Vérification : bloquer le DEBIT si < min_balance
-    if (type === "CREDIT" && newBalance > selectedCash.min_balance) {
+    // 🟥 4 — Vérification DU SEUIL (CORRIGÉE)
+    // Si DEBIT → le solde ne doit PAS descendre sous min_balance
+    if (type === "DEBIT" && newBalance < selectedCash.min_balance) {
       showAlert(
         "Attention",
-        `⚠️ Solde est atteint au seuil max : cette opération ferait tomber la caisse "${newBalance}" sous le seuil minimal (${selectedCash.min_balance} XOF).`
+        `⚠️ Impossible : cette opération ferait tomber la caisse à ${newBalance} XOF, en dessous du seuil minimal (${selectedCash.min_balance} XOF).`
       );
       return;
     }
 
+    // 🟦 5 — Mise à jour ou création transaction
     if (editMode && editingId) {
       const { error } = await supabase
         .from("transactions")
         .update({
-          cash_id: cashId,
+          cash_id: finalCashId,
           amount: montant,
           type,
-          transaction_type:transactionType,
-          other_type: transactionType === "Autre" ? otherType : null
+          transaction_type: transactionType,
+          other_type: transactionType === "Autre" ? otherType : null,
         })
         .eq("id", editingId);
+
       if (error) throw error;
+
     } else {
       const { error } = await supabase.from("transactions").insert([
         {
-          cash_id: cashId,
+          cash_id: finalCashId,
           amount: montant,
           type,
           transaction_type: transactionType,
@@ -337,32 +367,42 @@ const newBalance = totalTransactions;
         },
       ]);
 
-     const selectedCash = cashes.find(c => c.id === cashId);
+      if (error) throw error;
 
-const isCredit = type === "CREDIT";
+      // Envoi WhatsApp
+      // Récupération des kiosques depuis Supabase
+const { data: kiosksData, error: kiosksError } = await supabase
+  .from("kiosks")
+  .select("id, name");
+
+if (kiosksError) {
+  console.error("Erreur chargement kiosques :", kiosksError);
+  showAlert("Erreur", "Impossible de charger les kiosques.");
+  return;
+}
+
+// Exemple pour récupérer le kiosque de la caisse
+const kiosk = kiosksData?.find((k) => k.id === selectedCash?.kiosk_id);
 
 const message = `
 NOUVELLE TRANSACTION 📄
 
-🏦 Caisse : ${selectedCash?.name || "Inconnue"}
+🏦 Boutique : ${selectedCash?.name || "Inconnue"}
+👤 Nom : ${kiosk?.name || "Inconnu"}
 💰 Montant : ${montant}
-🔁 Type : ${isCredit ? "Envoie" : "Paiement"}
-🔎 Catégorie : ${transactionType}
 🕒 Créé le : ${new Date().toLocaleString()}
 `;
 
-       const success = await sendAndSaveMessage("whatsapp:+22373368889", message);
-          
-      
-      if (error) throw error;
+      await sendAndSaveMessage("whatsapp:+22373368889", message);
 
+      // Mise à jour du solde
       await supabase
         .from("cashes")
         .update({ balance: newBalance })
-        .eq("id", cashId);
+        .eq("id", finalCashId);
     }
 
-    // Réinitialisation
+    // 🟦 6 — Reset
     setDialogVisible(false);
     setForm({
       cashId: null,
@@ -374,13 +414,15 @@ NOUVELLE TRANSACTION 📄
     });
     setEditMode(false);
     setEditingId(null);
-    fetchCashesAndTransactions();
 
+    fetchCashesAndTransactions();
     showAlert("Succès", "Transaction enregistrée avec succès ✅");
+
   } catch (err) {
     showAlert("Erreur", err.message);
   }
 };
+
 
 
 const handleDeleteTransaction = (id) => {
