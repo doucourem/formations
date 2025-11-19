@@ -267,4 +267,4 @@ export default function TicketForm({ ticket = null, trips = [] }) {
       </Box>
     </GuestLayout>
   );
-}
+} 

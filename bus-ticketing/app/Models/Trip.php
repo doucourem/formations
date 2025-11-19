@@ -39,6 +39,15 @@ class Trip extends Model
         return $this->hasMany(Ticket::class);
     }
 
+    // 📦 Relation avec les colis (Parcels)
+    /**
+     * Get the parcels associated with the trip.
+     */
+    public function parcels()
+    {
+        return $this->hasMany(Parcel::class);
+    }
+
     // 🕒 Formattage automatique des dates
     public function getFormattedDepartureAttribute()
     {

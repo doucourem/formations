@@ -59,6 +59,7 @@ export default function AuthenticatedLayout({ children }) {
       { text: "Trajets", icon: <RouteIcon />, route: route("busroutes.index") },
       { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
       { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
+      { text: "Colis", icon: <ConfirmationNumberIcon />, route: route("parcels.index") },
       { text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") },
     ];
   } else if (user.role === "manageragence") {

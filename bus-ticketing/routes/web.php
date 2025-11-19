@@ -16,6 +16,7 @@ use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Twilio\TwiML\MessagingResponse;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\ParcelController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -42,6 +43,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
+
+
     // Profil utilisateur
     Route::prefix('profile')->group(function () {
         Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -57,6 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('trips', TripController::class);
     Route::resource('ticket', TicketController::class);
     Route::resource('users', UserController::class);
+    Route::resource('parcels',ParcelController::class);
 });
 
 // Auth routes (login, register, logout...)
