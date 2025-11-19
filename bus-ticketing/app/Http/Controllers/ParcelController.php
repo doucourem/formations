@@ -135,17 +135,21 @@ class ParcelController extends Controller
     /**
      * Update an existing parcel
      */
-    public function update(Request $request, Parcel $parcel)
-    {
+   public function update(Request $request, Parcel $parcel)
+{
+   
         $validated = $request->validate([
             'trip_id'             => 'required|exists:trips,id',
-            'tracking_number'     => 'required|string|max:255|unique:parcels,tracking_number',
+
+            // 💥 IMPORTANT : autoriser la valeur actuelle
+            'tracking_number'     => 'required|string|max:255|unique:parcels,tracking_number,' . $parcel->id,
+
             'sender_name'         => 'required|string|max:255',
             'sender_phone'        => 'required|string|max:50',
             'recipient_name'      => 'required|string|max:255',
             'recipient_phone'     => 'required|string|max:50',
             'weight_kg'           => 'required|numeric',
-            'price'               => 'required|numeric|min:0', // ✅ AJOUTÉ
+            'price'               => 'required|numeric|min:0',
             'description'         => 'nullable|string',
             'status'              => 'required|string|max:100',
         ]);
@@ -154,7 +158,8 @@ class ParcelController extends Controller
 
         return redirect()->route('parcels.index')
             ->with('success', 'Colis mis à jour avec succès.');
-    }
+}
+
 
     /**
      * Delete a parcel
