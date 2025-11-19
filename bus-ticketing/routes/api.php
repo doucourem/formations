@@ -111,7 +111,7 @@ Route::post('/twilio/webhook', function(Request $request) {
         $reply .= "🎫 Billet : {$departureCity} → {$arrivalCity}\n";
         $reply .= "Départ : {$departureTime} | Arrivée : {$arrivalTime}\n";
         $reply .= "Bus : {$busName}\nPrix : {$price} FCFA\nID : {$trip->id}\n\nMerci et bon voyage ! 🚌";
-        $twiml->message($reply);
+       // $twiml->message($reply);
 
         // Générer QR code et PDF
         $ticketDir = storage_path('app/public/tickets');
@@ -246,14 +246,14 @@ function rechercherVoyages($departure,$arrival,$date,$twiml){
 
     $reply = "🚍 Voyages disponibles pour {$departure} → {$arrival} le {$date} :\n\n";
     foreach($trips as $trip){
-        $reply .= "🆔 {$trip->id}\n";
+        $reply .= "Le numéro de référence du voyage {$trip->id}\n";
         $reply .= "🕒 Départ : ".$trip->departure_at->format('H:i')."\n";
         $reply .= "🕒 Arrivée : ".$trip->arrival_at->format('H:i')."\n";
         $reply .= "🚌 Bus : ".($trip->bus->registration_number ?? 'N/A')."\n";
         $reply .= "💵 Prix : ".($trip->route->price ?? 'N/A')." FCFA\n";
         $reply .= "--------------------------------\n";
     }
-    $reply .= "\n➡ Pour réserver, envoyez simplement l’ID du voyage.";
+    $reply .= "\n➡ Pour réserver, envoyez simplement Veuillez indiquer le numéro de référence du voyage pour continuer..";
     $twiml->message($reply);
     return response($twiml,200)->header('Content-Type','application/xml');
 }
