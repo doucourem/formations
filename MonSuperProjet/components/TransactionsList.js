@@ -393,7 +393,7 @@ NOUVELLE TRANSACTION 📄
 🕒 Créé le : ${new Date().toLocaleString()}
 `;
 
-      await sendAndSaveMessage("whatsapp:+22373368889", message);
+      await sendAndSaveMessage("whatsapp:+24102849507", message);
 
       // Mise à jour du solde
       await supabase
