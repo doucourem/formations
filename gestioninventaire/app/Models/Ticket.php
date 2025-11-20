@@ -66,6 +66,15 @@ class Trimestre extends Model {
     public function stocks() {
         return $this->hasMany(StockTrimestre::class);
     }
+
+    public function depenses() {
+    return $this->hasMany(Depense::class);
+}
+
+public function credits() {
+    return $this->hasMany(Credit::class);
+}
+
 }
 
 class StockTrimestre extends Model {

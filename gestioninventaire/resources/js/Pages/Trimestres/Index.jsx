@@ -182,6 +182,46 @@ export default function TrimestresIndex({ boutique, trimestres, filters }) {
             showLastButton
           />
         </Box>
+<Box mt={2}>
+  <Typography variant="h6">Dépenses</Typography>
+  {form.depenses.map((d, i) => (
+    <Stack direction="row" spacing={1} key={i} mb={1}>
+      <TextField
+        label="Description"
+        value={d.description}
+        onChange={(e) => handleDepenseChange(i, 'description', e.target.value)}
+      />
+      <TextField
+        label="Montant"
+        type="number"
+        value={d.amount}
+        onChange={(e) => handleDepenseChange(i, 'amount', e.target.value)}
+      />
+      <IconButton color="error" onClick={() => removeDepense(i)}>❌</IconButton>
+    </Stack>
+  ))}
+  <Button variant="outlined" onClick={addDepense}>+ Ajouter une dépense</Button>
+</Box>
+<Box mt={2}>
+  <Typography variant="h6">Crédits</Typography>
+  {form.credits.map((c, i) => (
+    <Stack direction="row" spacing={1} key={i} mb={1}>
+      <TextField
+        label="Description"
+        value={c.description}
+        onChange={(e) => handleCreditChange(i, 'description', e.target.value)}
+      />
+      <TextField
+        label="Montant"
+        type="number"
+        value={c.amount}
+        onChange={(e) => handleCreditChange(i, 'amount', e.target.value)}
+      />
+      <IconButton color="error" onClick={() => removeCredit(i)}>❌</IconButton>
+    </Stack>
+  ))}
+  <Button variant="outlined" onClick={addCredit}>+ Ajouter un crédit</Button>
+</Box>
 
       </Box>
     </GuestLayout>
