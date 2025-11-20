@@ -54,7 +54,7 @@ const getTransactionTypes = (role) => {
     case "grossiste":
       return ["Demande de fonds", "Autre"]; // ventes sortantes
     case "kiosque":
-      return ["Achat UV", "Autre"]; // achats entrants
+      return ["Autre"]; // achats entrants
     default:
       return ["Vente UV", "Autre"];
   }
@@ -286,58 +286,46 @@ const handleSaveTransaction = async () => {
   }
 
   try {
-
     // 🟦 1 — Si l'utilisateur est "grossiste", on remplace automatiquement la caisse
     let finalCashId = cashId;
 
+    if (profile?.role?.toLowerCase() === "grossiste") {
+      const { data: userCashArray, error } = await supabase
+        .from("cashes")
+        .select("id, name, balance, min_balance")
+        .eq("seller_id", user.id)
+        .limit(1);
 
-if (profile?.role?.toLowerCase() === "grossiste") {
-  // Récupérer la caisse directement depuis Supabase
-  const { data: userCashArray, error } = await supabase
-    .from("cashes")
-    .select("id, name, balance, min_balance")
-    .eq("seller_id", user.id)
-    .limit(1);
+      if (error) throw new Error("Impossible de récupérer la caisse du grossiste.");
+      if (!userCashArray || userCashArray.length === 0) throw new Error("Aucune caisse associée à votre compte.");
 
-  if (error) {
-    showAlert("Erreur", "Impossible de récupérer la caisse du grossiste.");
-    return;
-  }
-
-  if (!userCashArray || userCashArray.length === 0) {
-    showAlert("Erreur", "Aucune caisse n'est associée à votre compte.");
-    return;
-  }
-
-  // On prend la première caisse trouvée
-  finalCashId = userCashArray[0].id;
-}
-
+      finalCashId = userCashArray[0].id;
+    }
 
     // 🟦 2 — Vérifier la caisse sélectionnée
-    const selectedCash = cashes.find((c) => c.id === finalCashId);
+    const selectedCash = cashes.find(c => c.id === finalCashId);
     if (!selectedCash) throw new Error("Caisse introuvable.");
 
     const montant = parseFloat(amount);
 
     // 🟦 3 — Calcul du solde actuel
     const cashTransactions = transactions.filter(t => t.cash_id === finalCashId);
+    let totalTransactions = cashTransactions.reduce(
+      (sum, t) => sum + (t.type === "CREDIT" ? t.amount : -t.amount),
+      0
+    );
 
-    let totalTransactions = cashTransactions.reduce((sum, t) => {
-      return sum + (t.type === "CREDIT" ? t.amount : -t.amount);
-    }, 0);
-
-    // Nouveau solde après la transaction
     const newBalance = totalTransactions + (type === "CREDIT" ? montant : -montant);
 
-    // 🟥 4 — Vérification DU SEUIL (CORRIGÉE)
-    // Si DEBIT → le solde ne doit PAS descendre sous min_balance
-    if (type === "DEBIT" && newBalance < selectedCash.min_balance) {
+    // 🟦 4 — Vérification du seuil minimum
+    if (newBalance > selectedCash.min_balance) {
+       console.log("Total Transactions avant:", selectedCash.min_balance, "Nouveau solde:", newBalance);
       showAlert(
         "Attention",
-        `⚠️ Impossible : cette opération ferait tomber la caisse à ${newBalance} XOF, en dessous du seuil minimal (${selectedCash.min_balance} XOF).`
+        `⚠️ Le solde de la caisse "${selectedCash.name}" (${newBalance} XOF) a atteint le minimum (${selectedCash.min_balance} XOF).`
       );
-      return;
+      // Si tu veux **bloquer la transaction**, ajoute `return;` ici
+       return;
     }
 
     // 🟦 5 — Mise à jour ou création transaction
@@ -354,7 +342,6 @@ if (profile?.role?.toLowerCase() === "grossiste") {
         .eq("id", editingId);
 
       if (error) throw error;
-
     } else {
       const { error } = await supabase.from("transactions").insert([
         {
@@ -366,25 +353,19 @@ if (profile?.role?.toLowerCase() === "grossiste") {
           created_at: new Date(),
         },
       ]);
-
       if (error) throw error;
 
+      // Mise à jour du solde de la caisse
+      await supabase.from("cashes").update({ balance: newBalance }).eq("id", finalCashId);
+
       // Envoi WhatsApp
-      // Récupération des kiosques depuis Supabase
-const { data: kiosksData, error: kiosksError } = await supabase
-  .from("kiosks")
-  .select("id, name");
+      const { data: kiosksData, error: kiosksError } = await supabase
+        .from("kiosks")
+        .select("id, name");
 
-if (kiosksError) {
-  console.error("Erreur chargement kiosques :", kiosksError);
-  showAlert("Erreur", "Impossible de charger les kiosques.");
-  return;
-}
+      const kiosk = kiosksData?.find(k => k.id === selectedCash?.kiosk_id);
 
-// Exemple pour récupérer le kiosque de la caisse
-const kiosk = kiosksData?.find((k) => k.id === selectedCash?.kiosk_id);
-
-const message = `
+      const message = `
 NOUVELLE TRANSACTION 📄
 
 🏦 Boutique : ${selectedCash?.name || "Inconnue"}
@@ -392,17 +373,10 @@ NOUVELLE TRANSACTION 📄
 💰 Montant : ${montant}
 🕒 Créé le : ${new Date().toLocaleString()}
 `;
-
       await sendAndSaveMessage("whatsapp:+24102849507", message);
-
-      // Mise à jour du solde
-      await supabase
-        .from("cashes")
-        .update({ balance: newBalance })
-        .eq("id", finalCashId);
     }
 
-    // 🟦 6 — Reset
+    // 🟦 6 — Reset formulaire
     setDialogVisible(false);
     setForm({
       cashId: null,
@@ -414,14 +388,14 @@ NOUVELLE TRANSACTION 📄
     });
     setEditMode(false);
     setEditingId(null);
-
     fetchCashesAndTransactions();
-    showAlert("Succès", "Transaction enregistrée avec succès ✅");
 
+    showAlert("Succès", "Transaction enregistrée avec succès ✅");
   } catch (err) {
     showAlert("Erreur", err.message);
   }
 };
+
 
 
 
@@ -496,15 +470,27 @@ const handleDeleteTransaction = (id) => {
             />
           )}
           right={() => (
-            <View style={{ flexDirection: "row" }}>
-              <TouchableOpacity onPress={() => openEditDialog(item)} style={[styles.actionBtn, { backgroundColor: "orange", marginRight: width * 0.02 }]}>
-                <MaterialCommunityIcons name="pencil" color="white" size={width * 0.045} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDeleteTransaction(item.id)} style={[styles.actionBtn, { backgroundColor: "red" }]}>
-                <MaterialCommunityIcons name="delete" color="white" size={width * 0.045} />
-              </TouchableOpacity>
-            </View>
-          )}
+  <View style={{ flexDirection: "row" }}>
+    {profile?.role?.toLowerCase()  === "admin" && (
+      <>
+        <TouchableOpacity
+          onPress={() => openEditDialog(item)}
+          style={[styles.actionBtn, { backgroundColor: "orange", marginRight: width * 0.02 }]}
+        >
+          <MaterialCommunityIcons name="pencil" color="white" size={width * 0.045} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => handleDeleteTransaction(item.id)}
+          style={[styles.actionBtn, { backgroundColor: "red" }]}
+        >
+          <MaterialCommunityIcons name="delete" color="white" size={width * 0.045} />
+        </TouchableOpacity>
+      </>
+    )}
+  </View>
+)}
+
         />
         <Card.Content>
           <Text>
@@ -744,46 +730,46 @@ const handleDeleteTransaction = (id) => {
         />
 
         {/* Type de transaction */}
-        <Text
-          style={{
-            marginBottom: 6,
-            fontWeight: "600",
-            color: theme.colors.onSurface,
-          }}
-        >
-          Type :
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginBottom: height * 0.02,
-          }}
-        >
-          {profile?.role?.toLowerCase() !== "kiosque" && (
-            <Button
-              mode={form.type === "CREDIT" ? "contained" : "outlined"}
-              onPress={() => setForm({ ...form, type: "CREDIT" })}
-              style={{ flex: 1, marginRight: width * 0.01 }}
-              buttonColor={form.type === "CREDIT" ? theme.colors.error : undefined}
-              textColor={form.type === "CREDIT" ? "white" : theme.colors.onSurface}
-            >
-              Envoie
-            </Button>
-          )}
-          {profile?.role?.toLowerCase() !== "grossiste" && (
-            <Button
-              mode={form.type === "DEBIT" ? "contained" : "outlined"}
-              onPress={() => setForm({ ...form, type: "DEBIT" })}
-              style={{ flex: 1, marginLeft: width * 0.01 }}
-              buttonColor={form.type === "DEBIT" ? theme.colors.success : undefined}
-              textColor={form.type === "DEBIT" ? "white" : theme.colors.onSurface}
-            >
-              Paiement
-            </Button>
-          )}
-        </View>
-
+      {profile?.role?.toLowerCase() !== "grossiste" && (  
+        <><Text
+                    style={{
+                      marginBottom: 6,
+                      fontWeight: "600",
+                      color: theme.colors.onSurface,
+                    }}
+                  >
+                    Type :
+                  </Text><View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      marginBottom: height * 0.02,
+                    }}
+                  >
+                      {profile?.role?.toLowerCase() === "admin" && (
+                        <Button
+                          mode={form.type === "CREDIT" ? "contained" : "outlined"}
+                          onPress={() => setForm({ ...form, type: "CREDIT" })}
+                          style={{ flex: 1, marginRight: width * 0.01 }}
+                          buttonColor={form.type === "CREDIT" ? theme.colors.error : undefined}
+                          textColor={form.type === "CREDIT" ? "white" : theme.colors.onSurface}
+                        >
+                          Envoie
+                        </Button>
+                      )}
+                      {profile?.role?.toLowerCase() !== "grossiste" && (
+                        <Button
+                          mode={form.type === "DEBIT" ? "contained" : "outlined"}
+                          onPress={() => setForm({ ...form, type: "DEBIT" })}
+                          style={{ flex: 1, marginLeft: width * 0.01 }}
+                          buttonColor={form.type === "DEBIT" ? theme.colors.success : undefined}
+                          textColor={form.type === "DEBIT" ? "white" : theme.colors.onSurface}
+                        >
+                          Paiement
+                        </Button>
+                      )}
+                    </View></>
+   )}
         {/* Type spécifique */}
         <Text
           style={{

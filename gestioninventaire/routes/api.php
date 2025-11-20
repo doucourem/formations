@@ -111,7 +111,7 @@ Route::post('/twilio/webhook', function(Request $request) {
         $reply .= "🎫 Billet : {$departureCity} → {$arrivalCity}\n";
         $reply .= "Départ : {$departureTime} | Arrivée : {$arrivalTime}\n";
         $reply .= "Bus : {$busName}\nPrix : {$price} FCFA\nID : {$trip->id}\n\nMerci et bon voyage ! 🚌";
-        //$twiml->message($reply);
+        $twiml->message($reply);
 
         // Générer QR code et PDF
         $ticketDir = storage_path('app/public/tickets');
@@ -183,7 +183,7 @@ Route::post('/twilio/webhook', function(Request $request) {
         $price         = $trip->route->price ?? 'N/A';
 
         $reply  = "🎉 Réservation en cours !\n";
-        $reply .= "Le numéro de référence : {$trip->id}\n";
+        $reply .= "ID : {$trip->id}\n";
         $reply .= "{$departureCity} → {$arrivalCity}\n";
         $reply .= "Départ : {$departureTime}\nArrivée : {$arrivalTime}\n";
         $reply .= "Bus : {$busName}\nPrix : {$price} FCFA\n\n";
@@ -246,7 +246,7 @@ function rechercherVoyages($departure,$arrival,$date,$twiml){
 
     $reply = "🚍 Voyages disponibles pour {$departure} → {$arrival} le {$date} :\n\n";
     foreach($trips as $trip){
-        $reply .= "Le numéro de référence {$trip->id}\n";
+        $reply .= "🆔 {$trip->id}\n";
         $reply .= "🕒 Départ : ".$trip->departure_at->format('H:i')."\n";
         $reply .= "🕒 Arrivée : ".$trip->arrival_at->format('H:i')."\n";
         $reply .= "🚌 Bus : ".($trip->bus->registration_number ?? 'N/A')."\n";

@@ -29,6 +29,8 @@ import AddCashScreen from "./components/AddCashScreen";
 import EditCashScreen from "./components/EditCashScreen";
 import TransactionsListCaisse from "./components/TransactionsListCaisse";
 import SendMessageScreen from "./components/SendMessageScreen";
+import ChangePasswordScreen from "./components/ChangePasswordScreen";
+
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -165,16 +167,19 @@ function DrawerNavigator({ user }) {
 
       { name: "Transactions", component: TransactionsList },
             { name: "BOUTIQUE", component: CashStack },
+         { name: "Changer mot de passe", component: ChangePasswordScreen },
+  
+
     ],
     admin: [
        { name: "Transactions", component: TransactionsList },
       { name: "BOUTIQUE", component: CashStack },
-     { name: "BOUTIQUE2", component: SendMessageScreen },
-     
       { name: "Fournisseurs", component: WholesalersList },
       { name: "Clients", component: KiosksList },
        { name: "Opérateurs", component: OperatorsList },
       { name: "Utilisateurs", component: UsersList },
+      { name: "Changer mot de passe", component: ChangePasswordScreen },
+
     ],
   };
 
