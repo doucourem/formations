@@ -370,7 +370,7 @@ NOUVELLE TRANSACTION 📄
 
 🏦 Boutique : ${selectedCash?.name || "Inconnue"}
 👤 Nom : ${kiosk?.name || "Inconnu"}
-💰 Montant : ${montant}
+💰 Montant : ${formatCFA(montant)}
 🕒 Créé le : ${new Date().toLocaleString()}
 `;
       await sendAndSaveMessage("whatsapp:+24102849507", message);
