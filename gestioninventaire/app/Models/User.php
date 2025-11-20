@@ -41,3 +41,4 @@ class User extends Authenticatable
         return $this->belongsTo(Agency::class, 'agence_id');
     }
 }
+
