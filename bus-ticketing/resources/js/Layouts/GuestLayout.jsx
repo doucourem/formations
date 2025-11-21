@@ -55,7 +55,7 @@ export default function AuthenticatedLayout({ children }) {
   let menuItems = [];
 
   if (user.role === "admin" || user.role === "manager") {
-  const menuItems = [
+ menuItems = [
   { text: "Villes",        icon: <LocationCityIcon />,         route: route("cities.index") },
   { text: "Bus",           icon: <DirectionsBusIcon />,        route: route("buses.index") },
   { text: "Agences",       icon: <StoreIcon />,                route: route("agencies.index") },
