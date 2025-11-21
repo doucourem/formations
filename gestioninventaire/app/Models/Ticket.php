@@ -46,13 +46,6 @@ class Produit extends Model {
     protected $fillable = ['name'];
 }
 
-class Boutique extends Model {
-    protected $fillable = ['name'];
-
-    public function trimestres() {
-        return $this->hasMany(Trimestre::class);
-    }
-}
 
 class Trimestre extends Model {
     protected $fillable = [
