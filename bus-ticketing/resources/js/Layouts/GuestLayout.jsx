@@ -29,6 +29,9 @@ import TripOriginIcon from "@mui/icons-material/TripOrigin";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ApplicationLogo from "@/Components/ApplicationLogo";
+import TravelExploreIcon from "@mui/icons-material/TravelExplore";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+
 
 const drawerWidth = 240;
 
