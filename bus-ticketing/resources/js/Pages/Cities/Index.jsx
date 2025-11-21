@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
+
 import {
   Box,
   Card,
@@ -19,7 +20,9 @@ import {
   Button,
   Tooltip,
   TextField,
+  Pagination,
 } from "@mui/material";
+
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -32,15 +35,23 @@ export default function CitiesIndex({ cities, filters }) {
 
   const handleSort = (field) => {
     let direction = "asc";
+
     if (sortField === field) {
       direction = sortDirection === "asc" ? "desc" : "asc";
     }
+
     setSortField(field);
     setSortDirection(direction);
 
     Inertia.get(
       route("cities.index"),
-      { per_page: filters.per_page, sort_field: field, sort_direction: direction, search },
+      {
+        page: cities.current_page,
+        per_page: filters.per_page,
+        sort_field: field,
+        sort_direction: direction,
+        search,
+      },
       { preserveState: true }
     );
   };
@@ -51,24 +62,29 @@ export default function CitiesIndex({ cities, filters }) {
     }
   };
 
-  const handlePagination = (url) => {
-    if (url) {
-      Inertia.get(url, { search }, { preserveState: true });
-    }
-  };
-
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
+
     Inertia.get(
       route("cities.index"),
-      { per_page: filters.per_page, sort_field: sortField, sort_direction: sortDirection, search: e.target.value },
+      {
+        page: 1,
+        per_page: filters.per_page,
+        sort_field: sortField,
+        sort_direction: sortDirection,
+        search: e.target.value,
+      },
       { preserveState: true }
     );
   };
 
   const renderSortIcon = (field) => {
     if (sortField !== field) return null;
-    return sortDirection === "asc" ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />;
+    return sortDirection === "asc" ? (
+      <ArrowUpwardIcon fontSize="small" />
+    ) : (
+      <ArrowDownwardIcon fontSize="small" />
+    );
   };
 
   return (
@@ -78,17 +94,14 @@ export default function CitiesIndex({ cities, filters }) {
           <CardHeader
             title={<Typography variant="h5">Villes</Typography>}
             action={
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => Inertia.visit(route("cities.create"))}
-              >
+              <Button variant="contained" onClick={() => Inertia.visit(route("cities.create"))}>
                 Ajouter une ville
               </Button>
             }
           />
+
           <CardContent>
-            {/* --- Recherche --- */}
+            {/* Recherche */}
             <Box sx={{ mb: 2 }}>
               <TextField
                 label="Rechercher une ville"
@@ -99,60 +112,61 @@ export default function CitiesIndex({ cities, filters }) {
               />
             </Box>
 
-            {/* --- Table responsive --- */}
-            <TableContainer component={Paper} sx={{ overflowX: "auto" }}>
+            {/* Tableau */}
+            <TableContainer component={Paper}>
               <Table>
                 <TableHead sx={{ bgcolor: "#1976d2" }}>
                   <TableRow>
                     <TableCell
-                      onClick={() => handleSort("id")}
                       sx={{ cursor: "pointer", color: "#fff" }}
+                      onClick={() => handleSort("id")}
                     >
                       ID {renderSortIcon("id")}
                     </TableCell>
+
                     <TableCell
-                      onClick={() => handleSort("name")}
                       sx={{ cursor: "pointer", color: "#fff" }}
+                      onClick={() => handleSort("name")}
                     >
                       Nom {renderSortIcon("name")}
                     </TableCell>
+
                     <TableCell
-                      onClick={() => handleSort("code")}
                       sx={{ cursor: "pointer", color: "#fff" }}
+                      onClick={() => handleSort("code")}
                     >
                       Code {renderSortIcon("code")}
                     </TableCell>
+
                     <TableCell align="center" sx={{ color: "#fff" }}>
                       Actions
                     </TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
                   {cities.data?.length > 0 ? (
                     cities.data.map((city) => (
                       <TableRow key={city.id} hover>
                         <TableCell>{city.id}</TableCell>
                         <TableCell>{city.name}</TableCell>
-                        <TableCell>{city.code || "-"}</TableCell>
+                        <TableCell>{city.code ?? "-"}</TableCell>
                         <TableCell align="center">
-                          <Stack
-                            direction="row"
-                            spacing={{ xs: 0.5, sm: 1 }}
-                            justifyContent="center"
-                          >
+                          <Stack direction="row" spacing={1} justifyContent="center">
                             <Tooltip title="Éditer">
                               <IconButton
-                                color="primary"
                                 size="small"
+                                color="primary"
                                 onClick={() => Inertia.visit(route("cities.edit", city.id))}
                               >
                                 <EditIcon />
                               </IconButton>
                             </Tooltip>
+
                             <Tooltip title="Supprimer">
                               <IconButton
-                                color="error"
                                 size="small"
+                                color="error"
                                 onClick={() => handleDelete(city.id)}
                               >
                                 <DeleteIcon />
@@ -173,28 +187,29 @@ export default function CitiesIndex({ cities, filters }) {
               </Table>
             </TableContainer>
 
-            {/* --- Pagination responsive --- */}
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ mt: 2, flexWrap: "wrap", justifyContent: "center" }}
-            >
-              {cities.links?.map((link, i) => (
-                <Button
-                  key={i}
-                  disabled={!link.url}
-                  variant={link.active ? "contained" : "outlined"}
-                  size="small"
-                  onClick={() => handlePagination(link.url)}
-                >
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: link.label.replace(/<[^>]*>?/gm, ""),
-                    }}
-                  />
-                </Button>
-              ))}
-            </Stack>
+            {/* Pagination MUI */}
+            <Box mt={3} display="flex" justifyContent="center">
+              <Pagination
+                count={cities.last_page || 1}
+                page={cities.current_page || 1}
+                onChange={(e, page) =>
+                  Inertia.get(
+                    route("cities.index"),
+                    {
+                      page,
+                      per_page: filters.per_page,
+                      sort_field: sortField,
+                      sort_direction: sortDirection,
+                      search,
+                    },
+                    { preserveState: true }
+                  )
+                }
+                color="primary"
+                showFirstButton
+                showLastButton
+              />
+            </Box>
           </CardContent>
         </Card>
       </Box>

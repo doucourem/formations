@@ -52,25 +52,28 @@ export default function AuthenticatedLayout({ children }) {
   let menuItems = [];
 
   if (user.role === "admin" || user.role === "manager") {
-    menuItems = [
-      { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
-      { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
-      { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") },
-      { text: "Trajets", icon: <RouteIcon />, route: route("busroutes.index") },
-      { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
-      { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
-      { text: "Colis", icon: <ConfirmationNumberIcon />, route: route("parcels.index") },
-      { text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") },
-    ];
+  const menuItems = [
+  { text: "Villes",        icon: <LocationCityIcon />,         route: route("cities.index") },
+  { text: "Bus",           icon: <DirectionsBusIcon />,        route: route("buses.index") },
+  { text: "Agences",       icon: <StoreIcon />,                route: route("agencies.index") },
+  { text: "Trajets",       icon: <RouteIcon />,                route: route("busroutes.index") },
+  { text: "Voyages",       icon: <TravelExploreIcon />,        route: route("trips.index") },
+  { text: "Billets",       icon: <ConfirmationNumberIcon />,   route: route("ticket.index") },
+  { text: "Colis",         icon: <LocalShippingIcon />,        route: route("parcels.index") },
+  { text: "Utilisateurs",  icon: <PeopleIcon />,               route: route("users.index") },
+];
+
   } else if (user.role === "manageragence") {
     menuItems = [
       { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
       { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index", { agence_id: user.agence_id }) },
+      { text: "Colis",   icon: <LocalShippingIcon />,        route: route("parcels.index") },
     ];
   } else if (user.role === "agent") {
     menuItems = [
       { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
       { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index", { agence_id: user.agence_id }) },
+      { text: "Colis",  icon: <LocalShippingIcon />,        route: route("parcels.index") },
     ];
   }
 

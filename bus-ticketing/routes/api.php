@@ -107,11 +107,17 @@ Route::post('/twilio/webhook', function(Request $request) {
         ]);
 
         // Message de confirmation
-        $reply  = "✅ Paiement confirmé via {$paymentMethod} !\n\n";
-        $reply .= "🎫 Billet : {$departureCity} → {$arrivalCity}\n";
-        $reply .= "Départ : {$departureTime} | Arrivée : {$arrivalTime}\n";
-        $reply .= "Bus : {$busName}\nPrix : {$price} FCFA\nID : {$trip->id}\n\nMerci et bon voyage ! 🚌";
-        $twiml->message($reply);
+       $reply  = "✅ *Paiement confirmé !*\n\n";
+$reply .= "🎫 *Votre billet est prêt*\n";
+$reply .= "• Trajet : *{$departureCity} → {$arrivalCity}*\n";
+$reply .= "• Départ : {$departureTime}\n";
+$reply .= "• Arrivée : {$arrivalTime}\n";
+$reply .= "• Bus : {$busName}\n";
+$reply .= "• Prix : *{$price} FCFA*\n";
+$reply .= "• Référence : *#{$trip->id}*\n\n";
+$reply .= "Merci pour votre confiance et bon voyage ! 🚌";
+$twiml->message($reply);
+
 
         // Générer QR code et PDF
         $ticketDir = storage_path('app/public/tickets');
@@ -140,11 +146,16 @@ Route::post('/twilio/webhook', function(Request $request) {
             $twilioClient = new Client(config('services.twilio.sid'), config('services.twilio.token'));
             $mediaUrl = asset("storage/tickets/billet_{$from}_{$tripId}.pdf");
 
-            $twilioClient->messages->create($from, [
-                'from' => config('services.twilio.whatsapp_from'),
-                'body' => "📄 Voici votre billet pour {$departureCity} → {$arrivalCity} (ID: {$trip->id})",
-                'mediaUrl' => [$mediaUrl]
-            ]);
+         $twilioClient->messages->create($from, [
+    'from' => config('services.twilio.whatsapp_from'),
+    'body' => 
+        "📄 *Votre billet est prêt !*\n\n" .
+        "🎫 *Trajet :* {$departureCity} → {$arrivalCity}\n" .
+        "🧾 *Référence :* #{$trip->id}\n\n" .
+        "Veuillez trouver votre billet ci-dessous 👇",
+    'mediaUrl' => [$mediaUrl]
+]);
+
 
             Log::info("TWILIO SENT OK", ['to'=>$from]);
         } catch (\Exception $e) {
@@ -182,12 +193,15 @@ Route::post('/twilio/webhook', function(Request $request) {
         $arrivalTime   = optional($trip->arrival_at)->format('H:i') ?? 'N/A';
         $price         = $trip->route->price ?? 'N/A';
 
-        $reply  = "🎉 Réservation en cours !\n";
-        $reply .= "Le numéro de référence : {$trip->id}\n";
-        $reply .= "{$departureCity} → {$arrivalCity}\n";
-        $reply .= "Départ : {$departureTime}\nArrivée : {$arrivalTime}\n";
-        $reply .= "Bus : {$busName}\nPrix : {$price} FCFA\n\n";
-        $reply .= "Veuillez indiquer votre nom complet pour continuer la réservation.";
+       $reply  = "🎉 *Réservation en cours !*\n\n";
+$reply .= "🧾 *Référence :* #{$trip->id}\n";
+$reply .= "🚍 *Trajet :* {$departureCity} → {$arrivalCity}\n";
+$reply .= "• Départ : {$departureTime}\n";
+$reply .= "• Arrivée : {$arrivalTime}\n";
+$reply .= "• Bus : {$busName}\n";
+$reply .= "• Prix : *{$price} FCFA*\n\n";
+$reply .= "📝 *Veuillez indiquer votre nom complet pour finaliser la réservation.*";
+
 
         Cache::put($cacheKeyTrip, $trip->id, now()->addMinutes(30));
         $twiml->message($reply);
@@ -261,12 +275,13 @@ function rechercherVoyages($departure,$arrival,$date,$twiml){
 
     $reply = "🚍 Voyages disponibles pour {$departure} → {$arrival} le {$date} :\n\n";
     foreach($trips as $trip){
-        $reply .= "🆔 {$trip->id}\n";
-        $reply .= "🕒 Départ : ".$trip->departure_at->format('H:i')."\n";
-        $reply .= "🕒 Arrivée : ".$trip->arrival_at->format('H:i')."\n";
-        $reply .= "🚌 Bus : ".($trip->bus->registration_number ?? 'N/A')."\n";
-        $reply .= "💵 Prix : ".($trip->route->price ?? 'N/A')." FCFA\n";
-        $reply .= "--------------------------------\n";
+       $reply .= "🧾 *Référence :* #{$trip->id}\n";
+$reply .= "🕒 *Départ :* " . $trip->departure_at->format('H:i') . "\n";
+$reply .= "🕒 *Arrivée :* " . $trip->arrival_at->format('H:i') . "\n";
+$reply .= "🚌 *Bus :* " . ($trip->bus->registration_number ?? 'N/A') . "\n";
+$reply .= "💵 *Prix :* " . ($trip->route->price ?? 'N/A') . " FCFA\n";
+$reply .= "--------------------------------\n";
+
     }
     $reply .= "\n➡ Pour réserver, envoyez simplement Veuillez indiquer le numéro de référence du voyage pour continuer..";
     $twiml->message($reply);
