@@ -5,6 +5,8 @@ use App\Http\Controllers\BoutiqueController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\ProduitController;
+use App\Http\Controllers\TrimestreController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -28,6 +30,24 @@ Route::resource('boutiques', BoutiqueController::class);
 Route::resource('produits', ProduitController::class);
 Route::resource('trimestres', TrimestreController::class);
 Route::resource('boutiques.trimestres', TrimestreController::class)->shallow();
+
+// Routes pour les boutiques
+Route::resource('boutiques', BoutiqueController::class);
+
+// Routes pour les trimestres d'une boutique
+Route::prefix('boutiques/{boutique}')->group(function () {
+    Route::get('trimestres', [TrimestreController::class, 'index'])->name('boutiques.trimestres.index');
+    Route::get('trimestres/create', [TrimestreController::class, 'create'])->name('boutiques.trimestres.create');
+    Route::post('trimestres', [TrimestreController::class, 'store'])->name('boutiques.trimestres.store');
+});
+
+// Routes pour un trimestre spécifique
+Route::prefix('trimestres/{trimestre}')->group(function () {
+    Route::get('edit', [TrimestreController::class, 'edit'])->name('trimestres.edit');
+    Route::put('/', [TrimestreController::class, 'update'])->name('trimestres.update');
+    Route::get('/', [TrimestreController::class, 'show'])->name('trimestres.show');
+    Route::delete('/', [TrimestreController::class, 'destroy'])->name('trimestres.destroy');
+});
 
 
 require __DIR__.'/auth.php';
