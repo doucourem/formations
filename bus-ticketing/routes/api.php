@@ -209,13 +209,22 @@ Route::post('/twilio/webhook', function(Request $request) {
         foreach($jours as $mot=>$num) if(Str::contains($texte,$mot)) return $now->copy()->next($num)->format('Y-m-d');
         return null;
     }
+if(preg_match('/(.+)->(.+)/', $body, $matchSimple)){
+    $departure = trim($matchSimple[1]); // "Bamako"
+    $arrivalAndDate = trim($matchSimple[2]); // "Mopti dimanche"
 
-    if(preg_match('/(.+)->(.+)/',$body,$matchSimple)){
-        $departure = trim($matchSimple[1]);
-        $arrival = trim($matchSimple[2]);
-        $date = convertirDateNaturelle($body);
-        if($date) return rechercherVoyages($departure,$arrival,$date,$twiml);
+    // Extraire la ville d'arrivée et la date
+    if(preg_match('/^(\S+)\s*(.*)$/', $arrivalAndDate, $matchArrival)) {
+        $arrival = trim($matchArrival[1]); // "Mopti"
+        $dateText = trim($matchArrival[2]); // "dimanche"
+        $date = convertirDateNaturelle($dateText);
     }
+
+    if($date) {
+        return rechercherVoyages($departure, $arrival, $date, $twiml);
+    }
+}
+
 
     if(preg_match('/(.+)->(.+)\s+(\d{4}-\d{2}-\d{2})/',$body,$matches)){
         [$all,$departure,$arrival,$date] = $matches;
@@ -233,10 +242,16 @@ Route::post('/twilio/webhook', function(Request $request) {
 // ----------------------
 function rechercherVoyages($departure,$arrival,$date,$twiml){
     $dateCarbon = Carbon::parse($date);
-    $trips = Trip::with('route.departureCity','route.arrivalCity','bus')
-        ->whereDate('departure_at',$dateCarbon)
-       ->orderBy('departure_at')
-        ->get();
+    $trips = Trip::select('trips.*')
+    ->join('routes', 'trips.route_id', '=', 'routes.id')
+    ->join('cities as dep', 'routes.departure_city_id', '=', 'dep.id')
+    ->join('cities as arr', 'routes.arrival_city_id', '=', 'arr.id')
+    ->whereDate('trips.departure_at', $dateCarbon)
+    ->where('dep.name', 'like', "%{$departure}%")
+    ->where('arr.name', 'like', "%{$arrival}%")
+    ->with('route.departureCity', 'route.arrivalCity', 'bus')
+    ->orderBy('trips.departure_at')
+    ->get();
 
     if($trips->isEmpty()){
         $reply = "🚫 Aucun voyage trouvé pour {$departure} → {$arrival} le {$date}";
