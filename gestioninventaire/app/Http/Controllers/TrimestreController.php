@@ -10,6 +10,33 @@ use Inertia\Inertia;
 
 class TrimestreController extends Controller
 {
+
+    /**
+ * Liste des trimestres d'une boutique
+ */
+public function index(Boutique $boutique, Request $request)
+{
+    $perPage = $request->per_page ?? 10;
+    $sortField = $request->sort_field ?? 'id';
+    $sortDirection = $request->sort_direction ?? 'desc';
+
+    $trimestres = Trimestre::with('stocks.produit')
+        ->where('boutique_id', $boutique->id)
+        ->orderBy($sortField, $sortDirection)
+        ->paginate($perPage)
+        ->appends($request->all());
+
+    return Inertia::render('Trimestres/Index', [
+        'boutique' => $boutique,
+        'trimestres' => $trimestres,
+        'filters' => [
+            'per_page' => $perPage,
+            'sort_field' => $sortField,
+            'sort_direction' => $sortDirection,
+        ],
+    ]);
+}
+
     /**
      * Formulaire de création
      */
