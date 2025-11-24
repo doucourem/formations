@@ -39,5 +39,14 @@ return [
         'token' => env('TWILIO_TOKEN'),
         'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'), // or TWILIO_FROM
     ],
+'orange_money' => [
+    'client_id' => env('ORANGE_CLIENT_ID'),
+    'client_secret' => env('ORANGE_CLIENT_SECRET'),
+    'endpoint' => env('ORANGE_ENDPOINT'),
+],
+'wave' => [
+    'api_key' => env('WAVE_API_KEY'),
+    'endpoint' => env('WAVE_ENDPOINT'),
+],
 
 ];

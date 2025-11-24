@@ -41,14 +41,44 @@ export default function TrimestreFormFinal({ boutique, trimestre, produits }) {
   });
 
   // Calcul résultat net
-  const totalStockStart = form.stocks.reduce((sum, s) => sum + s.quantity_start * s.value_start, 0);
-  const totalStockEnd = form.stocks.reduce((sum, s) => sum + s.quantity_end * s.value_end, 0);
-  const totalDepenses = form.depenses.reduce((sum, d) => sum + Number(d.amount || 0), 0);
-  const totalCredits = form.credits.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+  // SECURISATION des valeurs numériques
+const num = (v) => Number(v) || 0;
 
-  const resultNet =
-    form.cash_end + form.capital_end + totalStockEnd + totalCredits -
-    (form.cash_start + form.capital_start + totalStockStart + totalDepenses);
+// Stocks
+const totalStockStart = form.stocks.reduce(
+  (sum, s) => sum + num(s.quantity_start) * num(s.value_start),
+  0
+);
+
+const totalStockEnd = form.stocks.reduce(
+  (sum, s) => sum + num(s.quantity_end) * num(s.value_end),
+  0
+);
+
+// Dépenses & crédits
+const totalDepenses = form.depenses.reduce(
+  (sum, d) => sum + num(d.amount),
+  0
+);
+
+const totalCredits = form.credits.reduce(
+  (sum, c) => sum + num(c.amount),
+  0
+);
+
+// RESULTAT NET
+const resultNet =
+  num(form.cash_end) +
+  num(form.capital_end) +
+  totalStockEnd +
+  totalCredits -
+  (
+    num(form.cash_start) +
+    num(form.capital_start) +
+    totalStockStart +
+    totalDepenses
+  );
+
 
   // Handlers
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -82,13 +112,39 @@ export default function TrimestreFormFinal({ boutique, trimestre, produits }) {
     const updated = [...form.credits]; updated.splice(index, 1);
     setForm({ ...form, credits: updated });
   };
+const handleSubmit = (e) => {
+  e.preventDefault();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const routeName = trimestre ? "trimestres.update" : "boutiques.trimestres.store";
-    const routeParams = trimestre ? [trimestre.id] : [boutique.id];
-    Inertia.post(routeName, form, { onSuccess: () => console.log("Trimestre sauvegardé") });
+  // On sécurise depenses et credits
+  const payload = {
+    ...form,
+    depenses: form.depenses.map(d => ({
+      description: d.description?.trim() || "Sans description",
+      amount: Number(d.amount) || 0,
+    })),
+    credits: form.credits.map(c => ({
+      description: c.description?.trim() || "Sans description",
+      amount: Number(c.amount) || 0,
+    })),
   };
+
+  const routeName = trimestre ? "trimestres.update" : "boutiques.trimestres.store";
+  const routeParams = trimestre ? trimestre.id : boutique.id;
+
+  if (trimestre) {
+    // UPDATE → méthode PUT
+    Inertia.put(route(routeName, routeParams), payload, {
+      onSuccess: () => console.log("Trimestre mis à jour"),
+    });
+  } else {
+    // CREATE → méthode POST
+    Inertia.post(route(routeName, routeParams), payload, {
+      onSuccess: () => console.log("Trimestre créé"),
+    });
+  }
+};
+
+
 
   return (
     <GuestLayout>

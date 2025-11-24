@@ -14,32 +14,35 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Twilio\Rest\Client;
 use App\Models\Ticket;
+
+use App\Http\Controllers\PaymentWebhookController;
+
+Route::post('/payments/callback', [PaymentWebhookController::class, 'handle'])
+     ->name('payments.callback');
+
 // Webhook recherche billets
 Route::post('/webhook/tickets/search', [TicketController::class, 'webhookSearch']);
 
 // Webhook WhatsApp principal
 
 Route::post('/twilio/webhook', function(Request $request) {
-
     $from = $request->input('From');
     $body = trim($request->input('Body', ''));
     $bodyLower = Str::lower($body);
     $twiml = new MessagingResponse();
 
-    Log::info('Webhook Twilio reçu', ['from'=>$from, 'body'=>$body]);
+    Log::info('Webhook Twilio reçu', ['from' => $from, 'body' => $body]);
 
     // Clés cache
-    $cacheKeyTrip = "whatsapp_trip_{$from}";
-    $cacheKeyName = "whatsapp_name_{$from}";
-    $cacheKeyPayment = "whatsapp_payment_{$from}";
+    $cacheTrip = "whatsapp_trip_{$from}";
+    $cacheName = "whatsapp_name_{$from}";
+    $cachePayment = "whatsapp_payment_{$from}";
 
-    $tripId = Cache::get($cacheKeyTrip);
-    $clientName = Cache::get($cacheKeyName);
-    $paymentMethod = Cache::get($cacheKeyPayment);
+    $tripId = Cache::get($cacheTrip);
+    $clientName = Cache::get($cacheName);
+    $paymentMethod = Cache::get($cachePayment);
 
-    // ----------------------
-    // 1️⃣ Définir la map paiement
-    // ----------------------
+    // Map des paiements
     $paymentMap = [
         '1' => 'Orange Money', '1️⃣' => 'Orange Money',
         '2' => 'Wave', '2️⃣' => 'Wave',
@@ -47,77 +50,73 @@ Route::post('/twilio/webhook', function(Request $request) {
     ];
 
     // ----------------------
-    // 2️⃣ Demande du nom si nécessaire
+    // Étape 1 : Nom du client
     // ----------------------
     if ($tripId && !$clientName) {
-        Cache::put($cacheKeyName, $body, now()->addMinutes(30));
+        Cache::put($cacheName, $body, now()->addMinutes(30));
         $twiml->message("Merci {$body} ! Maintenant, choisissez le mode de paiement :\n1️⃣ Orange Money\n2️⃣ Wave\n3️⃣ Cash");
-        return response($twiml, 200)->header('Content-Type','application/xml');
+        return response($twiml, 200)->header('Content-Type', 'application/xml');
     }
 
     // ----------------------
-    // 3️⃣ Choix du mode de paiement
+    // Étape 2 : Choix du paiement
     // ----------------------
-    if ($tripId && isset($paymentMap[$bodyLower]) && !$paymentMethod) {
-        Cache::put($cacheKeyPayment, $paymentMap[$bodyLower], now()->addMinutes(30));
+    if ($tripId && !$paymentMethod && isset($paymentMap[$bodyLower])) {
         $method = $paymentMap[$bodyLower];
+        Cache::put($cachePayment, $method, now()->addMinutes(30));
 
-        if ($method === 'Orange Money') {
-            $twiml->message("💳 Vous avez choisi Orange Money. Envoyez le paiement au numéro 70XXXXXX et confirmez avec le code de transaction.");
-        } elseif ($method === 'Wave') {
-            $twiml->message("💳 Vous avez choisi Wave. Envoyez le paiement au numéro 66XXXXXX et confirmez avec le code de transaction.");
-        } else {
-            $twiml->message("💵 Vous avez choisi Cash. Rendez-vous à la gare pour payer votre billet.");
-        }
+        $paymentMessages = [
+            'Orange Money' => "💳 Vous avez choisi Orange Money. Envoyez le paiement au numéro 70XXXXXX et confirmez avec le code de transaction.",
+            'Wave' => "💳 Vous avez choisi Wave. Envoyez le paiement au numéro 66XXXXXX et confirmez avec le code de transaction.",
+            'Cash' => "💵 Vous avez choisi Cash. Rendez-vous à la gare pour payer votre billet."
+        ];
 
-        return response($twiml,200)->header('Content-Type','application/xml');
+        $twiml->message($paymentMessages[$method]);
+        return response($twiml, 200)->header('Content-Type', 'application/xml');
     }
 
     // ----------------------
-    // 4️⃣ Confirmation du paiement et création du ticket
+    // Étape 3 : Confirmation du paiement
     // ----------------------
     if ($tripId && $clientName && $paymentMethod) {
-        $trip = Trip::with('route.departureCity','route.arrivalCity','bus')->find($tripId);
+        $trip = Trip::with('route.departureCity', 'route.arrivalCity', 'bus')->find($tripId);
+
         if (!$trip) {
             $twiml->message("❌ Voyage introuvable. Veuillez recommencer.");
-            Cache::forget($cacheKeyTrip);
-            Cache::forget($cacheKeyName);
-            Cache::forget($cacheKeyPayment);
-            return response($twiml,200)->header('Content-Type','application/xml');
+            Cache::forget($cacheTrip);
+            Cache::forget($cacheName);
+            Cache::forget($cachePayment);
+            return response($twiml, 200)->header('Content-Type', 'application/xml');
         }
 
         $departureCity = $trip->route->departureCity->name ?? 'N/A';
-        $arrivalCity   = $trip->route->arrivalCity->name ?? 'N/A';
-        $busName       = $trip->bus->registration_number ?? 'N/A';
+        $arrivalCity = $trip->route->arrivalCity->name ?? 'N/A';
+        $busName = $trip->bus->registration_number ?? 'N/A';
         $departureTime = optional($trip->departure_at)->format('H:i') ?? 'N/A';
-        $arrivalTime   = optional($trip->arrival_at)->format('H:i') ?? 'N/A';
-        $price         = $trip->route->price ?? 'N/A';
+        $arrivalTime = optional($trip->arrival_at)->format('H:i') ?? 'N/A';
+        $price = $trip->route->price ?? 'N/A';
 
         // Créer le ticket
         $ticket = Ticket::create([
             'trip_id' => $trip->id,
             'user_id' => null,
             'client_name' => $clientName,
-            'client_nina' => null,
-            'seat_number' => null,
             'price' => $price,
             'status' => 'paid',
-            'start_stop_id' => null,
-            'end_stop_id' => null,
         ]);
 
         // Message de confirmation
-       $reply  = "✅ *Paiement confirmé !*\n\n";
-$reply .= "🎫 *Votre billet est prêt*\n";
-$reply .= "• Trajet : *{$departureCity} → {$arrivalCity}*\n";
-$reply .= "• Départ : {$departureTime}\n";
-$reply .= "• Arrivée : {$arrivalTime}\n";
-$reply .= "• Bus : {$busName}\n";
-$reply .= "• Prix : *{$price} FCFA*\n";
-$reply .= "• Référence : *#{$trip->id}*\n\n";
-$reply .= "Merci pour votre confiance et bon voyage ! 🚌";
-$twiml->message($reply);
+        $reply = "✅ *Paiement confirmé !*\n\n".
+                 "🎫 *Votre billet est prêt*\n".
+                 "• Trajet : *{$departureCity} → {$arrivalCity}*\n".
+                 "• Départ : {$departureTime}\n".
+                 "• Arrivée : {$arrivalTime}\n".
+                 "• Bus : {$busName}\n".
+                 "• Prix : *{$price} FCFA*\n".
+                 "• Référence : *#{$trip->id}*\n\n".
+                 "Merci pour votre confiance et bon voyage ! 🚌";
 
+        $twiml->message($reply);
 
         // Générer QR code et PDF
         $ticketDir = storage_path('app/public/tickets');
@@ -144,38 +143,27 @@ $twiml->message($reply);
         // Envoyer PDF via Twilio
         try {
             $twilioClient = new Client(config('services.twilio.sid'), config('services.twilio.token'));
-            $mediaUrl = asset("storage/tickets/billet_{$from}_{$tripId}.pdf");
-
-         $twilioClient->messages->create($from, [
-    'from' => config('services.twilio.whatsapp_from'),
-    'body' => 
-        "📄 *Votre billet est prêt !*\n\n" .
-        "🎫 *Trajet :* {$departureCity} → {$arrivalCity}\n" .
-        "🧾 *Référence :* #{$trip->id}\n\n" .
-        "Veuillez trouver votre billet ci-dessous 👇",
-    'mediaUrl' => [$mediaUrl]
-]);
-
+            $twilioClient->messages->create($from, [
+                'from' => config('services.twilio.whatsapp_from'),
+                'body' => "📄 *Votre billet est prêt !*\n\n🎫 *Trajet :* {$departureCity} → {$arrivalCity}\n🧾 *Référence :* #{$trip->id}\n\nVeuillez trouver votre billet ci-dessous 👇",
+                'mediaUrl' => [asset("storage/tickets/billet_{$from}_{$tripId}.pdf")]
+            ]);
 
             Log::info("TWILIO SENT OK", ['to'=>$from]);
         } catch (\Exception $e) {
-            Log::error("TWILIO ERROR", [
-                "message" => $e->getMessage(),
-                "line" => $e->getLine(),
-                "file" => $e->getFile()
-            ]);
+            Log::error("TWILIO ERROR", ["message"=>$e->getMessage()]);
         }
 
         // Nettoyer cache
-        Cache::forget($cacheKeyTrip);
-        Cache::forget($cacheKeyName);
-        Cache::forget($cacheKeyPayment);
+        Cache::forget($cacheTrip);
+        Cache::forget($cacheName);
+        Cache::forget($cachePayment);
 
-        return response($twiml,200)->header('Content-Type','application/xml');
+        return response($twiml, 200)->header('Content-Type','application/xml');
     }
 
     // ----------------------
-    // 5️⃣ Réservation par ID de voyage
+    // Étape 4 : Réservation par ID
     // ----------------------
     if (ctype_digit($body)) {
         $tripId = intval($body);
@@ -187,30 +175,28 @@ $twiml->message($reply);
         }
 
         $departureCity = $trip->route->departureCity->name ?? 'N/A';
-        $arrivalCity   = $trip->route->arrivalCity->name ?? 'N/A';
-        $busName       = $trip->bus->registration_number ?? 'N/A';
+        $arrivalCity = $trip->route->arrivalCity->name ?? 'N/A';
+        $busName = $trip->bus->registration_number ?? 'N/A';
         $departureTime = optional($trip->departure_at)->format('H:i') ?? 'N/A';
-        $arrivalTime   = optional($trip->arrival_at)->format('H:i') ?? 'N/A';
-        $price         = $trip->route->price ?? 'N/A';
+        $arrivalTime = optional($trip->arrival_at)->format('H:i') ?? 'N/A';
+        $price = $trip->route->price ?? 'N/A';
 
-       $reply  = "🎉 *Réservation en cours !*\n\n";
-$reply .= "🧾 *Référence :* #{$trip->id}\n";
-$reply .= "🚍 *Trajet :* {$departureCity} → {$arrivalCity}\n";
-$reply .= "• Départ : {$departureTime}\n";
-$reply .= "• Arrivée : {$arrivalTime}\n";
-$reply .= "• Bus : {$busName}\n";
-$reply .= "• Prix : *{$price} FCFA*\n\n";
-$reply .= "📝 *Veuillez indiquer votre nom complet pour finaliser la réservation.*";
+        $reply = "🎉 *Réservation en cours !*\n\n".
+                 "🧾 *Référence :* #{$trip->id}\n".
+                 "🚍 *Trajet :* {$departureCity} → {$arrivalCity}\n".
+                 "• Départ : {$departureTime}\n".
+                 "• Arrivée : {$arrivalTime}\n".
+                 "• Bus : {$busName}\n".
+                 "• Prix : *{$price} FCFA*\n\n".
+                 "📝 *Veuillez indiquer votre nom complet pour finaliser la réservation.*";
 
-
-        Cache::put($cacheKeyTrip, $trip->id, now()->addMinutes(30));
+        Cache::put($cacheTrip, $trip->id, now()->addMinutes(30));
         $twiml->message($reply);
-
         return response($twiml,200)->header('Content-Type','application/xml');
     }
 
     // ----------------------
-    // 6️⃣ Texte naturel (ex: Bamako -> Kayes demain)
+    // Étape 5 : Recherche naturelle
     // ----------------------
     function convertirDateNaturelle($texte){
         $now = Carbon::now();
@@ -223,26 +209,27 @@ $reply .= "📝 *Veuillez indiquer votre nom complet pour finaliser la réservat
         foreach($jours as $mot=>$num) if(Str::contains($texte,$mot)) return $now->copy()->next($num)->format('Y-m-d');
         return null;
     }
-if(preg_match('/(.+)->(.+)/', $body, $matchSimple)){
-    $departure = trim($matchSimple[1]); // "Bamako"
-    $arrivalAndDate = trim($matchSimple[2]); // "Mopti dimanche"
 
-    // Extraire la ville d'arrivée et la date
-    if(preg_match('/^(\S+)\s*(.*)$/', $arrivalAndDate, $matchArrival)) {
-        $arrival = trim($matchArrival[1]); // "Mopti"
-        $dateText = trim($matchArrival[2]); // "dimanche"
-        $date = convertirDateNaturelle($dateText);
+    // Pattern "Ville1 -> Ville2 [date ou jour]"
+    if (preg_match('/(.+)->(.+)/', $body, $matchSimple)) {
+        $departure = trim($matchSimple[1]);
+        $arrivalAndDate = trim($matchSimple[2]);
+
+        if (preg_match('/^(\S+)\s*(.*)$/', $arrivalAndDate, $matchArrival)) {
+            $arrival = trim($matchArrival[1]);
+            $dateText = trim($matchArrival[2]);
+            $date = convertirDateNaturelle($dateText);
+        }
+
+        if (!empty($date)) {
+            return rechercherVoyages($departure, $arrival, $date, $twiml);
+        }
     }
 
-    if($date) {
-        return rechercherVoyages($departure, $arrival, $date, $twiml);
-    }
-}
-
-
-    if(preg_match('/(.+)->(.+)\s+(\d{4}-\d{2}-\d{2})/',$body,$matches)){
-        [$all,$departure,$arrival,$date] = $matches;
-        return rechercherVoyages(trim($departure),trim($arrival),$date,$twiml);
+    // Pattern "Ville1 -> Ville2 YYYY-MM-DD"
+    if (preg_match('/(.+)->(.+)\s+(\d{4}-\d{2}-\d{2})/', $body, $matches)) {
+        [$all, $departure, $arrival, $date] = $matches;
+        return rechercherVoyages(trim($departure), trim($arrival), $date, $twiml);
     }
 
     $twiml->message("❌ Format invalide.\nExemple :\n• 12\n• Bamako -> Kayes demain");

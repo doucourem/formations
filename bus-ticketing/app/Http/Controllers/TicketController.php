@@ -199,6 +199,43 @@ class TicketController extends Controller
         return redirect()->route('ticket.index')->with('success', 'Ticket créé avec succès ✅');
     }
 
+
+    public function edit(Ticket $ticket)
+    {
+        $this->authorizeAgent();
+
+        $today = Carbon::now();
+        $trips = Trip::with(['route.departureCity', 'route.arrivalCity', 'route.stops.city', 'route.stops.toCity'])
+            ->whereDate('departure_at', '>=', $today)
+            ->get()
+            ->map(fn($t) => [
+                'id' => $t->id,
+                'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
+                'bus' => [
+                    'capacity' => $t->bus?->capacity ?? 0,
+                    'model' => $t->bus?->model,
+                    'registration_number' => $t->bus?->registration_number,
+                ],
+                'route' => [
+                    'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
+                    'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
+                    'stops' => $t->route->stops->map(fn($s) => [
+                        'id' => $s->id,
+                        'distance_from_start' => $s->distance_from_start,
+                        'price' => $s->partial_price,
+                        'order' => $s->order,
+                        'city' => $s->city ? ['name' => $s->city->name] : null,
+                        'toCity' => $s->toCity ? ['name' => $s->toCity->name] : null,
+                    ]),
+                ],
+            ]);
+
+        return Inertia::render('Tickets/Form', [
+            'ticket' => $ticket,
+            'trips' => $trips,
+        ]);
+    }
+
     /**
      * ✏️ Modification du ticket
      */
