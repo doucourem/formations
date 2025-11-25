@@ -1,172 +1,170 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
   Box,
-  Button,
   Table,
+  TableHead,
   TableBody,
+  TableRow,
   TableCell,
   TableContainer,
-  TableHead,
-  TableRow,
   Paper,
-  Typography,
-  Stack,
-  IconButton,
+  TextField,
   Pagination,
+  Dialog,
+  DialogActions,
+  DialogTitle,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
-
-import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import AddIcon from '@mui/icons-material/Add';
 
-export default function BoutiquesIndex({ boutiques, filters }) {
-  const [sortField, setSortField] = useState(filters?.sort_field || "id");
-  const [sortDirection, setSortDirection] = useState(filters?.sort_direction || "asc");
+export default function Index({ boutiques }) {
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(6);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedBoutique, setSelectedBoutique] = useState(null);
 
-  const handleSort = (field) => {
-    let direction = "asc";
-    if (sortField === field) {
-      direction = sortDirection === "asc" ? "desc" : "asc";
-    }
-    setSortField(field);
-    setSortDirection(direction);
-
-    Inertia.get(
-      route("boutiques.index"),
-      {
-        per_page: filters.per_page,
-        sort_field: field,
-        sort_direction: direction,
-      },
-      { preserveState: true }
+  const filteredBoutiques = useMemo(() => {
+    return boutiques.filter((b) =>
+      b.name.toLowerCase().includes(search.toLowerCase())
     );
+  }, [boutiques, search]);
+
+  const pageCount = Math.ceil(filteredBoutiques.length / rowsPerPage);
+  const paginatedBoutiques = filteredBoutiques.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  const handleDeleteClick = (boutique) => {
+    setSelectedBoutique(boutique);
+    setDeleteDialogOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (confirm("Voulez-vous vraiment supprimer cette boutique ?")) {
-      Inertia.delete(route("boutiques.destroy", id));
-    }
-  };
-
-  const handlePage = (page) => {
-    Inertia.get(
-      route("boutiques.index"),
-      {
-        per_page: filters.per_page,
-        page,
-      },
-      { preserveState: true }
-    );
-  };
-
-  const renderSortIcon = (field) => {
-    if (sortField !== field) return null;
-
-    return sortDirection === "asc" ? (
-      <ArrowUpwardIcon fontSize="small" />
-    ) : (
-      <ArrowDownwardIcon fontSize="small" />
-    );
+  const handleConfirmDelete = () => {
+    Inertia.delete(route("boutiques.destroy", selectedBoutique.id));
+    setDeleteDialogOpen(false);
   };
 
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={3}
-        >
-          <Typography variant="h4">Boutiques</Typography>
-
-          <Button
-            variant="contained"
+        <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+          <TextField
+            label="Rechercher par nom"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            sx={{ width: 300 }}
+          />
+          <IconButton
             color="primary"
-            startIcon={<AddIcon />}
             onClick={() => Inertia.visit(route("boutiques.create"))}
           >
-            Ajouter une boutique
-          </Button>
-        </Stack>
+            <Tooltip title="Nouvelle boutique">
+              <AddIcon />
+            </Tooltip>
+          </IconButton>
+        </Box>
 
         <TableContainer component={Paper}>
           <Table>
-            <TableHead sx={{ bgcolor: "#1976d2" }}>
+            <TableHead>
               <TableRow>
-                <TableCell
-                  sx={{ cursor: "pointer", color: "#fff" }}
-                  onClick={() => handleSort("id")}
-                >
-                  ID {renderSortIcon("id")}
-                </TableCell>
-
-                <TableCell
-                  sx={{ cursor: "pointer", color: "#fff" }}
-                  onClick={() => handleSort("name")}
-                >
-                  Nom {renderSortIcon("name")}
-                </TableCell>
-
-                <TableCell align="center" sx={{ color: "#fff" }}>
-                  Actions
-                </TableCell>
+                <TableCell>Nom</TableCell>
+                <TableCell>Adresse</TableCell>
+                <TableCell>Téléphone</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {boutiques.data?.length > 0 ? (
-                boutiques.data.map((b) => (
-                  <TableRow key={b.id}>
-                    <TableCell>{b.id}</TableCell>
-                    <TableCell>{b.name}</TableCell>
-
-                    <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
-                        <IconButton
-                          color="primary"
-                          size="small"
-                          onClick={() => Inertia.visit(route("boutiques.edit", b.id))}
-                        >
-                          <EditIcon />
-                        </IconButton>
-
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => handleDelete(b.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
+              {paginatedBoutiques.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} align="center">
+                  <TableCell colSpan={6} align="center">
                     Aucune boutique trouvée.
                   </TableCell>
                 </TableRow>
               )}
+
+              {paginatedBoutiques.map((b) => (
+                <TableRow key={b.id}>
+                  <TableCell>{b.name}</TableCell>
+                  <TableCell>{b.adresse}</TableCell>
+                  <TableCell>{b.telephone}</TableCell>
+                  <TableCell>{b.email}</TableCell>
+                  <TableCell>{b.description}</TableCell>
+                  <TableCell align="center">
+                     <Tooltip title="Voir Trimestres">
+  <IconButton
+    color="info"
+    onClick={() =>
+      Inertia.visit(route("boutiques.trimestres.index", b.id))
+    }
+  >
+    <VisibilityIcon />
+  </IconButton>
+
+                    </Tooltip>
+
+                    <Tooltip title="Modifier">
+                      <IconButton
+                        color="primary"
+                        onClick={() => Inertia.visit(route("boutiques.edit", b.id))}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Supprimer">
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDeleteClick(b)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
 
-        <Box mt={3} display="flex" justifyContent="center">
-          <Pagination
-            count={boutiques.last_page || 1}
-            page={boutiques.current_page || 1}
-            onChange={(e, page) => handlePage(page)}
-            color="primary"
-            showFirstButton
-            showLastButton
-          />
-        </Box>
+        {pageCount > 1 && (
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+            <Pagination
+              count={pageCount}
+              page={page}
+              onChange={(e, value) => setPage(value)}
+              color="primary"
+            />
+          </Box>
+        )}
+
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+        >
+          <DialogTitle>
+            Voulez-vous vraiment supprimer la boutique "{selectedBoutique?.name}" ?
+          </DialogTitle>
+          <DialogActions>
+            <IconButton onClick={() => setDeleteDialogOpen(false)}>
+              Annuler
+            </IconButton>
+            <IconButton color="error" onClick={handleConfirmDelete}>
+              Supprimer
+            </IconButton>
+          </DialogActions>
+        </Dialog>
       </Box>
     </GuestLayout>
   );

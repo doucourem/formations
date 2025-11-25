@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
@@ -12,12 +11,23 @@ import {
 
 export default function BoutiqueForm({ boutique }) {
   const [name, setName] = useState(boutique?.name || "");
+  const [adresse, setAdresse] = useState(boutique?.adresse || "");
+  const [telephone, setTelephone] = useState(boutique?.telephone || "");
+  const [email, setEmail] = useState(boutique?.email || "");
+  const [description, setDescription] = useState(boutique?.description || "");
+
   const isEdit = Boolean(boutique?.id);
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const payload = { name };
+    const payload = {
+      name,
+      adresse,
+      telephone,
+      email,
+      description,
+    };
 
     if (isEdit) {
       Inertia.put(route("boutiques.update", boutique.id), payload);
@@ -28,7 +38,7 @@ export default function BoutiqueForm({ boutique }) {
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 3, maxWidth: 500, mx: "auto" }}>
+      <Box sx={{ p: 3, maxWidth: 600, mx: "auto" }}>
         <Typography variant="h4" mb={3}>
           {isEdit ? "Modifier la boutique" : "Créer une boutique"}
         </Typography>
@@ -40,6 +50,37 @@ export default function BoutiqueForm({ boutique }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              fullWidth
+            />
+
+            <TextField
+              label="Adresse"
+              value={adresse}
+              onChange={(e) => setAdresse(e.target.value)}
+              fullWidth
+            />
+
+            <TextField
+              label="Téléphone"
+              value={telephone}
+              onChange={(e) => setTelephone(e.target.value)}
+              fullWidth
+            />
+
+            <TextField
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              fullWidth
+            />
+
+            <TextField
+              label="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              multiline
+              rows={4}
               fullWidth
             />
 

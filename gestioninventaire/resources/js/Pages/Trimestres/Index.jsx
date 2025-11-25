@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 // Importation de 'router' depuis @inertiajs/react, qui est la convention moderne pour la navigation
 import { router } from "@inertiajs/react"; 
+import GuestLayout from "@/Layouts/GuestLayout";
 
 // Suppression de l'import GuestLayout qui n'est pas résolu. 
 // Le contenu sera enveloppé dans une structure Box simple.
@@ -80,6 +81,7 @@ export default function TrimestresIndex({ boutique, trimestres, filters }) {
 
     return (
         // Remplacement de GuestLayout par une Box simple pour la mise en page
+        <GuestLayout>
         <Box sx={{ p: 5, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
             <Box sx={{ maxWidth: 'xl', mx: 'auto', p: 3, bgcolor: 'white', borderRadius: 2, boxShadow: 3 }}>
                 
@@ -198,5 +200,6 @@ export default function TrimestresIndex({ boutique, trimestres, filters }) {
 
             </Box>
         </Box>
+        </GuestLayout>
     );
 }

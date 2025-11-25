@@ -11,11 +11,22 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Divider,
+  Button,
 } from "@mui/material";
 
+// Helper pour formater les dates en français
+const formatDateFR = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
 export default function TrimestreDetails({ trimestre }) {
-  // calcul total stock start / end
+  // Calcul des totaux stock
   const totalStockStart = trimestre.stocks.reduce(
     (sum, s) => sum + s.quantity_start * s.value_start,
     0
@@ -25,6 +36,9 @@ export default function TrimestreDetails({ trimestre }) {
     0
   );
 
+  const totalDepenses = trimestre.depenses.reduce((sum, d) => sum + d.amount, 0);
+  const totalCredits = trimestre.credits.reduce((sum, c) => sum + c.amount, 0);
+
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
@@ -32,10 +46,20 @@ export default function TrimestreDetails({ trimestre }) {
           Bilan du trimestre – {trimestre.boutique.name}
         </Typography>
 
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => window.open(route("trimestres.pdf", trimestre.id))}
+          sx={{ mb: 3 }}
+        >
+          Télécharger PDF
+        </Button>
+
+        {/* Informations financières */}
         <Paper sx={{ p: 3, mb: 3 }}>
-          <Stack spacing={2}>
+          <Stack spacing={1}>
             <Typography>
-              <strong>Dates :</strong> {trimestre.start_date} → {trimestre.end_date}
+              <strong>Dates :</strong> {formatDateFR(trimestre.start_date)} → {formatDateFR(trimestre.end_date)}
             </Typography>
             <Typography>
               <strong>Caisse début :</strong> {trimestre.cash_start.toLocaleString()} FCFA
@@ -55,11 +79,11 @@ export default function TrimestreDetails({ trimestre }) {
           </Stack>
         </Paper>
 
+        {/* Stocks des produits */}
         <Typography variant="h5" mb={2}>
           Stocks des produits
         </Typography>
-
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ mb: 3 }}>
           <Table>
             <TableHead sx={{ bgcolor: "#1976d2" }}>
               <TableRow>
@@ -72,7 +96,6 @@ export default function TrimestreDetails({ trimestre }) {
                 <TableCell sx={{ color: "#fff" }}>Valeur totale fin</TableCell>
               </TableRow>
             </TableHead>
-
             <TableBody>
               {trimestre.stocks.map((s) => (
                 <TableRow key={s.produit_id}>
@@ -85,8 +108,6 @@ export default function TrimestreDetails({ trimestre }) {
                   <TableCell>{(s.quantity_end * s.value_end).toLocaleString()} FCFA</TableCell>
                 </TableRow>
               ))}
-
-              {/* Totaux */}
               <TableRow>
                 <TableCell colSpan={3} align="right">
                   <strong>Total :</strong>
@@ -103,39 +124,57 @@ export default function TrimestreDetails({ trimestre }) {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Dépenses */}
+        <Typography variant="h5" mb={1}>
+          Dépenses
+        </Typography>
+        <TableContainer component={Paper} sx={{ mb: 3 }}>
+          <Table>
+            <TableBody>
+              {trimestre.depenses.map((d) => (
+                <TableRow key={d.id}>
+                  <TableCell>{d.description}</TableCell>
+                  <TableCell>{d.amount.toLocaleString()} FCFA</TableCell>
+                </TableRow>
+              ))}
+              <TableRow>
+                <TableCell>
+                  <strong>Total</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>{totalDepenses.toLocaleString()} FCFA</strong>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Crédits */}
+        <Typography variant="h5" mb={1}>
+          Crédits
+        </Typography>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableBody>
+              {trimestre.credits.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>{c.description}</TableCell>
+                  <TableCell>{c.amount.toLocaleString()} FCFA</TableCell>
+                </TableRow>
+              ))}
+              <TableRow>
+                <TableCell>
+                  <strong>Total</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>{totalCredits.toLocaleString()} FCFA</strong>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
-      <Typography variant="h6" mt={2}>Dépenses</Typography>
-<Table>
-  <TableBody>
-    {trimestre.depenses.map(d => (
-      <TableRow key={d.id}>
-        <TableCell>{d.description}</TableCell>
-        <TableCell>{d.amount.toLocaleString()} FCFA</TableCell>
-      </TableRow>
-    ))}
-    <TableRow>
-      <TableCell>Total</TableCell>
-      <TableCell>{trimestre.depenses.reduce((a,b) => a+b.amount,0).toLocaleString()} FCFA</TableCell>
-    </TableRow>
-  </TableBody>
-</Table>
-
-<Typography variant="h6" mt={2}>Crédits</Typography>
-<Table>
-  <TableBody>
-    {trimestre.credits.map(c => (
-      <TableRow key={c.id}>
-        <TableCell>{c.description}</TableCell>
-        <TableCell>{c.amount.toLocaleString()} FCFA</TableCell>
-      </TableRow>
-    ))}
-    <TableRow>
-      <TableCell>Total</TableCell>
-      <TableCell>{trimestre.credits.reduce((a,b) => a+b.amount,0).toLocaleString()} FCFA</TableCell>
-    </TableRow>
-  </TableBody>
-</Table>
-
     </GuestLayout>
   );
 }

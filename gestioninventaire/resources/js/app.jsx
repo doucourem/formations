@@ -10,7 +10,7 @@ import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-const appName =  'Gestion Billets';
+const appName =  'Gestion d\'Inventaire' || document.title;
 
 // Créer un thème MUI (personnalisable)
 const theme = createTheme({

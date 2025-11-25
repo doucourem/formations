@@ -1,155 +1,174 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
   Box,
-  Button,
   Table,
+  TableHead,
   TableBody,
+  TableRow,
   TableCell,
   TableContainer,
-  TableHead,
-  TableRow,
   Paper,
-  Typography,
-  Stack,
-  IconButton,
+  TextField,
   Pagination,
+  Dialog,
+  DialogActions,
+  DialogTitle,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import AddIcon from '@mui/icons-material/Add';
 
-export default function ProduitsIndex({ produits, filters }) {
-  const [sortField, setSortField] = useState(filters?.sort_field || "id");
-  const [sortDirection, setSortDirection] = useState(filters?.sort_direction || "asc");
+export default function Index({ produits }) {
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(6);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedProduit, setSelectedProduit] = useState(null);
 
-  const handleSort = (field) => {
-    let direction = "asc";
-    if (sortField === field) {
-      direction = sortDirection === "asc" ? "desc" : "asc";
-    }
-
-    setSortField(field);
-    setSortDirection(direction);
-
-    Inertia.get(
-      route("produits.index"),
-      {
-        per_page: filters.per_page,
-        sort_field: field,
-        sort_direction: direction,
-      },
-      { preserveState: true }
+  // Filtrage par nom
+  const filteredProduits = useMemo(() => {
+    return produits.filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase())
     );
+  }, [produits, search]);
+
+  // Pagination
+  const pageCount = Math.ceil(filteredProduits.length / rowsPerPage);
+  const paginatedProduits = filteredProduits.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  // Ouvrir popup suppression
+  const handleDeleteClick = (produit) => {
+    setSelectedProduit(produit);
+    setDeleteDialogOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (confirm("Voulez-vous vraiment supprimer ce produit ?")) {
-      Inertia.delete(route("produits.destroy", id));
-    }
-  };
-
-  const handlePage = (page) => {
-    Inertia.get(
-      route("produits.index"),
-      { per_page: filters.per_page, page },
-      { preserveState: true }
-    );
-  };
-
-  const renderSortIcon = (field) => {
-    if (sortField !== field) return null;
-    return sortDirection === "asc" ? (
-      <ArrowUpwardIcon fontSize="small" />
-    ) : (
-      <ArrowDownwardIcon fontSize="small" />
-    );
+  // Confirmer suppression
+  const handleConfirmDelete = () => {
+    Inertia.delete(route("produits.destroy", selectedProduit.id));
+    setDeleteDialogOpen(false);
   };
 
   return (
     <GuestLayout>
       <Box sx={{ p: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4">Produits</Typography>
-
-          <Button
-            variant="contained"
+        <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+          <TextField
+            label="Rechercher par nom"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            sx={{ width: 300 }}
+          />
+          <IconButton
             color="primary"
-            startIcon={<AddIcon />}
             onClick={() => Inertia.visit(route("produits.create"))}
           >
-            Ajouter un produit
-          </Button>
-        </Stack>
+            <Tooltip title="Nouveau produit">
+              <AddIcon />
+            </Tooltip>
+          </IconButton>
+        </Box>
 
-        {/* Tableau Produits */}
         <TableContainer component={Paper}>
           <Table>
-            <TableHead sx={{ bgcolor: "#1976d2" }}>
+            <TableHead>
               <TableRow>
-                <TableCell sx={{ cursor: "pointer", color: "#fff" }} onClick={() => handleSort("id")}>
-                  ID {renderSortIcon("id")}
-                </TableCell>
-
-                <TableCell sx={{ cursor: "pointer", color: "#fff" }} onClick={() => handleSort("name")}>
-                  Nom {renderSortIcon("name")}
-                </TableCell>
-
-                <TableCell align="center" sx={{ color: "#fff" }}>
-                  Actions
-                </TableCell>
+                <TableCell>Photo</TableCell>
+                <TableCell>Nom</TableCell>
+                <TableCell>Prix</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {produits.data?.length > 0 ? (
-                produits.data.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>{p.id}</TableCell>
-                    <TableCell>{p.name}</TableCell>
-
-                    <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
-                        <IconButton
-                          color="primary"
-                          size="small"
-                          onClick={() => Inertia.visit(route("produits.edit", p.id))}
-                        >
-                          <EditIcon />
-                        </IconButton>
-
-                        <IconButton color="error" size="small" onClick={() => handleDelete(p.id)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
+              {paginatedProduits.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} align="center">
+                  <TableCell colSpan={4} align="center">
                     Aucun produit trouvé.
                   </TableCell>
                 </TableRow>
               )}
+
+              {paginatedProduits.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    {p.photo && (
+                      <img
+                        src={`/storage/${p.photo}`}
+                        style={{
+                          width: 60,
+                          height: 60,
+                          objectFit: "cover",
+                          borderRadius: 8,
+                        }}
+                      />
+                    )}
+                  </TableCell>
+
+                  <TableCell>{p.name}</TableCell>
+                  <TableCell>{p.sale_price} CFA</TableCell>
+
+                  <TableCell align="center">
+                    <Tooltip title="Modifier">
+                      <IconButton
+                        color="primary"
+                        onClick={() =>
+                          Inertia.visit(route("produits.edit", p.id))
+                        }
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Supprimer">
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDeleteClick(p)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
 
-        {/* Pagination */}
-        <Box mt={3} display="flex" justifyContent="center">
-          <Pagination
-            count={produits.last_page || 1}
-            page={produits.current_page || 1}
-            onChange={(e, page) => handlePage(page)}
-            color="primary"
-            showFirstButton
-            showLastButton
-          />
-        </Box>
+        {pageCount > 1 && (
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+            <Pagination
+              count={pageCount}
+              page={page}
+              onChange={(e, value) => setPage(value)}
+              color="primary"
+            />
+          </Box>
+        )}
+
+        {/* Confirmation suppression */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+        >
+          <DialogTitle>
+            Voulez-vous vraiment supprimer le produit "{selectedProduit?.name}" ?
+          </DialogTitle>
+          <DialogActions>
+            <IconButton onClick={() => setDeleteDialogOpen(false)}>
+              Annuler
+            </IconButton>
+            <IconButton color="error" onClick={handleConfirmDelete}>
+              Supprimer
+            </IconButton>
+          </DialogActions>
+        </Dialog>
       </Box>
     </GuestLayout>
   );

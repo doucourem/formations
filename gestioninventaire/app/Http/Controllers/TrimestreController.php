@@ -8,6 +8,7 @@ use App\Models\Produit;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB; // Ajouté pour les transactions
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TrimestreController extends Controller
 {
@@ -40,6 +41,19 @@ class TrimestreController extends Controller
             ],
         ]);
     }
+
+
+
+
+public function exportPdf(Trimestre $trimestre)
+{
+    $trimestre->load(['stocks.produit', 'depenses', 'credits', 'boutique']);
+
+    $pdf = Pdf::loadView('trimestres.pdf', compact('trimestre'))
+              ->setPaper('a4', 'portrait');
+
+    return $pdf->download("bilan_trimestre_{$trimestre->id}.pdf");
+}
 
     /**
      * Formulaire de création

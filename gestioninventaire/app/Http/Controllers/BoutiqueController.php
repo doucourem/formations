@@ -8,64 +8,77 @@ use Inertia\Inertia;
 
 class BoutiqueController extends Controller
 {
-    // Liste des boutiques
-    public function index(Request $request)
+    // Affichage de la liste des boutiques
+    public function index()
     {
-        $perPage = $request->per_page ?? 10;
-        $sortField = $request->sort_field ?? 'id';
-        $sortDirection = $request->sort_direction ?? 'asc';
-
-        $boutiques = Boutique::orderBy($sortField, $sortDirection)
-            ->paginate($perPage)
-            ->appends($request->all());
+        $boutiques = Boutique::latest()->get();
 
         return Inertia::render('Boutiques/Index', [
-            'boutiques' => $boutiques,
-            'filters' => [
-                'per_page' => $perPage,
-                'sort_field' => $sortField,
-                'sort_direction' => $sortDirection,
-            ],
+            'boutiques' => $boutiques
         ]);
     }
 
-    // Formulaire création
+    // Formulaire de création
     public function create()
     {
-        return Inertia::render('Boutiques/BoutiqueForm');
+        return Inertia::render('Boutiques/BoutiqueForm', [
+            'boutique' => null
+        ]);
     }
 
-    // Enregistrement nouvelle boutique
+    // Stockage d'une nouvelle boutique
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'adresse' => 'nullable|string|max:255',
+            'telephone' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
+            'description' => 'nullable|string',
         ]);
 
-        Boutique::create($request->only('name'));
+        Boutique::create($request->only([
+            'name',
+            'adresse',
+            'telephone',
+            'email',
+            'description',
+        ]));
 
         return redirect()->route('boutiques.index');
     }
 
-    // Formulaire édition
+    // Formulaire d'édition
     public function edit(Boutique $boutique)
     {
-        return Inertia::render('Boutiques/BoutiqueForm', compact('boutique'));
+        return Inertia::render('Boutiques/BoutiqueForm', [
+            'boutique' => $boutique
+        ]);
     }
 
-    // Mise à jour boutique
+    // Mise à jour d'une boutique
     public function update(Request $request, Boutique $boutique)
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'adresse' => 'nullable|string|max:255',
+            'telephone' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
+            'description' => 'nullable|string',
         ]);
 
-        $boutique->update($request->only('name'));
+        $boutique->update($request->only([
+            'name',
+            'adresse',
+            'telephone',
+            'email',
+            'description',
+        ]));
 
         return redirect()->route('boutiques.index');
     }
 
-    // Suppression boutique
+    // Suppression d'une boutique
     public function destroy(Boutique $boutique)
     {
         $boutique->delete();

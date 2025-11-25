@@ -51,6 +51,11 @@ export default function AuthenticatedLayout({ children }) {
   // Construction dynamique des menus selon le rôle
   let menuItems = [];
 
+
+  menuItems = [
+      { text: "Produits", icon: <LocationCityIcon />, route: route("produits.index") },
+      { text: "Boutique", icon: <DirectionsBusIcon />, route: route("boutiques.index") },
+    ];
   if (user.role === "admin" || user.role === "manager") {
     menuItems = [
       { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },

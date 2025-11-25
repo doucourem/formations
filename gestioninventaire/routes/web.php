@@ -31,6 +31,9 @@ Route::resource('produits', ProduitController::class);
 Route::resource('trimestres', TrimestreController::class);
 Route::resource('boutiques.trimestres', TrimestreController::class)->shallow();
 
+Route::get('trimestres/{trimestre}/pdf', [TrimestreController::class, 'exportPdf'])
+     ->name('trimestres.pdf');
+
 // Routes pour les boutiques
 Route::resource('boutiques', BoutiqueController::class);
 
