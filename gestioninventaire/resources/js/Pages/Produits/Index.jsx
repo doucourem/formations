@@ -16,11 +16,13 @@ import {
   DialogActions,
   DialogTitle,
   IconButton,
+  Button,
   Tooltip,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from '@mui/icons-material/Add';
+import { Card, CardHeader } from "@mui/material";
 
 export default function Index({ produits }) {
   const [search, setSearch] = useState("");
@@ -56,8 +58,25 @@ export default function Index({ produits }) {
   };
 
   return (
-    <GuestLayout>
+  <GuestLayout>
+  <Box sx={{ p: 3 }}>
+    <Card elevation={3} sx={{ borderRadius: 3 }}>
+      <CardHeader title="Liste des produits" 
+        action={
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={() =>
+                      router.visit(route("produits.create", boutique.id))
+                    }
+                  >
+                    Nouveau produit
+                  </Button>
+                }/>
+
       <Box sx={{ p: 3 }}>
+        {/* Barre de recherche et bouton ajouter */}
         <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
           <TextField
             label="Rechercher par nom"
@@ -65,16 +84,9 @@ export default function Index({ produits }) {
             onChange={(e) => setSearch(e.target.value)}
             sx={{ width: 300 }}
           />
-          <IconButton
-            color="primary"
-            onClick={() => Inertia.visit(route("produits.create"))}
-          >
-            <Tooltip title="Nouveau produit">
-              <AddIcon />
-            </Tooltip>
-          </IconButton>
         </Box>
 
+        {/* Tableau */}
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -85,7 +97,6 @@ export default function Index({ produits }) {
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
-
             <TableBody>
               {paginatedProduits.length === 0 && (
                 <TableRow>
@@ -110,10 +121,8 @@ export default function Index({ produits }) {
                       />
                     )}
                   </TableCell>
-
                   <TableCell>{p.name}</TableCell>
                   <TableCell>{p.sale_price} CFA</TableCell>
-
                   <TableCell align="center">
                     <Tooltip title="Modifier">
                       <IconButton
@@ -141,6 +150,7 @@ export default function Index({ produits }) {
           </Table>
         </TableContainer>
 
+        {/* Pagination */}
         {pageCount > 1 && (
           <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
             <Pagination
@@ -151,25 +161,28 @@ export default function Index({ produits }) {
             />
           </Box>
         )}
-
-        {/* Confirmation suppression */}
-        <Dialog
-          open={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-        >
-          <DialogTitle>
-            Voulez-vous vraiment supprimer le produit "{selectedProduit?.name}" ?
-          </DialogTitle>
-          <DialogActions>
-            <IconButton onClick={() => setDeleteDialogOpen(false)}>
-              Annuler
-            </IconButton>
-            <IconButton color="error" onClick={handleConfirmDelete}>
-              Supprimer
-            </IconButton>
-          </DialogActions>
-        </Dialog>
       </Box>
-    </GuestLayout>
+    </Card>
+
+    {/* Dialog suppression */}
+    <Dialog
+      open={deleteDialogOpen}
+      onClose={() => setDeleteDialogOpen(false)}
+    >
+      <DialogTitle>
+        Voulez-vous vraiment supprimer le produit "{selectedProduit?.name}" ?
+      </DialogTitle>
+      <DialogActions>
+        <IconButton onClick={() => setDeleteDialogOpen(false)}>
+          Annuler
+        </IconButton>
+        <IconButton color="error" onClick={handleConfirmDelete}>
+          Supprimer
+        </IconButton>
+      </DialogActions>
+    </Dialog>
+  </Box>
+</GuestLayout>
+
   );
 }

@@ -6,6 +6,7 @@ use App\Models\Parcel;
 use App\Models\Trip; // <-- 1. Import the Trip model
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Inertia\Inertia;
 class ParcelController extends Controller
 {
     /**
@@ -23,47 +24,50 @@ class ParcelController extends Controller
      * Show create form
      */
     public function create()
-    {
-        // 2. Fetch the 'trips' data and pass it to the React component
-       
-        Carbon::setLocale('fr');
-        $today = Carbon::now();
+{
 
-        $trips = Trip::with([
-            'route.departureCity',
-            'route.arrivalCity',
-            'route.stops.city',
-            'route.stops.toCity',
-            'bus',
-        ])
-            ->whereDate('departure_at', '>=', $today)
-            ->get()
-            ->map(fn($t) => [
-                'id' => $t->id,
-                'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
-                'bus' => [
-                    'capacity' => $t->bus?->capacity ?? 0,
-                    'model' => $t->bus?->model,
-                    'registration_number' => $t->bus?->registration_number,
-                ],
-                'route' => [
-                    'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
-                    'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
-                    'stops' => $t->route->stops->map(fn($s) => [
-                        'id' => $s->id,
-                        'distance_from_start' => $s->distance_from_start,
-                        'price' => $s->partial_price,
-                        'order' => $s->order,
-                        'city' => $s->city ? ['name' => $s->city->name] : null,
-                        'toCity' => $s->toCity ? ['name' => $s->toCity->name] : null,
-                    ]),
-                ],
-            ]);
+    Carbon::setLocale('fr');
+    $today = Carbon::now();
 
-        return inertia('Parcels/Create', [
-            'trips' => $trips,
-        ]);
-    }
+    // Récupération des voyages futurs avec bus, route et stops
+    $trips = Trip::with([
+        'route.departureCity',
+        'route.arrivalCity',
+        'route.stops.city',
+        'route.stops.toCity',
+        'bus',
+    ])
+    ->whereDate('departure_at', '>=', $today)
+    ->get()
+    ->map(fn($t) => [
+        'id' => $t->id,
+        'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
+        'bus' => [
+            'capacity' => $t->bus?->capacity ?? 0,
+            'model' => $t->bus?->model,
+            'registration_number' => $t->bus?->registration_number,
+        ],
+        'route' => [
+            'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
+            'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
+            'stops' => $t->route->stops->map(fn($s) => [
+                'id' => $s->id,
+                'distance_from_start' => $s->distance_from_start,
+                'price' => $s->partial_price,
+                'order' => $s->order,
+                'city' => $s->city ? ['name' => $s->city->name] : null,
+                'toCity' => $s->toCity ? ['name' => $s->toCity->name] : null,
+            ]),
+        ],
+    ]);
+
+    // Récupération de tous les stops pour le select
+   
+    return Inertia::render('Parcels/Create', [
+        'trips' => $trips,
+    ]);
+}
+
 
     /**
      * Store a new parcel

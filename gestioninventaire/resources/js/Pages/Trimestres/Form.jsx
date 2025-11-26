@@ -10,7 +10,7 @@ import {
   Paper,
   Divider,
 } from "@mui/material";
-
+import { Card, CardHeader } from "@mui/material";
 export default function TrimestreForm({ boutique, trimestre, produits }) {
   // initial state
   const [form, setForm] = useState({
@@ -57,13 +57,18 @@ export default function TrimestreForm({ boutique, trimestre, produits }) {
   };
 
   return (
-    <GuestLayout>
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" mb={3}>
-          {trimestre ? "Modifier le trimestre" : "Ajouter un trimestre"} – {boutique.name}
-        </Typography>
+   
 
-        <Paper sx={{ p: 3 }}>
+<GuestLayout>
+  <Box sx={{ p: 5, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+    <Box sx={{ maxWidth: 'xl', mx: 'auto' }}>
+
+      <Card sx={{ borderRadius: 2, boxShadow: 3 }}>
+        <CardHeader
+          title={trimestre ? `Modifier le trimestre – ${boutique.name}` : `Ajouter un trimestre – ${boutique.name}`}
+        />
+
+        <Box sx={{ p: 3 }}>
           <form onSubmit={handleSubmit}>
             <Stack spacing={3}>
 
@@ -113,8 +118,6 @@ export default function TrimestreForm({ boutique, trimestre, produits }) {
                 />
               </Stack>
 
-              <Divider />
-
               {/* Stocks produits */}
               <Typography variant="h6">Stocks des produits</Typography>
               {form.stocks.map((s, index) => (
@@ -142,16 +145,18 @@ export default function TrimestreForm({ boutique, trimestre, produits }) {
                 </Stack>
               ))}
 
-              <Divider />
-
               {/* Submit */}
               <Button type="submit" variant="contained" color="primary">
                 {trimestre ? "Mettre à jour" : "Créer"}
               </Button>
             </Stack>
           </form>
-        </Paper>
-      </Box>
-    </GuestLayout>
+        </Box>
+      </Card>
+
+    </Box>
+  </Box>
+</GuestLayout>
+
   );
 }

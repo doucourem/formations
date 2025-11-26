@@ -38,6 +38,7 @@ return [
         'sid' => env('TWILIO_SID'),
         'token' => env('TWILIO_TOKEN'),
         'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'), // or TWILIO_FROM
+        'from' => env('TWILIO_FROM'),
     ],
 'orange_money' => [
     'client_id' => env('ORANGE_CLIENT_ID'),

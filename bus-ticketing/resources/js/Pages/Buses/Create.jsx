@@ -48,7 +48,8 @@ export default function Create({ agencies = [] }) {
       validationErrors.registration_number = "Le numéro d’immatriculation est obligatoire.";
     if (!form.model) validationErrors.model = "Le modèle est obligatoire.";
     if (!form.capacity) validationErrors.capacity = "Le nombre de places est obligatoire.";
-   
+    if (!form.agency_id) validationErrors.agency_id = "L'agence est obligatoire.";
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -134,7 +135,29 @@ export default function Create({ agencies = [] }) {
               </FormControl>
 
               {/* Agence */}
-            
+              <FormControl fullWidth required error={!!errors.agency_id}>
+                <InputLabel>Agence</InputLabel>
+                <Select
+                  name="agency_id"
+                  value={form.agency_id}
+                  onChange={handleChange}
+                  label="Agence"
+                >
+                  <MenuItem value="">
+                    <em>Sélectionner une agence</em>
+                  </MenuItem>
+                  {agencies.map((agency) => (
+                    <MenuItem key={agency.id} value={agency.id}>
+                      {agency.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.agency_id && (
+                  <Typography variant="caption" color="error">
+                    {errors.agency_id}
+                  </Typography>
+                )}
+              </FormControl>
 
               {/* Bouton de soumission */}
               <Button
@@ -144,11 +167,7 @@ export default function Create({ agencies = [] }) {
                 sx={{ mt: 2 }}
                 disabled={loading}
               >
-                {loading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  "Créer le bus"
-                )}
+                {loading ? <CircularProgress size={24} color="inherit" /> : "Créer le bus"}
               </Button>
             </Box>
           </CardContent>

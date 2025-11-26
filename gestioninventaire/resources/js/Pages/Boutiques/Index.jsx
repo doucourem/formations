@@ -17,11 +17,13 @@ import {
   DialogTitle,
   IconButton,
   Tooltip,
+  Button
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AddIcon from '@mui/icons-material/Add';
+import { Card, CardHeader } from "@mui/material";
 
 export default function Index({ boutiques }) {
   const [search, setSearch] = useState("");
@@ -53,8 +55,25 @@ export default function Index({ boutiques }) {
   };
 
   return (
-    <GuestLayout>
+ <GuestLayout>
+  <Box sx={{ p: 3 }}>
+    <Card elevation={3} sx={{ borderRadius: 3 }}>
+      <CardHeader title="Liste des boutiques" 
+       action={
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          startIcon={<AddIcon />}
+                          onClick={() =>
+                            router.visit(route("produits.create", boutique.id))
+                          }
+                        >
+                         Nouvelle boutique
+                        </Button>
+                      }/>
+
       <Box sx={{ p: 3 }}>
+        {/* Barre de recherche et bouton ajouter */}
         <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
           <TextField
             label="Rechercher par nom"
@@ -62,16 +81,9 @@ export default function Index({ boutiques }) {
             onChange={(e) => setSearch(e.target.value)}
             sx={{ width: 300 }}
           />
-          <IconButton
-            color="primary"
-            onClick={() => Inertia.visit(route("boutiques.create"))}
-          >
-            <Tooltip title="Nouvelle boutique">
-              <AddIcon />
-            </Tooltip>
-          </IconButton>
         </Box>
 
+        {/* Tableau */}
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -102,16 +114,15 @@ export default function Index({ boutiques }) {
                   <TableCell>{b.email}</TableCell>
                   <TableCell>{b.description}</TableCell>
                   <TableCell align="center">
-                     <Tooltip title="Voir Trimestres">
-  <IconButton
-    color="info"
-    onClick={() =>
-      Inertia.visit(route("boutiques.trimestres.index", b.id))
-    }
-  >
-    <VisibilityIcon />
-  </IconButton>
-
+                    <Tooltip title="Voir Trimestres">
+                      <IconButton
+                        color="info"
+                        onClick={() =>
+                          Inertia.visit(route("boutiques.trimestres.index", b.id))
+                        }
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
                     </Tooltip>
 
                     <Tooltip title="Modifier">
@@ -138,6 +149,7 @@ export default function Index({ boutiques }) {
           </Table>
         </TableContainer>
 
+        {/* Pagination */}
         {pageCount > 1 && (
           <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
             <Pagination
@@ -148,24 +160,28 @@ export default function Index({ boutiques }) {
             />
           </Box>
         )}
-
-        <Dialog
-          open={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-        >
-          <DialogTitle>
-            Voulez-vous vraiment supprimer la boutique "{selectedBoutique?.name}" ?
-          </DialogTitle>
-          <DialogActions>
-            <IconButton onClick={() => setDeleteDialogOpen(false)}>
-              Annuler
-            </IconButton>
-            <IconButton color="error" onClick={handleConfirmDelete}>
-              Supprimer
-            </IconButton>
-          </DialogActions>
-        </Dialog>
       </Box>
-    </GuestLayout>
+    </Card>
+
+    {/* Dialog suppression */}
+    <Dialog
+      open={deleteDialogOpen}
+      onClose={() => setDeleteDialogOpen(false)}
+    >
+      <DialogTitle>
+        Voulez-vous vraiment supprimer la boutique "{selectedBoutique?.name}" ?
+      </DialogTitle>
+      <DialogActions>
+        <IconButton onClick={() => setDeleteDialogOpen(false)}>
+          Annuler
+        </IconButton>
+        <IconButton color="error" onClick={handleConfirmDelete}>
+          Supprimer
+        </IconButton>
+      </DialogActions>
+    </Dialog>
+  </Box>
+</GuestLayout>
+
   );
 }

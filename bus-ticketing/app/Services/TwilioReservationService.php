@@ -114,6 +114,131 @@ class TwilioReservationService
         return $this->twiml($twiml);
     }
 
+
+    private function isNaturalRequest(string $text): bool
+{
+    $text = trim(Str::lower($text));
+
+    // 1. Trop court → pas une requête naturelle
+    if (strlen($text) < 5) {
+        return false;
+    }
+
+    // 2. Contient une flèche ou séparateurs → très probablement un trajet
+    if (Str::contains($text, ['->', '→', '-', 'vers'])) {
+        return true;
+    }
+
+    // 3. Contient des villes ou dates → requête naturelle
+    $keywords = [
+        'bamako', 'sikasso', 'segou', 'mopti', 'koulikoro',
+        'demain', 'aujourd', 'lundi', 'mardi', 'mercredi',
+        'jeudi', 'vendredi', 'samedi', 'dimanche'
+    ];
+
+    foreach ($keywords as $word) {
+        if (Str::contains($text, $word)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Analyse un texte naturel pour extraire départ, arrivée et date,
+ * puis propose le voyage correspondant.
+ */
+protected function processNaturalRequest(string $text, $twiml)
+{
+    $from = null;
+    $to = null;
+    $date = null;
+
+    $lower = Str::lower($text);
+
+    // 1. Extraire la date relative
+    if (str_contains($lower, 'demain')) {
+        $date = Carbon::tomorrow();
+    } elseif (str_contains($lower, 'aujourd')) {
+        $date = Carbon::today();
+    } else {
+        // jours de la semaine en français → Carbon::next(Carbon::MONDAY..)
+        $days = [
+            'lundi' => Carbon::MONDAY,
+            'mardi' => Carbon::TUESDAY,
+            'mercredi' => Carbon::WEDNESDAY,
+            'jeudi' => Carbon::THURSDAY,
+            'vendredi' => Carbon::FRIDAY,
+            'samedi' => Carbon::SATURDAY,
+            'dimanche' => Carbon::SUNDAY,
+        ];
+
+        foreach ($days as $k => $dow) {
+            if (str_contains($lower, $k)) {
+                $date = Carbon::now()->next($dow);
+                break;
+            }
+        }
+    }
+
+    if (!$date) $date = Carbon::today();
+
+    // 2. Extraire villes via pattern (Sikasso -> Bamako)
+    if (preg_match('/([a-z]+)\s*(?:->|→|-|vers)\s*([a-z]+)/i', $text, $m)) {
+        $from = trim($m[1]);
+        $to   = trim($m[2]);
+    }
+
+    if (!$from || !$to) {
+        $this->sendWhatsAppText($this->currentUser(), "❌ Format non reconnu. Exemple : Bamako -> Mopti demain");
+        return $this->twiml($twiml);
+    }
+
+    // 3. Trouver villes exactes en BD
+    $departure = \App\Models\City::where('name', 'like', "%$from%")->first();
+    $arrival   = \App\Models\City::where('name', 'like', "%$to%")->first();
+
+    if (!$departure || !$arrival) {
+        $this->sendWhatsAppText($this->currentUser(), "❌ Villes non trouvées : {$from} / {$to}");
+        return $this->twiml($twiml);
+    }
+
+    // 4. Rechercher un trajet
+    $trip = Trip::with('route.departureCity','route.arrivalCity')
+                ->where('route_id', function($q) use ($departure, $arrival) {
+                    $q->select('id')
+                      ->from('routes')
+                      ->where('departure_city_id', $departure->id)
+                      ->where('arrival_city_id', $arrival->id);
+                })
+                ->whereDate('departure_at', $date->toDateString())
+                ->first();
+
+    if (!$trip) {
+        $this->sendWhatsAppText(
+            $this->currentUser(),
+            "❌ Aucun voyage trouvé pour {$departure->name} → {$arrival->name} le ".$date->format('d/m')
+        );
+        return $this->twiml($twiml);
+    }
+
+    // 5. Comme si l’utilisateur avait tapé l’ID du trip
+    $fromPhone = $this->currentUser();
+    Cache::put("state:$fromPhone", "waiting_trip_id");
+
+    return $this->startReservationById($fromPhone, $trip->id, $twiml);
+}
+
+
+/**
+ * Récupère le numéro WhatsApp du dernier message traité
+ */
+private function currentUser()
+{
+    return request()->input('From');
+}
+
     /* ----------------------------------------
        SUPPORT TEMPLATES WHATSAPP
        - stocke les templates dans config('whatsapp.templates')
@@ -139,7 +264,7 @@ class TwilioReservationService
         try {
             $recipient = str_contains($to, 'whatsapp:') ? $to : "whatsapp:".$to;
             $params = [
-                'from' => "whatsapp:{$this->twilioFrom}",
+                'from' => "{$this->twilioFrom}",
                 'body' => $body,
             ];
             if ($media) $params['mediaUrl'] = $media;

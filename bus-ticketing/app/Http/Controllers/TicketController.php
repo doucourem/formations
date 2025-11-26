@@ -14,80 +14,77 @@ class TicketController extends Controller
     /**
      * 🧾 Liste des tickets
      */
-    public function index(Request $request)
-    {
-        $perPage = (int) $request->input('per_page', 1000);
-        $user = Auth::user();
+   public function index(Request $request)
+{
+    // Nombre d’éléments par page (10 par défaut)
+    $perPage = (int) $request->input('per_page', 10);
 
-        $ticketsQuery = Ticket::with([
-            'trip.route.departureCity',
-            'trip.route.arrivalCity',
-            'startStop.city',
-            'startStop.toCity',
-            'endStop.city',
-            'endStop.toCity',
-            'user.agency',
-        ]);
+    $user = Auth::user();
 
-        if ($user->role === 'agent') {
-            $ticketsQuery->where('user_id', $user->id);
-        } elseif ($user->role === 'manageragence') {
-            $ticketsQuery->whereHas('user', fn($q) => $q->where('agence_id', $user->agence_id));
-        }
+    $ticketsQuery = Ticket::with([
+        'trip.route.departureCity',
+        'trip.route.arrivalCity',
+        'startStop.city',
+        'startStop.toCity',
+        'endStop.city',
+        'endStop.toCity',
+        'user.agency',
+    ]);
 
-        $tickets = $ticketsQuery->orderByDesc('created_at')
-            ->paginate($perPage)
-            ->withQueryString();
-
-        $ticketsData = $tickets->getCollection()->map(fn($ticket) => [
-            'id' => $ticket->id,
-            'trip' => $ticket->trip ? [
-                'id' => $ticket->trip->id,
-                'route' => $ticket->trip->route ? [
-                    'departure_city' => $ticket->trip->route->departureCity->name ?? '-',
-                    'arrival_city' => $ticket->trip->route->arrivalCity->name ?? '-',
-                    'departure_at' => $ticket->trip->departure_at,
-                    'arrival_at' => $ticket->trip->arrival_at,
-                ] : null,
-            ] : null,
-            'start_stop' => $ticket->startStop ? [
-                'id' => $ticket->startStop->id,
-                'city_name' => $ticket->startStop->city?->name ?? '-',
-                'to_city_name' => $ticket->startStop->toCity?->name ?? '-',
-                'distance_from_start' => $ticket->startStop->distance_from_start,
-            ] : null,
-            'end_stop' => $ticket->endStop ? [
-                'id' => $ticket->endStop->id,
-                'city_name' => $ticket->endStop->city?->name ?? '-',
-                'to_city_name' => $ticket->endStop->toCity?->name ?? '-',
-                'distance_from_start' => $ticket->endStop->distance_from_start,
-            ] : null,
-            'client_name' => $ticket->client_name,
-            'seat_number' => $ticket->seat_number,
-            'status' => $ticket->status,
-            'price' => $ticket->price,
-            'created_at' => $ticket->created_at->format('Y-m-d H:i:s'),
-            'user' => $ticket->user ? [
-                'name' => $ticket->user->name,
-                'email' => $ticket->user->email,
-                'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
-            ] : null,
-        ]);
-
-        return Inertia::render('Tickets/Index', [
-            'tickets' => [
-                'data' => $ticketsData,
-                'meta' => [
-                    'current_page' => $tickets->currentPage(),
-                    'last_page' => $tickets->lastPage(),
-                    'per_page' => $tickets->perPage(),
-                    'total' => $tickets->total(),
-                ],
-                'links' => $tickets->links(),
-            ],
-            'filters' => ['per_page' => $perPage],
-        ]);
+    // 🔹 Restriction selon rôle
+    if ($user->role === 'agent') {
+        $ticketsQuery->where('user_id', $user->id);
+    } elseif ($user->role === 'manageragence') {
+        $ticketsQuery->whereHas('user', fn($q) =>
+            $q->where('agence_id', $user->agence_id)
+        );
     }
+
+    // 🔹 Pagination Laravel
+    $tickets = $ticketsQuery
+        ->orderByDesc('created_at')
+        ->paginate($perPage)
+        ->withQueryString();
+
+    // 🔹 Mapping propre pour Inertia
+    $ticketsData = $tickets->getCollection()->map(fn($ticket) => [
+        'id' => $ticket->id,
+        'trip' => $ticket->trip ? [
+            'id' => $ticket->trip->id,
+            'route' => $ticket->trip->route ? [
+                'departure_city' => $ticket->trip->route->departureCity->name ?? '-',
+                'arrival_city' => $ticket->trip->route->arrivalCity->name ?? '-',
+                'departure_at' => $ticket->trip->departure_at,
+                'arrival_at' => $ticket->trip->arrival_at,
+            ] : null,
+        ] : null,
+        'start_stop' => $ticket->startStop ? [
+            'id' => $ticket->startStop->id,
+            'city_name' => $ticket->startStop->city?->name ?? '-',
+            'to_city_name' => $ticket->startStop->toCity?->name ?? '-',
+            'distance_from_start' => $ticket->startStop->distance_from_start,
+        ] : null,
+        'end_stop' => $ticket->endStop ? [
+            'id' => $ticket->endStop->id,
+            'city_name' => $ticket->endStop->city?->name ?? '-',
+            'to_city_name' => $ticket->endStop->toCity?->name ?? '-',
+            'distance_from_start' => $ticket->endStop->distance_from_start,
+        ] : null,
+        'client_name' => $ticket->client_name,
+        'seat_number' => $ticket->seat_number,
+        'price' => $ticket->price,
+        'status' => $ticket->status,
+        'created_at' => $ticket->created_at->format('Y-m-d H:i'),
+    ]);
+
+    // 🔹 Remplacement de la collection par notre version "transformée"
+    $tickets->setCollection($ticketsData);
+
+    return inertia('Tickets/Index', [
+        'tickets' => $tickets
+    ]);
+}
+
 
     /**
      * ➕ Formulaire de création

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
@@ -10,22 +10,39 @@ import {
   TextField,
   MenuItem,
   Typography,
+  IconButton,
 } from "@mui/material";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
 
 export default function Create({ trips }) {
-  // 1. Mise à jour du state pour inclure le prix et les téléphones
+  const generateTracking = () => {
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    return `COLIS-${date}-${rand}`;
+  };
+
   const [form, setForm] = useState({
     trip_id: "",
-    tracking_number: "",
+    tracking_number: generateTracking(),
     sender_name: "",
-    sender_phone: "", // Ajouté
+    sender_phone: "",
     recipient_name: "",
-    recipient_phone: "", // Ajouté
+    recipient_phone: "",
     weight_kg: "",
     description: "",
-    price: "", // Ajouté
+    price: "",
+    start_stop_id: "",
+    end_stop_id: "",
     status: "pending",
+    payment_method: "", // 🔹 nouveau champ paiement
   });
+
+  const PRICE_PER_KG = 1000;
+
+  useEffect(() => {
+    const weight = parseFloat(form.weight_kg) || 0;
+    setForm((prev) => ({ ...prev, price: weight * PRICE_PER_KG }));
+  }, [form.weight_kg]);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -38,44 +55,80 @@ export default function Create({ trips }) {
   return (
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
-        <CardHeader
-          title={<Typography variant="h5">Créer un colis 📦</Typography>}
-        />
-
+        <CardHeader title={<Typography variant="h5">Créer un colis 📦</Typography>} />
         <CardContent>
           <form onSubmit={handleSubmit}>
             <Box display="grid" gap={3}>
 
-              {/* Champ Voyage (Trip) */}
+              {/* Voyage */}
               <TextField
                 select
-                label="Voyage (Trip)"
+                label="Voyage"
                 name="trip_id"
                 value={form.trip_id}
                 onChange={handleChange}
                 required
               >
-                {trips.map((t) => (
+                {Array.isArray(trips) && trips.map((t) => (
                   <MenuItem key={t.id} value={t.id}>
-                    {(t.route?.departureCity?.name || "Départ non défini") +
-                      " → " +
-                      (t.route?.arrivalCity?.name || "Arrivée non définie") +
-                      ` (Départ : ${t.departure_at})`}
+                    {`${t.route?.departureCity?.name || '-'} → ${t.route?.arrivalCity?.name || '-'} (Départ ${t.departure_at})`}
                   </MenuItem>
                 ))}
               </TextField>
 
-              {/* Champ Numéro de Tracking */}
-              <TextField
-                label="Numéro de Tracking"
-                name="tracking_number"
-                value={form.tracking_number}
-                onChange={handleChange}
-                required
-              />
-              
-              {/* --- Informations Expéditeur --- */}
-              <Typography variant="h6" sx={{ mt: 1, mb: -1 }}>Expéditeur</Typography>
+              {/* Numéro de tracking */}
+              <Box display="flex" alignItems="center" gap={1}>
+                <TextField
+                  label="Numéro de Tracking"
+                  name="tracking_number"
+                  value={form.tracking_number}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                />
+                <IconButton
+                  onClick={() => setForm({ ...form, tracking_number: generateTracking() })}
+                >
+                  <AutorenewIcon />
+                </IconButton>
+              </Box>
+
+              {/* Stops */}
+              {trips.find(t => t.id === form.trip_id)?.route?.stops && (
+                <>
+                  <TextField
+                    select
+                    label="Stop de départ"
+                    name="start_stop_id"
+                    value={form.start_stop_id}
+                    onChange={handleChange}
+                    required
+                  >
+                    {trips.find(t => t.id === form.trip_id).route.stops.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>
+                        {s.city?.name || '-'} → {s.toCity?.name || '-'}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    select
+                    label="Stop d'arrivée"
+                    name="end_stop_id"
+                    value={form.end_stop_id}
+                    onChange={handleChange}
+                    required
+                  >
+                    {trips.find(t => t.id === form.trip_id).route.stops.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>
+                        {s.city?.name || '-'} → {s.toCity?.name || '-'}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </>
+              )}
+
+              {/* Expéditeur */}
+              <Typography variant="h6">Expéditeur</Typography>
               <TextField
                 label="Nom de l'expéditeur"
                 name="sender_name"
@@ -83,18 +136,16 @@ export default function Create({ trips }) {
                 onChange={handleChange}
                 required
               />
-
-              {/* Champ Téléphone Expéditeur (Ajouté) */}
               <TextField
-                label="Téléphone de l'expéditeur"
+                label="Téléphone expéditeur"
                 name="sender_phone"
                 value={form.sender_phone}
                 onChange={handleChange}
                 required
               />
 
-              {/* --- Informations Destinataire --- */}
-              <Typography variant="h6" sx={{ mt: 1, mb: -1 }}>Destinataire</Typography>
+              {/* Destinataire */}
+              <Typography variant="h6">Destinataire</Typography>
               <TextField
                 label="Nom du destinataire"
                 name="recipient_name"
@@ -102,77 +153,62 @@ export default function Create({ trips }) {
                 onChange={handleChange}
                 required
               />
-
-              {/* Champ Téléphone Destinataire (Ajouté) */}
               <TextField
-                label="Téléphone du destinataire"
+                label="Téléphone destinataire"
                 name="recipient_phone"
                 value={form.recipient_phone}
                 onChange={handleChange}
                 required
               />
 
-              {/* --- Détails Colis --- */}
-              <Typography variant="h6" sx={{ mt: 1, mb: -1 }}>Détails du colis</Typography>
-              
-              {/* Champ Poids */}
+              {/* Poids */}
               <TextField
-                type="number"
                 label="Poids (kg)"
+                type="number"
                 name="weight_kg"
                 value={form.weight_kg}
                 onChange={handleChange}
                 required
-                inputProps={{ min: "0", step: "0.1" }} // Ajout de propriétés numériques
               />
 
-              {/* Champ Prix (Ajouté) */}
+              {/* Description */}
               <TextField
-                type="number"
-                label="Prix de l'envoi (€ ou devise locale)"
-                name="price"
-                value={form.price}
-                onChange={handleChange}
-                required
-                inputProps={{ min: "0", step: "0.01" }} // Ajout de propriétés numériques
-              />
-
-              {/* Champ Description */}
-              <TextField
-                multiline
-                rows={3}
-                label="Description"
+                label="Description du colis"
                 name="description"
                 value={form.description}
                 onChange={handleChange}
+                multiline
+                rows={2}
               />
 
-              {/* Champ Statut */}
+              {/* Montant calculé */}
+              <TextField
+                label="Montant (CFA)"
+                name="price"
+                type="number"
+                value={form.price}
+                InputProps={{ readOnly: true }}
+                sx={{ backgroundColor: "#f5f5f5" }}
+              />
+
+              {/* Paiement */}
               <TextField
                 select
-                label="Statut"
-                name="status"
-                value={form.status}
+                label="Mode de paiement"
+                name="payment_method"
+                value={form.payment_method}
                 onChange={handleChange}
+                required
               >
-                <MenuItem value="pending">En attente</MenuItem>
-                <MenuItem value="in_transit">En transit</MenuItem>
-                <MenuItem value="delivered">Livré</MenuItem>
+                <MenuItem value="cash">Cash</MenuItem>
+                <MenuItem value="orange_money">Orange Money</MenuItem>
+                <MenuItem value="wave">Wave</MenuItem>
               </TextField>
 
-              <Box display="flex" justifyContent="flex-end" gap={2}>
-                <Button
-                  variant="outlined"
-                  // 2. Correction : Utiliser window.history.back() ou Inertia.back()
-                  onClick={() => window.history.back()} 
-                >
-                  Annuler
-                </Button>
-
-                <Button variant="contained" type="submit" color="primary">
-                  Enregistrer
-                </Button>
-              </Box>
+              {/* Bouton submit */}
+              <Button type="submit" variant="contained" color="primary">
+                Enregistrer et payer
+              </Button>
             </Box>
           </form>
         </CardContent>
