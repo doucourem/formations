@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
+import { router } from "@inertiajs/react"; 
 import {
   Box,
   Table,
@@ -68,7 +69,7 @@ export default function Index({ produits }) {
                     color="primary"
                     startIcon={<AddIcon />}
                     onClick={() =>
-                      router.visit(route("produits.create", boutique.id))
+                      router.visit(route("produits.create"))
                     }
                   >
                     Nouveau produit

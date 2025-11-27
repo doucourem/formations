@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Produit;
+use App\Models\Boutique;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -10,7 +11,7 @@ class ProduitController extends Controller
 {
     public function index()
     {
-        $produits = Produit::latest()->get();
+        $produits = Produit::with('boutiques')->latest()->get();
 
         return inertia('Produits/Index', [
             'produits' => $produits
@@ -21,6 +22,7 @@ class ProduitController extends Controller
     {
         return inertia('Produits/ProduitForm', [
             'produit' => null,
+            'boutiques' => Boutique::all(), // 👈 important
         ]);
     }
 
@@ -30,6 +32,8 @@ class ProduitController extends Controller
             'name' => 'required|string|max:255',
             'sale_price' => 'required|numeric|min:0',
             'photo' => 'nullable|image|max:2048',
+            'boutiques' => 'required|array',         // 👈 ajouté
+            'boutiques.*' => 'exists:boutiques,id', // 👈 ajouté
         ]);
 
         $produit = Produit::create([
@@ -37,6 +41,10 @@ class ProduitController extends Controller
             'sale_price' => $request->sale_price,
         ]);
 
+        // Association avec boutiques
+        $produit->boutiques()->sync($request->boutiques);
+
+        // Upload de la photo
         if ($request->hasFile('photo')) {
             $path = $request->photo->store('produits', 'public');
             $produit->update(['photo' => $path]);
@@ -48,7 +56,8 @@ class ProduitController extends Controller
     public function edit(Produit $produit)
     {
         return inertia('Produits/ProduitForm', [
-            'produit' => $produit
+            'produit' => $produit->load('boutiques'), // 👈 charger relations existantes
+            'boutiques' => Boutique::all(),           // 👈 pour afficher le multi-select
         ]);
     }
 
@@ -58,6 +67,8 @@ class ProduitController extends Controller
             'name' => 'required|string|max:255',
             'sale_price' => 'required|numeric|min:0',
             'photo' => 'nullable|image|max:2048',
+            'boutiques' => 'required|array',          // 👈 ajouté
+            'boutiques.*' => 'exists:boutiques,id',  // 👈 ajouté
         ]);
 
         $produit->update([
@@ -65,7 +76,10 @@ class ProduitController extends Controller
             'sale_price' => $request->sale_price,
         ]);
 
-        // Remplacement image
+        // Synchronisation boutiques
+        $produit->boutiques()->sync($request->boutiques);
+
+        // Remplacement de l'image si nouvelle
         if ($request->hasFile('photo')) {
 
             if ($produit->photo) {
@@ -85,6 +99,7 @@ class ProduitController extends Controller
             Storage::disk('public')->delete($produit->photo);
         }
 
+        $produit->boutiques()->detach(); // 👈 important : nettoyer relation pivot
         $produit->delete();
 
         return redirect()->route('produits.index');

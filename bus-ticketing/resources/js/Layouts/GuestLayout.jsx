@@ -63,6 +63,7 @@ export default function AuthenticatedLayout({ children }) {
   { text: "Voyages",       icon: <TravelExploreIcon />,        route: route("trips.index") },
   { text: "Billets",       icon: <ConfirmationNumberIcon />,   route: route("ticket.index") },
   { text: "Colis",         icon: <LocalShippingIcon />,        route: route("parcels.index") },
+   { text: "Chauffeur",         icon: <PeopleIcon />,        route: route("drivers.index") },
   { text: "Utilisateurs",  icon: <PeopleIcon />,               route: route("users.index") },
 ];
 

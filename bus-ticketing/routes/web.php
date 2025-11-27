@@ -9,6 +9,8 @@ use App\Http\Controllers\CityController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DriverController;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -61,7 +63,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('ticket', TicketController::class);
     Route::resource('users', UserController::class);
     Route::resource('parcels',ParcelController::class);
+    Route::resource('drivers', DriverController::class);
+Route::post('drivers/{driver}/documents', [DriverController::class, 'uploadDocument']);
+Route::post('drivers/{driver}/assign', [DriverController::class, 'assignBusOrTrip']);
+Route::get('drivers/{driver}/show', [DriverController::class, 'show']);
+Route::get('/dashboard', [DashboardController::class, 'index']);
+Route::get('/dashboard/data', [DashboardController::class, 'data']);
 });
+
 
 // Auth routes (login, register, logout...)
 require __DIR__ . '/auth.php';

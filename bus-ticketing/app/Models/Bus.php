@@ -23,4 +23,10 @@ class Bus extends Model
     {
         return $this->belongsTo(Agency::class);
     }
+
+    public function trips()
+{
+    return $this->hasMany(Trip::class);
+}
+
 }

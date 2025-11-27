@@ -135,8 +135,8 @@ export default function TicketsIndex({ tickets }) {
                     <TableCell>{ticket.client_name}</TableCell>
                     <TableCell>
                       {ticket.trip?.route
-                        ? `${ticket.trip.route.departureCity || '-'} → ${ticket.trip.route.arrivalCity || '-'}`
-                        : "—"}
+  ? `${ticket.trip.route.departure_city} → ${ticket.trip.route.arrival_city}`
+  : "—"}
                     </TableCell>
                     <TableCell>{ticket.price?.toLocaleString() || "—"} FCFA</TableCell>
                     <TableCell>

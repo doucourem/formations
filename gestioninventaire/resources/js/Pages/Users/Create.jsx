@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Create({ agences, flash }) {
+export default function Create({ flash }) {
   const { data, setData, post, processing, errors } = useForm({
     prenom: "",
     name: "",
@@ -117,25 +117,6 @@ export default function Create({ agences, flash }) {
                 <MenuItem value="agent">Billetaire</MenuItem>
               </Select>
               {errors.role && <Typography color="error" variant="caption">{errors.role}</Typography>}
-            </FormControl>
-
-            <FormControl fullWidth margin="normal" error={!!errors.agence_id}>
-              <InputLabel id="agence-label">Agence</InputLabel>
-              <Select
-                labelId="agence-label"
-                name="agence_id"
-                value={data.agence_id}
-                label="Agence"
-                onChange={(e) => setData("agence_id", e.target.value)}
-              >
-                <MenuItem value="">Sélectionner une agence</MenuItem>
-                {agences.map((agence) => (
-                  <MenuItem key={agence.id} value={agence.id}>
-                    {agence.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.agence_id && <Typography color="error" variant="caption">{errors.agence_id}</Typography>}
             </FormControl>
 
             <Button

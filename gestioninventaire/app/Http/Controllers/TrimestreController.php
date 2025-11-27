@@ -58,34 +58,43 @@ public function exportPdf(Trimestre $trimestre)
     /**
      * Formulaire de création
      */
-    public function create(Boutique $boutique)
-    {
-        // Seules les colonnes nécessaires sont chargées pour optimiser la mémoire
-        $produits = Produit::select('id', 'name')->get(); 
-        
-        return Inertia::render('Trimestres/TrimestreFormFinal', [
-            'boutique' => $boutique,
-            'produits' => $produits,
-        ]);
-    }
+   public function create(Boutique $boutique)
+{
+    // Produits appartenant à cette boutique uniquement
+    $produits = $boutique->produits()
+        ->select('produits.id', 'produits.name')
+        ->get(); 
+
+    return Inertia::render('Trimestres/TrimestreFormFinal', [
+        'boutique' => $boutique,
+        'produits' => $produits,
+        'trimestre' => null,
+    ]);
+}
+
 
     /**
      * Formulaire d'édition
      */
-    public function edit(Trimestre $trimestre)
-    {
-        // Chargement des relations nécessaires, y compris les dépense et crédits pour l'édition
-        $trimestre->load('stocks.produit', 'boutique', 'depenses', 'credits'); 
-        
-        // Seules les colonnes nécessaires sont chargées
-        $produits = Produit::select('id', 'name')->get(); 
+   public function edit(Trimestre $trimestre)
+{
+    // Charger les relations pour édition
+    $trimestre->load('stocks.produit', 'boutique', 'depenses', 'credits');
 
-        return Inertia::render('Trimestres/TrimestreFormFinal', [
-            'trimestre' => $trimestre,
-            'boutique' => $trimestre->boutique,
-            'produits' => $produits,
-        ]);
-    }
+    // Produits appartenant à la boutique du trimestre
+   $produits = $trimestre->boutique
+            ->produits()
+            ->select('produits.id', 'produits.name')
+            ->get();
+
+
+    return Inertia::render('Trimestres/TrimestreFormFinal', [
+        'trimestre' => $trimestre,
+        'boutique' => $trimestre->boutique,
+        'produits' => $produits,
+    ]);
+}
+
 
     /**
      * Enregistre un nouveau trimestre

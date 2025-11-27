@@ -20,4 +20,13 @@ class Boutique extends Model
     {
         return $this->hasMany(Trimestre::class);
     }
+
+
+
+// Boutique.php
+public function produits()
+{
+    return $this->belongsToMany(Produit::class, 'boutique_produit');
+}
+
 }

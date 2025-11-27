@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Edit({ user, agences, flash }) {
+export default function Edit({ user, flash }) {
   const { data, setData, put, processing, errors } = useForm({
     prenom: user.prenom || "",
     name: user.name || "",
@@ -114,24 +114,6 @@ export default function Edit({ user, agences, flash }) {
                                 <MenuItem value="manager">Manager</MenuItem>
                                 <MenuItem value="manageragence">Chef d'agence</MenuItem>
                                 <MenuItem value="agent">Billetaire</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth margin="normal" error={!!errors.agence_id}>
-              <InputLabel id="agence-label">Agence</InputLabel>
-              <Select
-                labelId="agence-label"
-                name="agence_id"
-                value={data.agence_id}
-                label="Agence"
-                onChange={(e) => setData("agence_id", e.target.value)}
-              >
-                <MenuItem value="">Sélectionner une agence</MenuItem>
-                {agences.map((agence) => (
-                  <MenuItem key={agence.id} value={agence.id}>
-                    {agence.name}
-                  </MenuItem>
-                ))}
               </Select>
             </FormControl>
 

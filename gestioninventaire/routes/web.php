@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\ProduitController;
 use App\Http\Controllers\TrimestreController;
+use App\Http\Controllers\UserController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -30,6 +31,7 @@ Route::resource('boutiques', BoutiqueController::class);
 Route::resource('produits', ProduitController::class);
 Route::resource('trimestres', TrimestreController::class);
 Route::resource('boutiques.trimestres', TrimestreController::class)->shallow();
+Route::resource('users', UserController::class);
 
 Route::get('trimestres/{trimestre}/pdf', [TrimestreController::class, 'exportPdf'])
      ->name('trimestres.pdf');

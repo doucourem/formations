@@ -65,7 +65,7 @@ export default function Index({ boutiques }) {
                           color="primary"
                           startIcon={<AddIcon />}
                           onClick={() =>
-                            router.visit(route("produits.create", boutique.id))
+                            router.visit(route("boutiques.create"))
                           }
                         >
                          Nouvelle boutique

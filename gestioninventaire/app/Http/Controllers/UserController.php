@@ -33,15 +33,15 @@ class UserController extends Controller
     // ✅ Formulaire de création
     public function create()
     {
-        $agences = Agency::all();
-        return Inertia::render('Users/Create', compact('agences'));
+       
+        return Inertia::render('Users/Create');
     }
 
     // ✅ Formulaire d’édition
     public function edit(User $user)
     {
-        $agences = Agency::all();
-        return Inertia::render('Users/Edit', compact('user', 'agences'));
+        
+        return Inertia::render('Users/Edit', compact('user'));
     }
 
     // ✅ Création utilisateur

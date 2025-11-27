@@ -7,14 +7,24 @@ import {
   Stack,
   TextField,
   Typography,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl,
+  Checkbox,
+  ListItemText,
 } from "@mui/material";
 
-export default function ProduitForm({ produit }) {
+export default function ProduitForm({ produit, boutiques }) {
   const [name, setName] = useState(produit?.name || "");
   const [salePrice, setSalePrice] = useState(produit?.sale_price || "");
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState(
     produit?.photo ? `/storage/${produit.photo}` : null
+  );
+
+  const [selectedBoutiques, setSelectedBoutiques] = useState(
+    produit?.boutiques?.map((b) => b.id) || []
   );
 
   const isEdit = Boolean(produit?.id);
@@ -27,6 +37,10 @@ export default function ProduitForm({ produit }) {
     formData.append("sale_price", salePrice);
 
     if (photo) formData.append("photo", photo);
+
+    selectedBoutiques.forEach((id) => {
+      formData.append("boutiques[]", id);
+    });
 
     if (isEdit) {
       formData.append("_method", "PUT");
@@ -45,6 +59,8 @@ export default function ProduitForm({ produit }) {
 
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
+
+            {/* Nom */}
             <TextField
               label="Nom du produit"
               value={name}
@@ -53,6 +69,7 @@ export default function ProduitForm({ produit }) {
               fullWidth
             />
 
+            {/* Prix */}
             <TextField
               label="Prix de vente"
               type="number"
@@ -62,6 +79,30 @@ export default function ProduitForm({ produit }) {
               fullWidth
             />
 
+            {/* Sélection boutiques */}
+            <FormControl fullWidth>
+              <InputLabel>Boutiques</InputLabel>
+              <Select
+                multiple
+                value={selectedBoutiques}
+                onChange={(e) => setSelectedBoutiques(e.target.value)}
+                renderValue={(selected) =>
+                  boutiques
+                    .filter((b) => selected.includes(b.id))
+                    .map((b) => b.name)
+                    .join(", ")
+                }
+              >
+                {boutiques.map((b) => (
+                  <MenuItem key={b.id} value={b.id}>
+                    <Checkbox checked={selectedBoutiques.includes(b.id)} />
+                    <ListItemText primary={b.name} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Upload photo */}
             <input
               type="file"
               accept="image/*"
@@ -78,6 +119,7 @@ export default function ProduitForm({ produit }) {
               />
             )}
 
+            {/* Boutons */}
             <Box display="flex" justifyContent="space-between" mt={2}>
               <Button
                 variant="outlined"
