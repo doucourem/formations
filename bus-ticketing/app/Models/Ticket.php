@@ -40,4 +40,10 @@ class Ticket extends Model
     {
         return $this->belongsTo(RouteStop::class, 'end_stop_id');
     }
+
+    // Relation vers les colis
+    public function parcels()
+    {
+        return $this->hasMany(Parcel::class);
+    }
 }

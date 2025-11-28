@@ -11,46 +11,29 @@ class Parcel extends Model
 
     protected $fillable = [
         'trip_id',
+        'ticket_id',
         'tracking_number',
         'sender_name',
-        'sender_phone',    // Ajout du numéro de téléphone de l'expéditeur
+        'sender_phone',
         'recipient_name',
-        'recipient_phone', // Ajout du numéro de téléphone du destinataire
+        'recipient_phone',
         'weight_kg',
+        'price',
         'description',
-        'price',           // Ajout du prix
-        'status',          // Exemple : 'pending', 'in_transit', 'delivered'
+        'status',
         'sent_at',
-        'delivered_at',
+        'delivered_at'
     ];
 
-    protected $casts = [
-        'sent_at' => 'datetime',
-        'delivered_at' => 'datetime',
-        'price' => 'float', // Cast du prix en float pour assurer un type numérique
-    ];
-
-    // 🚌 Relation avec le voyage (Trip)
-    /**
-     * Get the trip that owns the parcel.
-     */
+    // Relation vers le voyage
     public function trip()
     {
         return $this->belongsTo(Trip::class);
     }
 
-    // 🕒 Formattage automatique des dates
-    public function getFormattedSentAttribute()
+    // Relation vers le ticket
+    public function ticket()
     {
-        return $this->sent_at
-            ? $this->sent_at->format('d/m/Y H:i')
-            : null;
-    }
-
-    public function getFormattedDeliveredAttribute()
-    {
-        return $this->delivered_at
-            ? $this->delivered_at->format('d/m/Y H:i')
-            : null;
+        return $this->belongsTo(Ticket::class);
     }
 }

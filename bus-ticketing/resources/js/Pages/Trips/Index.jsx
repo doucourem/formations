@@ -140,7 +140,7 @@ export default function TripsIndex({
                 <MenuItem value="">Toutes les routes</MenuItem>
                 {routes.map((route) => (
                   <MenuItem key={route.id} value={route.id}>
-                    {route.departureCity?.name || "-"} → {route.arrivalCity?.name || "-"}
+                    {route.departureCity || "-"} → {route.arrivalCity || "-"}
                   </MenuItem>
                 ))}
               </TextField>

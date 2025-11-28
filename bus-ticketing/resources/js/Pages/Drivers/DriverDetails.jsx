@@ -25,7 +25,9 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
   const [documentFile, setDocumentFile] = useState(null);
   const [assignment, setAssignment] = useState({ bus_id: "", trip_id: "" });
 
-  // Upload document
+  /** -------------------------------------------
+   * UPLOAD DOCUMENT
+   * ------------------------------------------- */
   const handleUploadDocument = (e) => {
     e.preventDefault();
     if (!documentFile) return alert("Sélectionnez un document");
@@ -39,11 +41,13 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
     });
   };
 
-  // Assign bus/trip
+  /** -------------------------------------------
+   * ASSIGN BUS / TRIP
+   * ------------------------------------------- */
   const handleAssign = (e) => {
     e.preventDefault();
     if (!assignment.bus_id && !assignment.trip_id)
-      return alert("Sélectionnez un bus ou voyage");
+      return alert("Sélectionnez un bus ou un voyage");
 
     Inertia.post(`/drivers/${driver.id}/assign`, assignment, {
       preserveScroll: true,
@@ -51,7 +55,9 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
     });
   };
 
-  // Delete document
+  /** -------------------------------------------
+   * DELETE DOCUMENT
+   * ------------------------------------------- */
   const handleDeleteDocument = (id) => {
     if (confirm("Supprimer ce document ?")) {
       Inertia.delete(`/drivers/${driver.id}/documents/${id}`, {
@@ -62,7 +68,7 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
 
   return (
     <GuestLayout>
-      {/* Chauffeur info */}
+      {/* ------------------- INFOS DU CHAUFFEUR ------------------- */}
       <Card sx={{ maxWidth: 700, mx: "auto", mt: 4, borderRadius: 3 }}>
         <CardHeader
           title={<Typography variant="h5">Informations du Chauffeur</Typography>}
@@ -72,57 +78,51 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
             <strong>Nom :</strong> {driver.first_name} {driver.last_name}
           </Typography>
           <Typography>
-            <strong>Téléphone :</strong> {driver.phone ?? "-"}
+            <strong>Téléphone :</strong> {driver.phone}
           </Typography>
           <Typography>
-            <strong>Email :</strong> {driver.email ?? "-"}
+            <strong>Adresse :</strong> {driver.address}
           </Typography>
         </CardContent>
       </Card>
 
-      {/* Documents */}
+      {/* ----------------------- DOCUMENTS ------------------------- */}
       <Card sx={{ maxWidth: 700, mx: "auto", mt: 3, borderRadius: 3 }}>
         <CardHeader title={<Typography variant="h6">Documents</Typography>} />
         <CardContent>
-          <Box
-            component="form"
-            onSubmit={handleUploadDocument}
-            display="flex"
-            gap={2}
-            alignItems="center"
-          >
-            <input
-              type="file"
-              onChange={(e) => setDocumentFile(e.target.files[0])}
-            />
-            <Button type="submit" variant="contained">
-              Ajouter Document
-            </Button>
-          </Box>
+          <form onSubmit={handleUploadDocument}>
+            <Box display="flex" gap={2}>
+              <TextField
+                type="file"
+                onChange={(e) => setDocumentFile(e.target.files[0])}
+                fullWidth
+              />
+              <Button type="submit" variant="contained">
+                Upload
+              </Button>
+            </Box>
+          </form>
 
           <TableContainer component={Paper} sx={{ mt: 2 }}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Nom du document</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell>Nom</TableCell>
+                  <TableCell>Taille</TableCell>
+                  <TableCell>Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {driver.documents?.length > 0 ? (
                   driver.documents.map((doc) => (
                     <TableRow key={doc.id}>
-                      <TableCell>{doc.type ?? "-"}</TableCell>
+                      <TableCell>{doc.original_name}</TableCell>
                       <TableCell>
-                        {doc.created_at
-                          ? new Date(doc.created_at).toLocaleDateString()
-                          : "-"}
+                        {(doc.size / 1024).toFixed(1)} Ko
                       </TableCell>
                       <TableCell>
                         <IconButton
                           color="error"
-                          size="small"
                           onClick={() => handleDeleteDocument(doc.id)}
                         >
                           <DeleteIcon />
@@ -143,10 +143,19 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
         </CardContent>
       </Card>
 
-      {/* Assignments */}
-      <Card sx={{ maxWidth: 700, mx: "auto", mt: 3, mb: 4, borderRadius: 3 }}>
+      {/* ----------------------- AFFECTATIONS ----------------------- */}
+      <Card
+        sx={{
+          maxWidth: 700,
+          mx: "auto",
+          mt: 3,
+          mb: 4,
+          borderRadius: 3,
+        }}
+      >
         <CardHeader title={<Typography variant="h6">Affectations</Typography>} />
         <CardContent>
+          {/* FORMULAIRE */}
           <Box
             component="form"
             onSubmit={handleAssign}
@@ -154,6 +163,7 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
             flexDirection="column"
             gap={2}
           >
+            {/* BUS */}
             <TextField
               select
               label="Bus"
@@ -161,7 +171,6 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
               onChange={(e) =>
                 setAssignment({ ...assignment, bus_id: e.target.value })
               }
-              variant="outlined"
               fullWidth
             >
               <MenuItem value="">-- Sélectionner un bus --</MenuItem>
@@ -172,37 +181,40 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
               ))}
             </TextField>
 
-            <TextField
-              select
-              label="Voyage"
-              value={assignment.trip_id}
-              onChange={(e) =>
-                setAssignment({ ...assignment, trip_id: e.target.value })
-              }
-              variant="outlined"
-              fullWidth
-            >
-              <MenuItem value="">-- Sélectionner un voyage --</MenuItem>
-              {trips.map((trip) => {
-                const dep = trip.route?.departure_city ?? "-";
-                const arr = trip.route?.arrival_city ?? "-";
-                const depTime = trip.departure_at
-                  ? new Date(trip.departure_at).toLocaleString()
-                  : "-";
-                return (
-                  <MenuItem key={trip.id} value={trip.id}>
-                    {dep} → {arr} ({depTime})
-                  </MenuItem>
-                );
-              })}
-            </TextField>
+            {/* TRIP */}
+           <TextField
+  select
+  label="Voyage"
+  value={assignment.trip_id}
+  onChange={(e) =>
+    setAssignment({ ...assignment, trip_id: e.target.value })
+  }
+  fullWidth
+>
+  <MenuItem value="">-- Sélectionner un voyage --</MenuItem>
+
+  {trips.map((trip) => {
+    const dep = trip.route?.departure_city?.name ?? "-";
+    const arr = trip.route?.arrival_city?.name ?? "-";
+    const depTime = trip.departure_at
+      ? new Date(trip.departure_at).toLocaleString()
+      : "-";
+
+    return (
+      <MenuItem key={trip.id} value={trip.id}>
+        {dep} → {arr} ({depTime})
+      </MenuItem>
+    );
+  })}
+</TextField>
+
 
             <Button type="submit" variant="contained">
               Affecter
             </Button>
           </Box>
 
-          {/* Liste des affectations */}
+          {/* LISTE AFFECTATIONS */}
           <TableContainer component={Paper} sx={{ mt: 2 }}>
             <Table>
               <TableHead>
@@ -212,36 +224,37 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {driver.assignments?.length > 0 ? (
-                  driver.assignments.map((a) => {
-                    if (a.type === "bus") {
-                      return (
-                        <TableRow key={a.id}>
-                          <TableCell>Bus</TableCell>
-                          <TableCell>{a.bus?.registration_number ?? "-"}</TableCell>
-                        </TableRow>
-                      );
-                    } else if (a.type === "trip") {
-                      const dep = a.trip?.route?.departure_city ?? "-";
-                      const arr = a.trip?.route?.arrival_city ?? "-";
-                      return (
-                        <TableRow key={a.id}>
-                          <TableCell>Voyage</TableCell>
-                          <TableCell>
-                            {dep} → {arr}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    }
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={2} align="center">
-                      Aucune affectation
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
+  {driver.assignments?.length > 0 ? (
+    driver.assignments.map((a) => {
+      if (a.type === "bus") {
+        return (
+          <TableRow key={a.id}>
+            <TableCell>Bus</TableCell>
+            <TableCell>{a.bus?.registration_number ?? "-"}</TableCell>
+          </TableRow>
+        );
+      } else if (a.type === "trip") {
+        const dep = a.trip?.route?.departure_city?.name ?? "-";
+        const arr = a.trip?.route?.arrival_city?.name ?? "-";
+        return (
+          <TableRow key={a.id}>
+            <TableCell>Voyage</TableCell>
+            <TableCell>
+              {dep} → {arr}
+            </TableCell>
+          </TableRow>
+        );
+      }
+    })
+  ) : (
+    <TableRow>
+      <TableCell colSpan={2} align="center">
+        Aucune affectation
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
+
             </Table>
           </TableContainer>
         </CardContent>

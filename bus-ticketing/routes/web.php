@@ -67,7 +67,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('drivers/{driver}/documents', [DriverController::class, 'uploadDocument']);
 Route::post('drivers/{driver}/assign', [DriverController::class, 'assignBusOrTrip']);
 Route::get('drivers/{driver}/show', [DriverController::class, 'show']);
-Route::get('/dashboard', [DashboardController::class, 'index']);
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/dashboard/data', [DashboardController::class, 'data']);
 Route::get('/abonnements', [DashboardController::class, 'abonnements']);
 });

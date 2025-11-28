@@ -55,11 +55,11 @@ export default function Index({ users, filters }) {
               <Table>
                 <TableHead sx={{ bgcolor: "#1976d2" }}>
                   <TableRow>
-                    <TableCell><strong>ID</strong></TableCell>
-                    <TableCell><strong>Nom</strong></TableCell>
-                    <TableCell><strong>Email</strong></TableCell>
-                    <TableCell><strong>Rôle</strong></TableCell>
-                    <TableCell align="center"><strong>Actions</strong></TableCell>
+                    <TableCell x={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}><strong>ID</strong></TableCell>
+                    <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}><strong>Nom</strong></TableCell>
+                    <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}><strong>Email</strong></TableCell>
+                    <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}><strong>Rôle</strong></TableCell>
+                    <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }} align="center"><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

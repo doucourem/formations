@@ -10,6 +10,7 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { motion } from "framer-motion";
 import { FaBus, FaClock, FaShieldAlt, FaMobileAlt, FaTicketAlt } from "react-icons/fa";
+import Logo from "@/Assets/logo.png";
 
 export default function HomePage() {
   const whatsappNumber = "+2239X000000";
@@ -54,15 +55,25 @@ export default function HomePage() {
       <CssBaseline />
 
       {/* HEADER */}
-      <AppBar position="sticky" color="primary" elevation={3}>
-        <Toolbar>
-          <IconButton edge="start" color="inherit"><MenuIcon /></IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: "bold" }}>Billet Rapide Mali</Typography>
-          <IconButton color="inherit" onClick={() => setDarkMode(!darkMode)}>
-            {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+     <AppBar position="sticky" color="primary" elevation={3}>
+  <Toolbar>
+    {/* Logo */}
+    <Box display="flex" alignItems="center" mr={2}>
+      <img src={Logo} alt="Logo" style={{ height: 40, width: "auto" }} />
+    </Box>
+
+    {/* Titre */}
+    <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: "bold" }}>
+      FasoBillet
+    </Typography>
+
+    {/* Bouton dark mode */}
+    <IconButton color="inherit" onClick={() => setDarkMode(!darkMode)}>
+      {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+    </IconButton>
+  </Toolbar>
+</AppBar>
+
 
       <Container maxWidth="lg" sx={{ py: 3 }}>
         {/* HERO */}
@@ -185,7 +196,7 @@ export default function HomePage() {
 
         {/* AVANTAGES */}
         <Box py={4} textAlign="center">
-          <Typography variant="h4" fontWeight="700" mb={2}>✅ Pourquoi Choisir Billet Rapide Mali ?</Typography>
+          <Typography variant="h4" fontWeight="700" mb={2}>✅ Pourquoi Choisir FasoBillet ?</Typography>
           <Box display="flex" flexWrap="wrap" justifyContent="center" gap={2}>
             {advantages.map((a,i)=>
               <Card key={i} sx={{ p:2, minWidth:130, borderRadius:3, display:"flex", flexDirection:"column", alignItems:"center", boxShadow:3 }}>
@@ -208,13 +219,41 @@ export default function HomePage() {
             <Typography mt={1.5} fontSize="0.85rem" color="text.secondary">Numéro WhatsApp officiel : <strong>{whatsappNumber}</strong></Typography>
           </Card>
         </Box>
+{/* BOUTON ABONNEMENT VERS LA PAGE /abonnements */}
+<Box py={4} textAlign="center">
+  <Typography variant="h4" fontWeight="700" mb={2}>📦 Abonnement FasoBillet</Typography>
+  <Card sx={{ borderRadius:"16px", p:3.5, display:"inline-block", boxShadow:5 }}>
+    <Typography mb={1.5}>
+      Profitez de tous les avantages : réservation automatique, suivi des billets, et offres exclusives.
+    </Typography>
+    <Button
+      variant="contained"
+      color="primary"
+      size="large"
+      href="/abonnements"  // <-- redirige vers la page abonnements
+      startIcon={<WhatsAppIcon />}
+      sx={{
+        mt:2,
+        py:1.5,
+        px:5,
+        borderRadius:"20px",
+        fontWeight:700,
+        fontSize:"1rem",
+        boxShadow:"0 8px 20px rgba(0,0,255,0.4)",
+        "&:hover":{ transform:"scale(1.05)" }
+      }}
+    >
+      S'abonner
+    </Button>
+  </Card>
+</Box>
 
         {/* FOOTER */}
         <Divider sx={{ my:3 }} />
         <Box textAlign="center" py={2}>
           <Typography variant="body2">Email : contact@billetrapide-mali.ml</Typography>
           <Typography variant="body2" mt={0.5}>Adresse : Bamako, Mali</Typography>
-          <Typography variant="body2" mt={0.5}>© {new Date().getFullYear()} Billet Rapide Mali — Tous droits réservés.</Typography>
+          <Typography variant="body2" mt={0.5}>© {new Date().getFullYear()} FasoBillet — Tous droits réservés.</Typography>
         </Box>
       </Container>
 

@@ -17,20 +17,21 @@ import {
   Avatar,
   Divider,
   Tooltip,
+  ListSubheader,
 } from "@mui/material";
+
 import MenuIcon from "@mui/icons-material/Menu";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import LocationCityIcon from "@mui/icons-material/LocationCity";
 import PeopleIcon from "@mui/icons-material/People";
 import StoreIcon from "@mui/icons-material/Store";
-import RouteIcon from "@mui/icons-material/AltRoute";
+import AltRouteIcon from "@mui/icons-material/AltRoute";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
-import TripOriginIcon from "@mui/icons-material/TripOrigin";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ApplicationLogo from "@/Components/ApplicationLogo";
-import TravelExploreIcon from "@mui/icons-material/TravelExplore";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 
 
 const drawerWidth = 240;
@@ -38,7 +39,7 @@ const drawerWidth = 240;
 export default function AuthenticatedLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const { auth, url } = usePage().props;
+  const { auth } = usePage().props;
   const user = auth?.user || {};
 
   const { post } = useForm();
@@ -46,68 +47,82 @@ export default function AuthenticatedLayout({ children }) {
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
+  const handleLogout = () => post(route("logout"));
 
-  const handleLogout = () => {
-    post(route("logout"));
-  };
+  /** --------------------------------------------------------
+   * MENUS SELON LE ROLE
+   * -------------------------------------------------------- */
+  const managementMenu = [
+  { text: "Tableau de bord", icon: <LocationCityIcon />, route: route("dashboard") },
+    { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
+    { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") },
+    { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
+    { text: "Chauffeurs", icon: <PeopleIcon />, route: route("drivers.index") },
+    { text: "Routes", icon: <AltRouteIcon />, route: route("busroutes.index") },
+    { text: "Voyages", icon: <TravelExploreIcon />, route: route("trips.index") },
+     { text: "Utilisateurs",  icon: <PeopleIcon />,   route: route("users.index") },
+  ];
 
-  // Construction dynamique des menus selon le rôle
-  let menuItems = [];
+  const ticketMenu = [
+    { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
+    { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
+  ];
 
-  if (user.role === "admin" || user.role === "manager") {
- menuItems = [
-  { text: "Villes",        icon: <LocationCityIcon />,         route: route("cities.index") },
-  { text: "Bus",           icon: <DirectionsBusIcon />,        route: route("buses.index") },
-  { text: "Agences",       icon: <StoreIcon />,                route: route("agencies.index") },
-  { text: "Trajets",       icon: <RouteIcon />,                route: route("busroutes.index") },
-  { text: "Voyages",       icon: <TravelExploreIcon />,        route: route("trips.index") },
-  { text: "Billets",       icon: <ConfirmationNumberIcon />,   route: route("ticket.index") },
-  { text: "Colis",         icon: <LocalShippingIcon />,        route: route("parcels.index") },
-   { text: "Chauffeur",   icon: <PeopleIcon />,        route: route("drivers.index") },
-  { text: "Utilisateurs",  icon: <PeopleIcon />,               route: route("users.index") },
-];
+  // Si agent : seulement tickets + colis
+  const menuToShow =
+    user.role === "agent"
+      ? ticketMenu
+      : [...managementMenu, ...ticketMenu];
 
-  } else if (user.role === "manageragence") {
-    menuItems = [
-      { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
-      { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index", { agence_id: user.agence_id }) },
-      { text: "Colis",   icon: <LocalShippingIcon />,        route: route("parcels.index") },
-    ];
-  } else if (user.role === "agent") {
-    menuItems = [
-      { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
-      { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index", { agence_id: user.agence_id }) },
-      { text: "Colis",  icon: <LocalShippingIcon />,        route: route("parcels.index") },
-    ];
-  }
+  /** --------------------------------------------------------
+   * DRAWER (menu latéral)
+   * -------------------------------------------------------- */
+ const drawer = (
+  <Box>
+    {/* Logo et titre */}
+    <Toolbar sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Link href="/dashboard" style={{ display: "flex", alignItems: "center" }}>
+        <ApplicationLogo className="h-10 w-10" />
+        <Typography variant="h6" sx={{ fontWeight: 700, ml: 1 }}>
+          FasoBillet
+        </Typography>
+      </Link>
+    </Toolbar>
 
-  const drawerContent = (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <Toolbar />
-      <List sx={{ flexGrow: 1, overflowY: "auto" }}>
-        {menuItems.map((item) => (
-          <ListItem
-            key={item.text}
-            button
-            component={Link}
-            href={item.route}
-            selected={url === item.route}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
-          </ListItem>
-        ))}
-      </List>
-    </Box>
-  );
+    <Divider />
+
+    {/* Menu */}
+    <List
+      subheader={<ListSubheader>Navigation</ListSubheader>}
+      sx={{ mt: 1 }}
+    >
+      {menuToShow.map((item, index) => (
+        <ListItem
+          button
+          key={index}
+          component={Link}
+          href={item.route}
+        >
+          <ListItemIcon>{item.icon}</ListItemIcon>
+          <ListItemText primary={item.text} />
+        </ListItem>
+      ))}
+    </List>
+  </Box>
+);
+
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box sx={{ display: "flex" }}>
       <CssBaseline />
 
-      {/* Barre supérieure */}
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+      {/* APP BAR */}
+      <AppBar
+        position="fixed"
+        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      >
         <Toolbar>
+          {/* Bouton menu mobile */}
           <IconButton
             color="inherit"
             edge="start"
@@ -117,47 +132,46 @@ export default function AuthenticatedLayout({ children }) {
             <MenuIcon />
           </IconButton>
 
-          <Link href="/" style={{ display: "flex", alignItems: "center", marginRight: 10 }}>
-            <ApplicationLogo className="h-10 w-10 mr-2" />
-          </Link>
-
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Gestion Billets
+            Tableau de bord
           </Typography>
 
-          {/* Menu utilisateur */}
-          <Tooltip title="Compte utilisateur">
+          {/* Profil */}
+          <Tooltip title="Mon compte">
             <IconButton color="inherit" onClick={handleMenuOpen}>
-              <Avatar sx={{ bgcolor: "#1976d2" }}>
-                {user.prenom?.[0]?.toUpperCase() || "U"}
+              <Avatar>
+                <AccountCircleIcon />
               </Avatar>
             </IconButton>
           </Tooltip>
 
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-          >
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
             <MenuItem disabled>
-              <Typography variant="subtitle1">
-                {user.prenom} {user.name}
-              </Typography>
+              Connecté en tant que <strong>&nbsp;{user.name}</strong>
             </MenuItem>
             <Divider />
-            <MenuItem component={Link} href={route("profile.edit")}>
-              <AccountCircleIcon sx={{ mr: 1 }} /> Profil
-            </MenuItem>
             <MenuItem onClick={handleLogout}>
-              <LogoutIcon sx={{ mr: 1 }} /> Déconnexion
+              <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
+              Déconnexion
             </MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>
 
-      {/* Drawer permanent (desktop) */}
+      {/* DRAWER MOBILE */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        sx={{
+          display: { xs: "block", sm: "none" },
+          "& .MuiDrawer-paper": { width: drawerWidth },
+        }}
+      >
+        {drawer}
+      </Drawer>
+
+      {/* DRAWER DESKTOP */}
       <Drawer
         variant="permanent"
         sx={{
@@ -166,35 +180,23 @@ export default function AuthenticatedLayout({ children }) {
         }}
         open
       >
-        {drawerContent}
+        {drawer}
       </Drawer>
 
-      {/* Drawer mobile */}
-      <Drawer
-        variant="temporary"
-        open={mobileOpen}
-        onClose={handleDrawerToggle}
-        ModalProps={{ keepMounted: true }}
-        sx={{
-          display: { xs: "block", sm: "none" },
-          "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
-        }}
-      >
-        {drawerContent}
-      </Drawer>
-
-      {/* Contenu principal */}
+      {/* MAIN CONTENT FIXÉ CORRECTEMENT */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          bgcolor: "#f5f5f5",
+          backgroundColor: "#f5f6fa",
           minHeight: "100vh",
-          ml: { sm: `${drawerWidth}px` },
+          ml: { sm: `${drawerWidth}px` }, // Décalage drawer desktop
         }}
       >
+        {/* Pousse le contenu sous l'AppBar */}
         <Toolbar />
+
         {children}
       </Box>
     </Box>

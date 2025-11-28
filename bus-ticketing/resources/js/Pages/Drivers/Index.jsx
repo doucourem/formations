@@ -22,6 +22,8 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+
 
 export default function DriversIndex({ drivers, filters }) {
   const [perPage, setPerPage] = useState(filters?.per_page || 10);
@@ -102,33 +104,43 @@ export default function DriversIndex({ drivers, filters }) {
                   <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {drivers?.data?.length > 0 ? (
-                  drivers.data.map((driver) => (
-                    <TableRow key={driver.id}>
-                      <TableCell>{driver.id}</TableCell>
-                      <TableCell>{driver.first_name} {driver.last_name}</TableCell>
-                      <TableCell>{driver.phone}</TableCell>
-                      <TableCell>{driver.email || '-'}</TableCell>
-                      <TableCell>{driver.documents?.length || 0} 📄</TableCell>
-                      <TableCell>
-                        <IconButton color="primary" href={route('drivers.edit', driver.id)} size="small">
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton color="error" onClick={() => handleDelete(driver.id)} size="small">
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      Aucun chauffeur trouvé.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
+           <TableBody>
+  {drivers.data.map((driver) => (
+    <TableRow key={driver.id}>
+      <TableCell>{driver.id}</TableCell>
+      <TableCell>{driver.name}</TableCell>
+      <TableCell>{driver.phone ?? '-'}</TableCell>
+      <TableCell>{driver.email ?? '-'}</TableCell>
+      <TableCell>{driver.documents?.length || 0}</TableCell>
+
+      {/* Actions */}
+      <TableCell>
+        <IconButton
+          color="info"
+          onClick={() => Inertia.get(route('drivers.show', driver.id))}
+        >
+          <VisibilityIcon />
+        </IconButton>
+
+        <IconButton
+          color="primary"
+          onClick={() => Inertia.get(route('drivers.edit', driver.id))}
+        >
+          <EditIcon />
+        </IconButton>
+
+        <IconButton
+          color="error"
+          onClick={() => handleDelete(driver.id)}
+        >
+          <DeleteIcon />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
+
             </Table>
           </TableContainer>
 
