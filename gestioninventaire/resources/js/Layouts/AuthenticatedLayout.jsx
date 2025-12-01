@@ -15,7 +15,7 @@ export default function AuthenticatedLayout({ header, children }) {
         <div className="min-h-screen bg-gray-100">
 <nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center">
             <div className="text-xl font-bold text-indigo-600">
-                Gestion Billets
+                Gestion d'Inventaire
             </div>
             </nav>
             <main>{children}</main>

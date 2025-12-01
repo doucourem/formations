@@ -60,12 +60,14 @@ export default function AuthenticatedLayout({ children }) {
     { text: "Chauffeurs", icon: <PeopleIcon />, route: route("drivers.index") },
     { text: "Routes", icon: <AltRouteIcon />, route: route("busroutes.index") },
     { text: "Voyages", icon: <TravelExploreIcon />, route: route("trips.index") },
-     { text: "Utilisateurs",  icon: <PeopleIcon />,   route: route("users.index") },
+    { text: "Utilisateurs",  icon: <PeopleIcon />,   route: route("users.index") },
   ];
 
   const ticketMenu = [
+    { text: "Tableau de bord", icon: <LocationCityIcon />, route: route("dashboard") },
     { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
     { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
+    { text: "Transfers", icon: <LocalShippingIcon />, route: route("transfers.index") },
   ];
 
   // Si agent : seulement tickets + colis

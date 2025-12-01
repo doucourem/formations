@@ -20,6 +20,8 @@ use Twilio\TwiML\MessagingResponse;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\ParcelController;
 use App\Http\Controllers\TransferController;
+use App\Http\Controllers\SenderController;
+use App\Http\Controllers\ReceiverController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -66,6 +68,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('parcels',ParcelController::class);
     Route::resource('drivers', DriverController::class);
     Route::resource('transfers', TransferController::class);
+    
+// Enregistrement expéditeur
+Route::post('/senders', [SenderController::class, 'store'])->name('senders.store');
+
+// Enregistrement destinataire
+Route::post('/receivers', [ReceiverController::class, 'store'])->name('receivers.store');
 
 Route::post('drivers/{driver}/documents', [DriverController::class, 'uploadDocument']);
 Route::post('drivers/{driver}/assign', [DriverController::class, 'assignBusOrTrip']);

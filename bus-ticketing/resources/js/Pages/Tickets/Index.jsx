@@ -6,7 +6,6 @@ import {
   Box,
   Button,
   Chip,
-  Pagination,
   Stack,
   Table,
   TableBody,
@@ -34,46 +33,25 @@ export default function TicketsIndex({ tickets }) {
   const { auth } = usePage().props;
   const user = auth?.user || {};
 
-  const [currentTickets, setCurrentTickets] = useState(
-    tickets || { data: [], links: [], current_page: 1 }
-  );
-
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const perPage = 10;
 
   const handleDelete = (id) => {
     if (confirm('Voulez-vous vraiment supprimer ce ticket ?')) {
-      Inertia.delete(route('ticket.destroy', id), {
-        onSuccess: () => {
-          setCurrentTickets(prev => ({
-            ...prev,
-            data: prev.data.filter(t => t.id !== id)
-          }));
-        }
-      });
+      Inertia.delete(route('ticket.destroy', id));
     }
   };
 
   // 🔹 Filtrage
   const filteredTickets = useMemo(() => {
-    const ticketsArray = Array.isArray(currentTickets.data) ? currentTickets.data : [];
-    return ticketsArray.filter(ticket => {
+    return tickets.filter(ticket => {
       const matchesStatus = filterStatus ? ticket.status === filterStatus : true;
       const matchesSearch = searchQuery
         ? ticket.client_name?.toLowerCase().includes(searchQuery.toLowerCase())
         : true;
       return matchesStatus && matchesSearch;
     });
-  }, [currentTickets.data, filterStatus, searchQuery]);
-
-  // 🔹 Pagination
-  const totalPages = Math.ceil(filteredTickets.length / perPage);
-  const paginatedTickets = filteredTickets.slice(
-    (page - 1) * perPage,
-    page * perPage
-  );
+  }, [tickets, filterStatus, searchQuery]);
 
   return (
     <GuestLayout>
@@ -91,6 +69,7 @@ export default function TicketsIndex({ tickets }) {
             </Button>
           }
         />
+
         <Box mt={2}>
           {/* 🔍 Filtres */}
           <Stack direction="row" spacing={2} mb={3}>
@@ -129,14 +108,14 @@ export default function TicketsIndex({ tickets }) {
               </TableHead>
 
               <TableBody>
-                {paginatedTickets.map((ticket) => (
+                {filteredTickets.map(ticket => (
                   <TableRow key={ticket.id}>
                     <TableCell>{ticket.id}</TableCell>
                     <TableCell>{ticket.client_name}</TableCell>
                     <TableCell>
                       {ticket.trip?.route
-  ? `${ticket.trip.route.departure_city} → ${ticket.trip.route.arrival_city}`
-  : "—"}
+                        ? `${ticket.trip.route.departure_city} → ${ticket.trip.route.arrival_city}`
+                        : "—"}
                     </TableCell>
                     <TableCell>{ticket.price?.toLocaleString() || "—"} FCFA</TableCell>
                     <TableCell>
@@ -170,7 +149,8 @@ export default function TicketsIndex({ tickets }) {
                     </TableCell>
                   </TableRow>
                 ))}
-                {paginatedTickets.length === 0 && (
+
+                {filteredTickets.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
                       Aucun ticket trouvé.
@@ -180,17 +160,6 @@ export default function TicketsIndex({ tickets }) {
               </TableBody>
             </Table>
           </TableContainer>
-
-          {/* 📄 Pagination */}
-          <Stack alignItems="center" mt={3}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-              size="large"
-            />
-          </Stack>
         </Box>
       </Card>
     </GuestLayout>

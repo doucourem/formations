@@ -14,11 +14,8 @@ class TicketController extends Controller
     /**
      * 🧾 Liste des tickets
      */
-   public function index(Request $request)
+public function index(Request $request)
 {
-    // Nombre d’éléments par page (10 par défaut)
-    $perPage = (int) $request->input('per_page', 10);
-
     $user = Auth::user();
 
     $ticketsQuery = Ticket::with([
@@ -40,14 +37,13 @@ class TicketController extends Controller
         );
     }
 
-    // 🔹 Pagination Laravel
+    // 🔹 Tous les tickets (pas de pagination)
     $tickets = $ticketsQuery
         ->orderByDesc('created_at')
-        ->paginate($perPage)
-        ->withQueryString();
+        ->get();
 
     // 🔹 Mapping propre pour Inertia
-    $ticketsData = $tickets->getCollection()->map(fn($ticket) => [
+    $ticketsData = $tickets->map(fn($ticket) => [
         'id' => $ticket->id,
         'trip' => $ticket->trip ? [
             'id' => $ticket->trip->id,
@@ -72,18 +68,16 @@ class TicketController extends Controller
         ] : null,
         'client_name' => $ticket->client_name,
         'seat_number' => $ticket->seat_number,
-        'price' => $ticket->price,
         'status' => $ticket->status,
-        'created_at' => $ticket->created_at->format('Y-m-d H:i'),
+        'price' => $ticket->price,
+        'created_at' => $ticket->created_at,
     ]);
-
-    // 🔹 Remplacement de la collection par notre version "transformée"
-    $tickets->setCollection($ticketsData);
 
     return inertia('Tickets/Index', [
-        'tickets' => $tickets
+        'tickets' => $ticketsData,
     ]);
 }
+
 
 
     /**
