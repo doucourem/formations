@@ -31,13 +31,13 @@ export default function Create({ trips }) {
     weight_kg: "",
     description: "",
     price: "",
-    start_stop_id: "",
-    end_stop_id: "",
-    status: "pending",
-    payment_method: "", // 🔹 nouveau champ paiement
+    payment_method: "",
+    parcel_image: null,
+    status: "pending", // valeur par défaut
   });
 
-  const PRICE_PER_KG = 1000;
+  const [imagePreview, setImagePreview] = useState(null);
+  const PRICE_PER_KG = 12000;
 
   useEffect(() => {
     const weight = parseFloat(form.weight_kg) || 0;
@@ -47,19 +47,56 @@ export default function Create({ trips }) {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+      alert("Format non supporté (JPG/PNG seulement).");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image trop lourde (max 2 Mo).");
+      return;
+    }
+
+    setForm({ ...form, parcel_image: file });
+
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    Inertia.post(route("parcels.store"), form);
+
+    if (!form.trip_id) {
+      alert("Veuillez sélectionner un voyage.");
+      return;
+    }
+    if (form.weight_kg <= 0) {
+      alert("Le poids doit être supérieur à 0.");
+      return;
+    }
+
+    const data = new FormData();
+    Object.keys(form).forEach((key) => {
+      if (form[key] !== null) data.append(key, form[key]);
+    });
+
+    Inertia.post(route("parcels.store"), data);
   };
 
   return (
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
-        <CardHeader title={<Typography variant="h5">Créer un colis 📦</Typography>} />
+        <CardHeader
+          title={<Typography variant="h5">Créer un colis 📦</Typography>}
+        />
         <CardContent>
           <form onSubmit={handleSubmit}>
             <Box display="grid" gap={3}>
-
               {/* Voyage */}
               <TextField
                 select
@@ -69,11 +106,14 @@ export default function Create({ trips }) {
                 onChange={handleChange}
                 required
               >
-                {Array.isArray(trips) && trips.map((t) => (
-                  <MenuItem key={t.id} value={t.id}>
-                    {`${t.route?.departureCity?.name || '-'} → ${t.route?.arrivalCity?.name || '-'} (Départ ${t.departure_at})`}
-                  </MenuItem>
-                ))}
+                {Array.isArray(trips) &&
+                  trips.map((t) => (
+                    <MenuItem key={t.id} value={t.id}>
+                      {`${t.route?.departureCity?.name || "-"} → ${
+                        t.route?.arrivalCity?.name || "-"
+                      } (Départ ${t.departure_at})`}
+                    </MenuItem>
+                  ))}
               </TextField>
 
               {/* Numéro de tracking */}
@@ -86,46 +126,13 @@ export default function Create({ trips }) {
                   InputProps={{ readOnly: true }}
                 />
                 <IconButton
-                  onClick={() => setForm({ ...form, tracking_number: generateTracking() })}
+                  onClick={() =>
+                    setForm({ ...form, tracking_number: generateTracking() })
+                  }
                 >
                   <AutorenewIcon />
                 </IconButton>
               </Box>
-
-              {/* Stops */}
-              {trips.find(t => t.id === form.trip_id)?.route?.stops && (
-                <>
-                  <TextField
-                    select
-                    label="Stop de départ"
-                    name="start_stop_id"
-                    value={form.start_stop_id}
-                    onChange={handleChange}
-                    required
-                  >
-                    {trips.find(t => t.id === form.trip_id).route.stops.map((s) => (
-                      <MenuItem key={s.id} value={s.id}>
-                        {s.city?.name || '-'} → {s.toCity?.name || '-'}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-
-                  <TextField
-                    select
-                    label="Stop d'arrivée"
-                    name="end_stop_id"
-                    value={form.end_stop_id}
-                    onChange={handleChange}
-                    required
-                  >
-                    {trips.find(t => t.id === form.trip_id).route.stops.map((s) => (
-                      <MenuItem key={s.id} value={s.id}>
-                        {s.city?.name || '-'} → {s.toCity?.name || '-'}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </>
-              )}
 
               {/* Expéditeur */}
               <Typography variant="h6">Expéditeur</Typography>
@@ -190,6 +197,36 @@ export default function Create({ trips }) {
                 InputProps={{ readOnly: true }}
                 sx={{ backgroundColor: "#f5f5f5" }}
               />
+
+              {/* Image du colis */}
+              <Box>
+                <TextField
+                  type="file"
+                  label="Photo du colis"
+                  InputLabelProps={{ shrink: true }}
+                  onChange={handleFileChange}
+                />
+                {imagePreview && (
+                  <Box mt={1} display="flex" flexDirection="column" alignItems="center">
+                    <img
+                      src={imagePreview}
+                      alt="Aperçu colis"
+                      style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8 }}
+                    />
+                    <Button
+                      size="small"
+                      color="secondary"
+                      onClick={() => {
+                        setForm({ ...form, parcel_image: null });
+                        setImagePreview(null);
+                      }}
+                      sx={{ mt: 1 }}
+                    >
+                      Supprimer l’image
+                    </Button>
+                  </Box>
+                )}
+              </Box>
 
               {/* Paiement */}
               <TextField

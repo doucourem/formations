@@ -96,7 +96,7 @@ export default function TicketsIndex({ tickets }) {
           {/* 🧾 Tableau */}
           <TableContainer component={Paper}>
             <Table>
-              <TableHead>
+              <TableHead sx={{ bgcolor: "#1565c0" }}>
                 <TableRow>
                   <TableCell>ID</TableCell>
                   <TableCell>Client</TableCell>

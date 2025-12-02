@@ -72,26 +72,35 @@ class ParcelController extends Controller
     /**
      * Store a new parcel
      */
-    public function store(Request $request)
-    {
-         $validated = $request->validate([
-            'trip_id'             => 'required|exists:trips,id',
-            'tracking_number'     => 'required|string|max:255|unique:parcels,tracking_number',
-            'sender_name'         => 'required|string|max:255',
-            'sender_phone'        => 'required|string|max:50',
-            'recipient_name'      => 'required|string|max:255',
-            'recipient_phone'     => 'required|string|max:50',
-            'weight_kg'           => 'required|numeric',
-            'price'               => 'required|numeric|min:0', // ✅ AJOUTÉ
-            'description'         => 'nullable|string',
-            'status'              => 'required|string|max:100',
-        ]);
+  public function store(Request $request)
+{
+    $validated = $request->validate([
+        'trip_id'         => 'required|exists:trips,id',
+        'tracking_number' => 'required|string|max:255|unique:parcels,tracking_number',
+        'sender_name'     => 'required|string|max:255',
+        'sender_phone'    => 'required|string|max:50',
+        'recipient_name'  => 'required|string|max:255',
+        'recipient_phone' => 'required|string|max:50',
+        'weight_kg'       => 'required|numeric|min:0',
+        'price'           => 'required|numeric|min:0',
+        'description'     => 'nullable|string',
+        'status'          => 'required|string|max:100',
+        'parcel_image'    => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+    ]);
 
-        Parcel::create($validated);
-
-        return redirect()->route('parcels.index')
-            ->with('success', 'Colis créé avec succès.');
+    // Gestion du fichier
+    if ($request->hasFile('parcel_image')) {
+        $path = $request->file('parcel_image')->store('parcels', 'public');
+        $validated['parcel_image'] = $path;
     }
+
+    Parcel::create($validated);
+
+    return redirect()->route('parcels.index')
+        ->with('success', 'Colis créé avec succès.');
+}
+
+
 
     /**
      * Show edit form
@@ -139,30 +148,39 @@ class ParcelController extends Controller
     /**
      * Update an existing parcel
      */
-   public function update(Request $request, Parcel $parcel)
+public function update(Request $request, Parcel $parcel)
 {
-   
-        $validated = $request->validate([
-            'trip_id'             => 'required|exists:trips,id',
+    $validated = $request->validate([
+        'trip_id'           => 'required|exists:trips,id',
+        'tracking_number'   => 'required|string|max:255|unique:parcels,tracking_number,' . $parcel->id,
+        'sender_name'       => 'required|string|max:255',
+        'sender_phone'      => 'required|string|max:50',
+        'recipient_name'    => 'required|string|max:255',
+        'recipient_phone'   => 'required|string|max:50',
+        'weight_kg'         => 'required|numeric|min:0',
+        'price'             => 'required|numeric|min:0',
+        'description'       => 'nullable|string',
+        'status'            => 'required|string|max:100',
+        'parcel_image'      => 'nullable|image|mimes:jpeg,jpg,png|max:2048', // 🔹 validation image
+    ]);
 
-            // 💥 IMPORTANT : autoriser la valeur actuelle
-            'tracking_number'     => 'required|string|max:255|unique:parcels,tracking_number,' . $parcel->id,
+    // Gestion du fichier image
+    if ($request->hasFile('parcel_image')) {
+        // Supprimer l’ancienne image si existante
+        if ($parcel->parcel_image && \Storage::disk('public')->exists($parcel->parcel_image)) {
+            \Storage::disk('public')->delete($parcel->parcel_image);
+        }
+        // Stocker la nouvelle image
+        $path = $request->file('parcel_image')->store('parcels', 'public');
+        $validated['parcel_image'] = $path;
+    }
 
-            'sender_name'         => 'required|string|max:255',
-            'sender_phone'        => 'required|string|max:50',
-            'recipient_name'      => 'required|string|max:255',
-            'recipient_phone'     => 'required|string|max:50',
-            'weight_kg'           => 'required|numeric',
-            'price'               => 'required|numeric|min:0',
-            'description'         => 'nullable|string',
-            'status'              => 'required|string|max:100',
-        ]);
+    $parcel->update($validated);
 
-        $parcel->update($validated);
-
-        return redirect()->route('parcels.index')
-            ->with('success', 'Colis mis à jour avec succès.');
+    return redirect()->route('parcels.index')
+        ->with('success', 'Colis mis à jour avec succès.');
 }
+
 
 
     /**

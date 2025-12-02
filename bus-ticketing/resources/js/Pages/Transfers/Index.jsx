@@ -24,6 +24,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PaidIcon from "@mui/icons-material/Paid";
 
 export default function Index({ transfers, filters }) {
   const [perPage, setPerPage] = useState(filters?.per_page || 10);
@@ -141,23 +142,27 @@ export default function Index({ transfers, filters }) {
             </Button>
           </Box>
 
-          {/* TABLE */}
+          {/* Table des transferts */}
           <TableContainer component={Paper}>
             <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>Expéditeur</TableCell>
-                  <TableCell>Destinataire</TableCell>
-                  <TableCell>Montant</TableCell>
-                  <TableCell>Code</TableCell>
-                  <TableCell>Statut</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Paiement</TableCell>
-                  <TableCell>Preuve</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
+                <TableHead sx={{ bgcolor: "#1565c0" }}>
+  <TableRow>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }}>#</TableCell>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Expéditeur</TableCell>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Destinataire</TableCell>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Montant</TableCell>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Code</TableCell>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Statut</TableCell>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Paiement</TableCell>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Preuve</TableCell>
+    <TableCell align="right" sx={{ color: "white", fontWeight: "bold" }}>
+      Actions
+    </TableCell>
+  </TableRow>
+</TableHead>
+
+              
 
               <TableBody>
                 {transfers.data.map((t) => (
@@ -167,18 +172,72 @@ export default function Index({ transfers, filters }) {
                     <TableCell>{t.receiver_name}</TableCell>
                     <TableCell>{t.amount} CFA</TableCell>
                     <TableCell>{t.code}</TableCell>
-                    <TableCell>{t.status}</TableCell>
+                 <TableCell>
+  <Box
+    sx={{
+      display: "inline-flex",
+      px: 1.5,
+      py: 0.5,
+      borderRadius: 1,
+      fontWeight: "bold",
+      color: "white",
+      bgcolor:
+        t.status === "pending"
+          ? "warning.main"
+          : t.status === "sent"
+          ? "info.main"
+          : t.status === "ready"
+          ? "primary.main"
+          : t.status === "withdrawn"
+          ? "success.main"
+          : "grey.500",
+      textTransform: "capitalize",
+    }}
+  >
+    {t.status === "pending"
+      ? "En attente"
+      : t.status === "sent"
+      ? "Envoyé"
+      : t.status === "ready"
+      ? "Prêt au retrait"
+      : t.status === "withdrawn"
+      ? "Retiré"
+      : t.status}
+  </Box>
+</TableCell>
+
                     <TableCell>{t.created_at}</TableCell>
 
                     {/* Paiement */}
                     <TableCell>
                       {t.paid ? (
-                        <strong style={{ color: "green" }}>Payé ✅</strong>
+                        <Box
+                          sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            bgcolor: "green.main",
+                            color: "white",
+                            px: 1.5,
+                            py: 0.5,
+                            borderRadius: 1,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          <PaidIcon sx={{ mr: 0.5, fontSize: 16 }} />
+                          Payé
+                        </Box>
                       ) : (
                         <Button
                           variant="contained"
                           color="success"
                           size="small"
+                          startIcon={<PaidIcon />}
+                          sx={{
+                            fontWeight: "bold",
+                            textTransform: "none",
+                            boxShadow: 3,
+                            "&:hover": { boxShadow: 6 },
+                          }}
                           onClick={() => handlePayment(t.id, t.amount)}
                         >
                           Payer
@@ -186,7 +245,7 @@ export default function Index({ transfers, filters }) {
                       )}
                     </TableCell>
 
-                    {/* Preuve */}
+                    {/* Preuve de paiement */}
                     <TableCell>
                       {t.payment_proof ? (
                         <a
@@ -219,7 +278,7 @@ export default function Index({ transfers, filters }) {
             </Table>
           </TableContainer>
 
-          {/* PAGINATION */}
+          {/* Pagination */}
           <Box mt={3} display="flex" justifyContent="center">
             <Pagination
               count={transfers.last_page}

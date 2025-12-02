@@ -40,7 +40,7 @@ class DashboardController extends Controller
 
     // Top chauffeurs
     $drivers = Driver::with('trips.tickets')->get()->map(fn($d) => [
-        'name' => $d->name,
+        'first_name' => $d->first_name.' '.$d->last_name,
         'revenue' => $d->trips->sum(fn($t) => $t->tickets->sum('price')),
         'tickets' => $d->trips->sum(fn($t) => $t->tickets->count()),
     ])->sortByDesc('revenue')->take(10)->values()->toArray(); // <- values() + toArray()

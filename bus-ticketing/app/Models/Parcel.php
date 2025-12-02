@@ -10,20 +10,19 @@ class Parcel extends Model
     use HasFactory;
 
     protected $fillable = [
-        'trip_id',
-        'ticket_id',
-        'tracking_number',
-        'sender_name',
-        'sender_phone',
-        'recipient_name',
-        'recipient_phone',
-        'weight_kg',
-        'price',
-        'description',
-        'status',
-        'sent_at',
-        'delivered_at'
-    ];
+    'trip_id',
+    'tracking_number',
+    'sender_name',
+    'sender_phone',
+    'recipient_name',
+    'recipient_phone',
+    'weight_kg',
+    'price',
+    'description',
+    'status',
+    'parcel_image',
+];
+
 
     // Relation vers le voyage
     public function trip()

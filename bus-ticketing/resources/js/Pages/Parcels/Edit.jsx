@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
@@ -13,46 +13,70 @@ import {
 } from "@mui/material";
 
 export default function Edit({ parcel, trips }) {
-  // 1. Initialisation avec les champs manquants (téléphone et prix)
   const [form, setForm] = useState({
-    _method: "put", // Ajouté pour Inertia/Laravel
+    _method: "put", 
     trip_id: parcel.trip_id,
     tracking_number: parcel.tracking_number,
     sender_name: parcel.sender_name,
-    sender_phone: parcel.sender_phone || "", // Ajouté
+    sender_phone: parcel.sender_phone || "",
     recipient_name: parcel.recipient_name,
-    recipient_phone: parcel.recipient_phone || "", // Ajouté
+    recipient_phone: parcel.recipient_phone || "",
     weight_kg: parcel.weight_kg,
-    price: parcel.price || "", // Ajouté
+    price: parcel.price || "",
     description: parcel.description || "",
     status: parcel.status,
+    parcel_image: null, // Nouveau fichier sélectionné
   });
+
+  // Aperçu image
+  const [imagePreview, setImagePreview] = useState(parcel.parcel_image ? `/storage/${parcel.parcel_image}` : null);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Gestion fichier image
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+      alert("Format non supporté (JPG/PNG seulement).");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image trop lourde (max 2 Mo).");
+      return;
+    }
+
+    setForm({ ...form, parcel_image: file });
+
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Utiliser PUT pour la mise à jour (nécessite l'ajout de _method: "put" dans le state Inertia)
-    Inertia.post(route("parcels.update", parcel.id), form);
+
+    const data = new FormData();
+    Object.keys(form).forEach((key) => {
+      if (form[key] !== null) data.append(key, form[key]);
+    });
+
+    Inertia.post(route("parcels.update", parcel.id), data);
   };
 
   return (
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
         <CardHeader
-          title={
-            <Typography variant="h5">
-              Modifier le colis #{parcel.id} 📦
-            </Typography>
-          }
+          title={<Typography variant="h5">Modifier le colis #{parcel.id} 📦</Typography>}
         />
 
         <CardContent>
           <form onSubmit={handleSubmit}>
             <Box display="grid" gap={3}>
-
-              {/* Champ Voyage (Trip) */}
+              {/* Voyage */}
               <TextField
                 select
                 label="Voyage (Trip)"
@@ -63,13 +87,12 @@ export default function Edit({ parcel, trips }) {
               >
                 {trips.map((t) => (
                   <MenuItem key={t.id} value={t.id}>
-                    {/* Correction de l'affichage des villes du voyage */}
-                    {t.route?.departureCity?.name || 'Ville de départ inconnue'} ➝ {t.route?.arrivalCity?.name || 'Ville d\'arrivée inconnue'}
+                    {t.route?.departureCity?.name || 'Ville départ'} ➝ {t.route?.arrivalCity?.name || 'Ville arrivée'}
                   </MenuItem>
                 ))}
               </TextField>
 
-              {/* Champ Numéro de Tracking (Disabled) */}
+              {/* Numéro de Tracking */}
               <TextField
                 label="Numéro de Tracking"
                 name="tracking_number"
@@ -78,8 +101,7 @@ export default function Edit({ parcel, trips }) {
                 helperText="Le numéro de tracking ne peut pas être modifié."
               />
 
-              {/* --- Informations Expéditeur --- */}
-
+              {/* Expéditeur */}
               <TextField
                 label="Nom de l'expéditeur"
                 name="sender_name"
@@ -87,8 +109,6 @@ export default function Edit({ parcel, trips }) {
                 onChange={handleChange}
                 required
               />
-
-              {/* Champ Téléphone Expéditeur (Ajouté) */}
               <TextField
                 label="Téléphone de l'expéditeur"
                 name="sender_phone"
@@ -97,8 +117,7 @@ export default function Edit({ parcel, trips }) {
                 required
               />
 
-              {/* --- Informations Destinataire --- */}
-
+              {/* Destinataire */}
               <TextField
                 label="Nom du destinataire"
                 name="recipient_name"
@@ -106,8 +125,6 @@ export default function Edit({ parcel, trips }) {
                 onChange={handleChange}
                 required
               />
-              
-              {/* Champ Téléphone Destinataire (Ajouté) */}
               <TextField
                 label="Téléphone du destinataire"
                 name="recipient_phone"
@@ -116,9 +133,7 @@ export default function Edit({ parcel, trips }) {
                 required
               />
 
-              {/* --- Détails Colis --- */}
-
-              {/* Champ Poids */}
+              {/* Poids */}
               <TextField
                 type="number"
                 label="Poids (kg)"
@@ -126,21 +141,21 @@ export default function Edit({ parcel, trips }) {
                 value={form.weight_kg}
                 onChange={handleChange}
                 required
-                inputProps={{ min: "0", step: "any" }} // Accepte les décimaux > 0
+                inputProps={{ min: "0", step: "any" }}
               />
-              
-              {/* Champ Prix (Ajouté) */}
+
+              {/* Prix */}
               <TextField
                 type="number"
-                label="Prix de l'envoi (€ ou devise locale)"
+                label="Prix de l'envoi"
                 name="price"
                 value={form.price}
                 onChange={handleChange}
                 required
-                inputProps={{ min: "0", step: "0.01" }} // Accepte les décimaux > 0
+                inputProps={{ min: "0", step: "0.01" }}
               />
 
-              {/* Champ Description */}
+              {/* Description */}
               <TextField
                 multiline
                 rows={3}
@@ -150,7 +165,7 @@ export default function Edit({ parcel, trips }) {
                 onChange={handleChange}
               />
 
-              {/* Champ Statut */}
+              {/* Statut */}
               <TextField
                 select
                 label="Statut"
@@ -163,15 +178,41 @@ export default function Edit({ parcel, trips }) {
                 <MenuItem value="delivered">Livré</MenuItem>
               </TextField>
 
+              {/* Image du colis */}
+              <Box>
+                <TextField
+                  type="file"
+                  label="Photo du colis"
+                  InputLabelProps={{ shrink: true }}
+                  onChange={handleFileChange}
+                />
+                {imagePreview && (
+                  <Box mt={1} display="flex" flexDirection="column" alignItems="center">
+                    <img
+                      src={imagePreview}
+                      alt="Aperçu colis"
+                      style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8 }}
+                    />
+                    <Button
+                      size="small"
+                      color="secondary"
+                      onClick={() => {
+                        setForm({ ...form, parcel_image: null });
+                        setImagePreview(null);
+                      }}
+                      sx={{ mt: 1 }}
+                    >
+                      Supprimer l’image
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Actions */}
               <Box display="flex" justifyContent="flex-end" gap={2}>
-                <Button
-                  variant="outlined"
-                  // Correction de la navigation : Utilisation de window.history.back()
-                  onClick={() => window.history.back()}
-                >
+                <Button variant="outlined" onClick={() => window.history.back()}>
                   Annuler
                 </Button>
-
                 <Button variant="contained" type="submit" color="primary">
                   Mettre à jour
                 </Button>

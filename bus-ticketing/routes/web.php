@@ -22,6 +22,7 @@ use App\Http\Controllers\ParcelController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\SenderController;
 use App\Http\Controllers\ReceiverController;
+use App\Http\Controllers\PaymentController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -68,6 +69,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('parcels',ParcelController::class);
     Route::resource('drivers', DriverController::class);
     Route::resource('transfers', TransferController::class);
+  Route::post('/payment/process', [PaymentController::class, 'process'])
+    ->name('payment.process');
+
+
     
 // Enregistrement expéditeur
 Route::post('/senders', [SenderController::class, 'store'])->name('senders.store');

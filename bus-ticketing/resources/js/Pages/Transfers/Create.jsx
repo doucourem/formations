@@ -16,7 +16,7 @@ import {
 import GuestLayout from "@/Layouts/GuestLayout";
 
 export default function Create({ senders, receivers }) {
-  const [form, setForm] = useState({ sender_id: "", receiver_id: "", amount: "", fees: 0 });
+  const [form, setForm] = useState({ sender_id: "", receiver_id: "", amount: "", fees: 0,status: "pending", });
 
   // Listes dynamiques
   const [allSenders, setAllSenders] = useState(senders);
