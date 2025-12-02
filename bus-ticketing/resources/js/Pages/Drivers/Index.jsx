@@ -108,7 +108,7 @@ export default function DriversIndex({ drivers, filters }) {
   {drivers.data.map((driver) => (
     <TableRow key={driver.id}>
       <TableCell>{driver.id}</TableCell>
-      <TableCell>{driver.name}</TableCell>
+      <TableCell>{driver.first_name} {driver.last_name}</TableCell>
       <TableCell>{driver.phone ?? '-'}</TableCell>
       <TableCell>{driver.email ?? '-'}</TableCell>
       <TableCell>{driver.documents?.length || 0}</TableCell>

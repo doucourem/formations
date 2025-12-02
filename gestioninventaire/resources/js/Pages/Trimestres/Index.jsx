@@ -130,51 +130,56 @@ export default function TrimestresIndex({ boutique, trimestres, filters }) {
                 </TableRow>
               </TableHead>
 
-              <TableBody>
-                {trimestres.data?.length > 0 ? (
-                  trimestres.data.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell>{t.id}</TableCell>
-                      <TableCell>{t.start_date}</TableCell>
-                      <TableCell>{t.end_date}</TableCell>
-                      <TableCell>
-                        <strong>
-                          <a
-                            href={route("trimestres.show", t.id)}
-                            className="text-blue-600 hover:text-blue-800 underline"
-                          >
-                            {t.result?.toLocaleString()} FCFA
-                          </a>
-                        </strong>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Stack direction="row" spacing={1} justifyContent="center">
-                          <IconButton
-                            color="primary"
-                            size="small"
-                            onClick={() => router.visit(route("trimestres.edit", t.id))}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            color="error"
-                            size="small"
-                            onClick={() => handleDelete(t.id)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center">
-                      Aucun trimestre trouvé.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
+             <TableBody>
+  {trimestres.data?.length > 0 ? (
+    trimestres.data.map((t) => (
+      <TableRow key={t.id}>
+        <TableCell>{t.id}</TableCell>
+        <TableCell>
+          {new Date(t.start_date).toLocaleDateString("fr-FR")}
+        </TableCell>
+        <TableCell>
+          {new Date(t.end_date).toLocaleDateString("fr-FR")}
+        </TableCell>
+        <TableCell>
+          <strong>
+            <a
+              href={route("trimestres.show", t.id)}
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              {t.result?.toLocaleString()} FCFA
+            </a>
+          </strong>
+        </TableCell>
+        <TableCell align="center">
+          <Stack direction="row" spacing={1} justifyContent="center">
+            <IconButton
+              color="primary"
+              size="small"
+              onClick={() => router.visit(route("trimestres.edit", t.id))}
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton
+              color="error"
+              size="small"
+              onClick={() => handleDelete(t.id)}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Stack>
+        </TableCell>
+      </TableRow>
+    ))
+  ) : (
+    <TableRow>
+      <TableCell colSpan={5} align="center">
+        Aucun trimestre trouvé.
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
+
             </Table>
           </TableContainer>
 

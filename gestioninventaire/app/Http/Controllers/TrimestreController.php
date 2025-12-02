@@ -58,19 +58,27 @@ public function exportPdf(Trimestre $trimestre)
     /**
      * Formulaire de création
      */
-   public function create(Boutique $boutique)
+ public function create(Boutique $boutique)
 {
-    // Produits appartenant à cette boutique uniquement
     $produits = $boutique->produits()
         ->select('produits.id', 'produits.name')
         ->get(); 
+
+    // Charger le dernier trimestre avec ses stocks
+    $lastTrimestre = $boutique->trimestres()
+        ->with('stocks') // ← important
+        ->orderByDesc('end_date')
+        ->first();
 
     return Inertia::render('Trimestres/TrimestreFormFinal', [
         'boutique' => $boutique,
         'produits' => $produits,
         'trimestre' => null,
+        'lastTrimestre' => $lastTrimestre,
     ]);
 }
+
+
 
 
     /**

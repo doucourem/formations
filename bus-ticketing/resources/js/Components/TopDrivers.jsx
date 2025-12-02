@@ -13,8 +13,8 @@ export default function TopDrivers({ drivers }) {
             </TableHead>
             <TableBody>
                 {drivers.map(d => (
-                    <TableRow key={d.name}>
-                        <TableCell>{d.name}</TableCell>
+                    <TableRow key={d.first_name}>
+                        <TableCell>{d.first_name} {d.last_name}</TableCell>
                         <TableCell>{d.revenue}</TableCell>
                         <TableCell>{d.tickets}</TableCell>
                     </TableRow>

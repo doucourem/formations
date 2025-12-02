@@ -121,7 +121,7 @@ export default function AuthenticatedLayout({ children }) {
           </Link>
 
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Gestion Billets
+            Gestion d'Inventaire
           </Typography>
 
           {/* Menu utilisateur */}

@@ -11,7 +11,8 @@ import {
   Divider,
 } from "@mui/material";
 import { Card, CardHeader } from "@mui/material";
-export default function TrimestreForm({ boutique, trimestre, produits }) {
+
+export default function TrimestreForm({ boutique, trimestre, produits, lastTrimestre }) {
   // initial state
   const [form, setForm] = useState({
     start_date: trimestre?.start_date || "",
@@ -21,10 +22,22 @@ export default function TrimestreForm({ boutique, trimestre, produits }) {
     stocks: produits.map((p) => ({
       produit_id: p.id,
       name: p.name,
-      quantity_start: trimestre?.stocks?.find((s) => s.produit_id === p.id)?.quantity_start || 0,
-      value_start: trimestre?.stocks?.find((s) => s.produit_id === p.id)?.value_start || 0,
+      quantity_start:
+        trimestre?.stocks?.find((s) => s.produit_id === p.id)?.quantity_start || 0,
+      value_start:
+        trimestre?.stocks?.find((s) => s.produit_id === p.id)?.value_start || 0,
     })),
   });
+
+  // Remplir start_date avec la fin du trimestre précédent + 1 jour si c'est un nouveau trimestre
+  useEffect(() => {
+    if (!trimestre && lastTrimestre?.end_date) {
+      const prevEnd = new Date(lastTrimestre.end_date);
+      prevEnd.setDate(prevEnd.getDate() + 1);
+      const nextStart = prevEnd.toISOString().split("T")[0]; // format YYYY-MM-DD
+      setForm((f) => ({ ...f, start_date: nextStart }));
+    }
+  }, [trimestre, lastTrimestre]);
 
   // handle field changes
   const handleChange = (e) => {
@@ -46,117 +59,114 @@ export default function TrimestreForm({ boutique, trimestre, produits }) {
     const routeName = trimestre ? "trimestres.update" : "boutiques.trimestres.store";
     const routeParams = trimestre ? [trimestre.id] : [boutique.id];
 
-    Inertia.post(
-      routeName, 
-      form,
-      {
-        onSuccess: () => console.log("Trimestre sauvegardé"),
-        onError: (errors) => console.log(errors),
-      }
-    );
+    Inertia.post(routeName, form, {
+      onSuccess: () => console.log("Trimestre sauvegardé"),
+      onError: (errors) => console.log(errors),
+    });
   };
 
   return (
-   
+    <GuestLayout>
+      <Box sx={{ p: 5, backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
+        <Box sx={{ maxWidth: "xl", mx: "auto" }}>
+          <Card sx={{ borderRadius: 2, boxShadow: 3 }}>
+            <CardHeader
+              title={
+                trimestre
+                  ? `Modifier le trimestre – ${boutique.name}`
+                  : `Ajouter un trimestre – ${boutique.name}`
+              }
+            />
+            <Box sx={{ p: 3 }}>
+              <form onSubmit={handleSubmit}>
+                <Stack spacing={3}>
+                  {/* Dates */}
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      label="Date début"
+                      type="date"
+                      name="start_date"
+                      value={form.start_date}
+                      onChange={handleChange}
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                      required
+                    />
+                    <TextField
+                      label="Date fin"
+                      type="date"
+                      name="end_date"
+                      value={form.end_date}
+                      onChange={handleChange}
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                      required
+                    />
+                  </Stack>
 
-<GuestLayout>
-  <Box sx={{ p: 5, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-    <Box sx={{ maxWidth: 'xl', mx: 'auto' }}>
+                  {/* Cash & Capital */}
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      label="Caisse de départ"
+                      type="number"
+                      name="cash_start"
+                      value={form.cash_start}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                    />
+                    <TextField
+                      label="Capital de départ"
+                      type="number"
+                      name="capital_start"
+                      value={form.capital_start}
+                      onChange={handleChange}
+                      fullWidth
+                      required
+                    />
+                  </Stack>
 
-      <Card sx={{ borderRadius: 2, boxShadow: 3 }}>
-        <CardHeader
-          title={trimestre ? `Modifier le trimestre – ${boutique.name}` : `Ajouter un trimestre – ${boutique.name}`}
-        />
+                  {/* Stocks produits */}
+                  <Typography variant="h6">Stocks des produits</Typography>
+                  {form.stocks.map((s, index) => (
+                    <Stack direction="row" spacing={2} key={s.produit_id} mb={1}>
+                      <TextField
+                        label="Produit"
+                        value={s.name}
+                        InputProps={{ readOnly: true }}
+                        fullWidth
+                      />
+                      <TextField
+                        label="Quantité début"
+                        type="number"
+                        value={s.quantity_start}
+                        onChange={(e) =>
+                          handleStockChange(index, "quantity_start", e.target.value)
+                        }
+                        fullWidth
+                      />
+                      <TextField
+                        label="Valeur début"
+                        type="number"
+                        value={s.value_start}
+                        onChange={(e) =>
+                          handleStockChange(index, "value_start", e.target.value)
+                        }
+                        fullWidth
+                      />
+                    </Stack>
+                  ))}
 
-        <Box sx={{ p: 3 }}>
-          <form onSubmit={handleSubmit}>
-            <Stack spacing={3}>
-
-              {/* Dates */}
-              <Stack direction="row" spacing={2}>
-                <TextField
-                  label="Date début"
-                  type="date"
-                  name="start_date"
-                  value={form.start_date}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                  required
-                />
-                <TextField
-                  label="Date fin"
-                  type="date"
-                  name="end_date"
-                  value={form.end_date}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                  required
-                />
-              </Stack>
-
-              {/* Cash & Capital */}
-              <Stack direction="row" spacing={2}>
-                <TextField
-                  label="Caisse de départ"
-                  type="number"
-                  name="cash_start"
-                  value={form.cash_start}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                />
-                <TextField
-                  label="Capital de départ"
-                  type="number"
-                  name="capital_start"
-                  value={form.capital_start}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                />
-              </Stack>
-
-              {/* Stocks produits */}
-              <Typography variant="h6">Stocks des produits</Typography>
-              {form.stocks.map((s, index) => (
-                <Stack direction="row" spacing={2} key={s.produit_id} mb={1}>
-                  <TextField
-                    label="Produit"
-                    value={s.name}
-                    InputProps={{ readOnly: true }}
-                    fullWidth
-                  />
-                  <TextField
-                    label="Quantité début"
-                    type="number"
-                    value={s.quantity_start}
-                    onChange={(e) => handleStockChange(index, "quantity_start", e.target.value)}
-                    fullWidth
-                  />
-                  <TextField
-                    label="Valeur début"
-                    type="number"
-                    value={s.value_start}
-                    onChange={(e) => handleStockChange(index, "value_start", e.target.value)}
-                    fullWidth
-                  />
+                  {/* Submit */}
+                  <Button type="submit" variant="contained" color="primary">
+                    {trimestre ? "Mettre à jour" : "Créer"}
+                  </Button>
                 </Stack>
-              ))}
-
-              {/* Submit */}
-              <Button type="submit" variant="contained" color="primary">
-                {trimestre ? "Mettre à jour" : "Créer"}
-              </Button>
-            </Stack>
-          </form>
+              </form>
+            </Box>
+          </Card>
         </Box>
-      </Card>
-
-    </Box>
-  </Box>
-</GuestLayout>
-
+      </Box>
+    </GuestLayout>
   );
 }

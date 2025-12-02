@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
@@ -15,29 +15,37 @@ import {
   TableHead,
   TableRow,
   IconButton,
-  Divider,
   Card,
   CardHeader,
   CardContent,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
-export default function TrimestreFormFinal({ boutique, trimestre, produits }) {
+export default function TrimestreFormFinal({ boutique, trimestre, produits, lastTrimestre }) {
   const [form, setForm] = useState({
-    start_date: trimestre?.start_date || "",
+    start_date: trimestre?.start_date || (
+      lastTrimestre
+        ? new Date(new Date(lastTrimestre.end_date).getTime() + 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10)
+        : ""
+    ),
     end_date: trimestre?.end_date || "",
-    cash_start: trimestre?.cash_start || 0,
+    cash_start: trimestre?.cash_start ?? lastTrimestre?.cash_end ?? 0,
     cash_end: trimestre?.cash_end || 0,
-    capital_start: trimestre?.capital_start || 0,
+    capital_start: trimestre?.capital_start ?? lastTrimestre?.capital_end ?? 0,
     capital_end: trimestre?.capital_end || 0,
     stocks: produits.map((p) => ({
       produit_id: p.id,
       name: p.name,
       quantity_start:
-        trimestre?.stocks?.find((s) => s.produit_id === p.id)?.quantity_start ||
+        trimestre?.stocks?.find((s) => s.produit_id === p.id)?.quantity_start ??
+        lastTrimestre?.stocks?.find((s) => s.produit_id === p.id)?.quantity_end ??
         0,
       value_start:
-        trimestre?.stocks?.find((s) => s.produit_id === p.id)?.value_start || 0,
+        trimestre?.stocks?.find((s) => s.produit_id === p.id)?.value_start ??
+        lastTrimestre?.stocks?.find((s) => s.produit_id === p.id)?.value_end ??
+        0,
       quantity_end:
         trimestre?.stocks?.find((s) => s.produit_id === p.id)?.quantity_end || 0,
       value_end:
@@ -47,28 +55,44 @@ export default function TrimestreFormFinal({ boutique, trimestre, produits }) {
     credits: trimestre?.credits || [],
   });
 
+
+  // ✅ Pré-remplir start_date avec fin du trimestre précédent +1 jour
+  useEffect(() => {
+    if (!trimestre && lastTrimestre?.end_date) {
+      const prevEnd = new Date(lastTrimestre.end_date);
+      prevEnd.setDate(prevEnd.getDate() + 1);
+      const nextStart = prevEnd.toISOString().split("T")[0]; // format YYYY-MM-DD
+      setForm((f) => ({ ...f, start_date: nextStart }));
+    }
+  }, [trimestre, lastTrimestre]);
+
+  // ... le reste de ton code reste identique
+
+
   const num = (v) => Number(v) || 0;
 
-  const totalStockStart = form.stocks.reduce(
-    (sum, s) => sum + num(s.quantity_start) * num(s.value_start),
-    0
-  );
-  const totalStockEnd = form.stocks.reduce(
-    (sum, s) => sum + num(s.quantity_end) * num(s.value_end),
-    0
-  );
-  const totalDepenses = form.depenses.reduce((sum, d) => sum + num(d.amount), 0);
-  const totalCredits = form.credits.reduce((sum, c) => sum + num(c.amount), 0);
+const totalStockStart = form.stocks.reduce(
+  (sum, s) => sum + num(s.quantity_start) * num(s.value_start),
+  0
+);
+const totalStockEnd = form.stocks.reduce(
+  (sum, s) => sum + num(s.quantity_end) * num(s.value_end),
+  0
+);
 
-  const resultNet =
-    num(form.cash_end) +
-    num(form.capital_end) +
-    totalStockEnd +
-    totalCredits -
-    (num(form.cash_start) +
-      num(form.capital_start) +
-      totalStockStart +
-      totalDepenses);
+const totalDepenses = form.depenses.reduce((sum, d) => sum + num(d.amount), 0);
+const totalCredits = form.credits.reduce((sum, c) => sum + num(c.amount), 0);
+
+const resultNet =
+  num(form.cash_end) +
+  num(form.capital_end) +
+  totalStockEnd +
+  totalCredits - // on ajoute les crédits du trimestre courant
+  (num(form.cash_start) +
+   num(form.capital_start) +
+   totalStockStart +
+   totalDepenses); // on soustrait les dépenses du trimestre courant
+
 
   // Handlers
   const handleChange = (e) =>

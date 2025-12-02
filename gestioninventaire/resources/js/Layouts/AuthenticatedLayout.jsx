@@ -6,19 +6,22 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+    const { auth } = usePage().props;
+    const user = auth.user;
 
-    const [showingNavigationDropdown, setShowingNavigationDropdown] =
-        useState(false);
+    const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
 
     return (
         <div className="min-h-screen bg-gray-100">
-<nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center">
-            <div className="text-xl font-bold text-indigo-600">
-                Gestion d'Inventaire
-            </div>
+            <nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center">
+                <div className="text-xl font-bold text-indigo-600">
+                    Gestion Billets
+                </div>
             </nav>
-            <main>{children}</main>
+
+            <main className="max-w-4xl mx-auto p-6">
+                {children}
+            </main>
         </div>
     );
 }

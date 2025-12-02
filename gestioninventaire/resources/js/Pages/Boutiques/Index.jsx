@@ -86,14 +86,14 @@ export default function Index({ boutiques }) {
         {/* Tableau */}
         <TableContainer component={Paper}>
           <Table>
-            <TableHead>
+            <TableHead sx={{ bgcolor: "#1976d2" }}>
               <TableRow>
-                <TableCell>Nom</TableCell>
-                <TableCell>Adresse</TableCell>
-                <TableCell>Téléphone</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                <TableCell sx={{ cursor: "pointer", color: "#fff" }}>Nom</TableCell>
+                <TableCell sx={{ cursor: "pointer", color: "#fff" }}>Adresse</TableCell>
+                <TableCell sx={{ cursor: "pointer", color: "#fff" }}>Téléphone</TableCell>
+                <TableCell sx={{ cursor: "pointer", color: "#fff" }}>Email</TableCell>
+                <TableCell sx={{ cursor: "pointer", color: "#fff" }}>Description</TableCell>
+                <TableCell  sx={{ cursor: "pointer", color: "#fff" }}align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
 

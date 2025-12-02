@@ -90,12 +90,12 @@ export default function Index({ produits }) {
         {/* Tableau */}
         <TableContainer component={Paper}>
           <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Photo</TableCell>
-                <TableCell>Nom</TableCell>
-                <TableCell>Prix</TableCell>
-                <TableCell align="center">Actions</TableCell>
+            <TableHead sx={{ bgcolor: "#1976d2" }}>
+              <TableRow >
+                <TableCell  sx={{ cursor: "pointer", color: "#fff" }}>Photo</TableCell>
+                <TableCell sx={{ cursor: "pointer", color: "#fff" }}>Nom</TableCell>
+                <TableCell sx={{ cursor: "pointer", color: "#fff" }}>Prix</TableCell>
+                <TableCell  sx={{ cursor: "pointer", color: "#fff" }}align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
