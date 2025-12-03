@@ -5,6 +5,8 @@ import SalesChart from '@/Components/SalesChart';
 import BusFillRate from '@/Components/BusFillRate';
 import TopDrivers from '@/Components/TopDrivers';
 import TopRoutes from '@/Components/TopRoutes';
+import ParcelRoutesChart from '@/Components/ParcelRoutesChart';
+import { Package } from "lucide-react";
 
 
 import { TrendingUp, BarChart2, Users, MapPin } from 'lucide-react';
@@ -82,6 +84,19 @@ export default function DashboardIndex() {
                             ))}
                         </ul>
                     </div>
+
+                    {/* ====== ROW — Graphique Colis par Route ====== */}
+<div className="p-4 bg-white shadow rounded-xl border">
+    <div className="flex items-center mb-3">
+        <Package className="text-orange-600 mr-2" />
+        <h2 className="text-xl font-semibold">Montant total des colis par route</h2>
+    </div>
+
+    <div className="h-72">
+        <ParcelRoutesChart routes={data.parcel_routes} />
+    </div>
+</div>
+
 
                 </div>
             </div>

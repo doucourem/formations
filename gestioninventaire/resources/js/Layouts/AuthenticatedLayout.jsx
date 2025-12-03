@@ -4,7 +4,6 @@ import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-
 export default function AuthenticatedLayout({ header, children }) {
     const { auth } = usePage().props;
     const user = auth.user;
@@ -12,15 +11,15 @@ export default function AuthenticatedLayout({ header, children }) {
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className="min-h-screen bg-gray-100 flex flex-col">
             <nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center">
                 <div className="text-xl font-bold text-indigo-600">
-                    Gestion Billets
+                     Gestion d'Inventaire
                 </div>
             </nav>
 
-            <main className="max-w-4xl mx-auto p-6">
-                {children}
+            <main className="flex-1 flex items-center justify-center p-6">
+                <div className="w-full max-w-md">{children}</div>
             </main>
         </div>
     );

@@ -33,6 +33,8 @@ import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import GuestLayout from "@/Layouts/GuestLayout";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+
 
 export default function TripsIndex({
   initialTrips,
@@ -201,6 +203,17 @@ export default function TripsIndex({
                                 <VisibilityIcon />
                               </IconButton>
                             </Tooltip>
+                            <Tooltip title="Voir les colis">
+  <IconButton
+    color="warning"
+    size="small"
+    component={Link}
+    href={route("parcels.byTrip", trip.id)}
+  >
+    <LocalShippingIcon />
+  </IconButton>
+</Tooltip>
+
                             {new Date(trip.departure_at) >= new Date() &&
                               (userRole === "manageragence" || userRole === "manager"|| userRole === "admin") && (
                                 <>

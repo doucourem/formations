@@ -24,8 +24,8 @@ export default function Login({ status, canResetPassword }) {
         <AuthenticatedLayout>
             <Head title="Connexion" />
 
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="w-full max-w-md bg-white p-8 rounded shadow">
+            <div className="flex justify-center items-center min-h-screen bg-gray-100 px-4">
+                <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-lg">
                     {status && (
                         <div className="mb-4 text-sm font-medium text-green-600 text-center">
                             {status}
@@ -33,6 +33,7 @@ export default function Login({ status, canResetPassword }) {
                     )}
 
                     <form onSubmit={submit} className="space-y-4">
+                        {/* Email */}
                         <div>
                             <InputLabel htmlFor="email" value="Adresse e-mail" />
 
@@ -50,6 +51,7 @@ export default function Login({ status, canResetPassword }) {
                             <InputError message={errors.email} className="mt-1 text-sm" />
                         </div>
 
+                        {/* Password */}
                         <div>
                             <InputLabel htmlFor="password" value="Mot de passe" />
 
@@ -66,6 +68,7 @@ export default function Login({ status, canResetPassword }) {
                             <InputError message={errors.password} className="mt-1 text-sm" />
                         </div>
 
+                        {/* Remember me */}
                         <div className="flex items-center">
                             <Checkbox
                                 name="remember"
@@ -75,6 +78,7 @@ export default function Login({ status, canResetPassword }) {
                             <span className="ml-2 text-sm text-gray-600">Se souvenir de moi</span>
                         </div>
 
+                        {/* Buttons & links */}
                         <div className="flex items-center justify-between">
                             {canResetPassword && (
                                 <Link
@@ -85,7 +89,10 @@ export default function Login({ status, canResetPassword }) {
                                 </Link>
                             )}
 
-                            <PrimaryButton className="ml-2 px-4 py-2 text-sm" disabled={processing}>
+                            <PrimaryButton
+                                className="ml-2 px-4 py-2 text-sm"
+                                disabled={processing}
+                            >
                                 Se connecter
                             </PrimaryButton>
                         </div>

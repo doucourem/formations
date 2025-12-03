@@ -60,6 +60,9 @@ export default function AuthenticatedLayout({ children }) {
     { text: "Chauffeurs", icon: <PeopleIcon />, route: route("drivers.index") },
     { text: "Routes", icon: <AltRouteIcon />, route: route("busroutes.index") },
     { text: "Voyages", icon: <TravelExploreIcon />, route: route("trips.index") },
+    { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
+    { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
+    { text: "Transfers", icon: <LocalShippingIcon />, route: route("transfers.index") },
     { text: "Utilisateurs",  icon: <PeopleIcon />,   route: route("users.index") },
   ];
 
@@ -74,7 +77,7 @@ export default function AuthenticatedLayout({ children }) {
   const menuToShow =
     user.role === "agent"
       ? ticketMenu
-      : [...managementMenu, ...ticketMenu];
+      : [...managementMenu];
 
   /** --------------------------------------------------------
    * DRAWER (menu latéral)

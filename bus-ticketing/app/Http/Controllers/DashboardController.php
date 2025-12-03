@@ -7,7 +7,9 @@ use App\Models\Ticket;
 use App\Models\Trip;
 use App\Models\Bus;
 use App\Models\Driver;
+use App\Models\Parcel;
 use App\Models\Route as RouteModel;
+  use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -15,6 +17,29 @@ class DashboardController extends Controller
     {
         return Inertia::render('Dashboard/Index'); // Vue React principale
     }
+
+
+
+private function parcelByRoute()
+{
+    return Parcel::join('trips', 'parcels.trip_id', '=', 'trips.id')
+        ->join('routes', 'trips.route_id', '=', 'routes.id')
+        ->join('cities as dep', 'routes.departure_city_id', '=', 'dep.id')
+        ->join('cities as arr', 'routes.arrival_city_id', '=', 'arr.id')
+        ->select(
+            'routes.id',
+            DB::raw('CONCAT(dep.name, " → ", arr.name) as route_name'),
+            DB::raw('COUNT(parcels.id) as parcels_count'),
+            DB::raw('SUM(parcels.price) as total_amount')
+        )
+        ->groupBy('routes.id', 'dep.name', 'arr.name')
+        ->orderByDesc('total_amount')
+        ->take(5)
+        ->get();
+}
+
+
+
 
     public function data()
 {
@@ -57,6 +82,7 @@ class DashboardController extends Controller
         'buses' => $buses,
         'top_drivers' => $drivers,
         'top_routes' => $routes,
+        'parcel_routes' => $this->parcelByRoute(),
     ]);
 }
 

@@ -69,6 +69,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('parcels',ParcelController::class);
     Route::resource('drivers', DriverController::class);
     Route::resource('transfers', TransferController::class);
+    
+Route::get('/trips/{trip}/parcels', [ParcelController::class, 'indexByTrip'])
+     ->name('parcels.byTrip');
+
   Route::post('/payment/process', [PaymentController::class, 'process'])
     ->name('payment.process');
 

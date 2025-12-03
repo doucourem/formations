@@ -193,4 +193,17 @@ public function update(Request $request, Parcel $parcel)
         return redirect()->route('parcels.index')
             ->with('success', 'Colis supprimé avec succès.');
     }
+
+    public function indexByTrip(Trip $trip)
+{
+    $parcels = Parcel::where('trip_id', $trip->id)
+        ->orderByDesc('created_at')
+        ->paginate(20);
+
+    return Inertia::render('Parcels/IndexByTrip', [
+        'trip' => $trip,
+        'parcels' => $parcels,
+    ]);
+}
+
 }

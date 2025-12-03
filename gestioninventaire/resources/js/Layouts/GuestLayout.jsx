@@ -29,6 +29,8 @@ import TripOriginIcon from "@mui/icons-material/TripOrigin";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ApplicationLogo from "@/Components/ApplicationLogo";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+
 
 const drawerWidth = 240;
 
@@ -52,11 +54,11 @@ export default function AuthenticatedLayout({ children }) {
   let menuItems = [];
 
 
-  menuItems = [
-      { text: "Produits", icon: <LocationCityIcon />, route: route("produits.index") },
-      { text: "Boutique", icon: <DirectionsBusIcon />, route: route("boutiques.index") },
-      { text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") },
-    ];
+ menuItems = [
+  { text: "Produits", icon: <StorefrontIcon />, route: route("produits.index") },
+  { text: "Boutique", icon: <StoreIcon />, route: route("boutiques.index") },
+  { text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") },
+];
   if (user.role === "admin" || user.role === "manager") {
     menuItems = [
       { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
