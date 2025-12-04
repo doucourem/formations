@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react'; 
 import { Inertia } from '@inertiajs/inertia';
 import { usePage } from '@inertiajs/react';
-
 import {
   Box,
   Button,
@@ -19,7 +18,11 @@ import {
   IconButton,
   Typography,
   Card,
-  CardHeader
+  CardHeader,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -28,6 +31,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 
 import GuestLayout from "@/Layouts/GuestLayout";
+import BaggageForm from "./BaggageForm"; // Formulaire de bagage
 
 export default function TicketsIndex({ tickets }) {
   const { auth } = usePage().props;
@@ -35,6 +39,20 @@ export default function TicketsIndex({ tickets }) {
 
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Modal bagage
+  const [openBaggageModal, setOpenBaggageModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+
+  const handleOpenBaggage = (ticket) => {
+    setSelectedTicket(ticket);
+    setOpenBaggageModal(true);
+  };
+
+  const handleCloseBaggage = () => {
+    setSelectedTicket(null);
+    setOpenBaggageModal(false);
+  };
 
   const handleDelete = (id) => {
     if (confirm('Voulez-vous vraiment supprimer ce ticket ?')) {
@@ -98,12 +116,13 @@ export default function TicketsIndex({ tickets }) {
             <Table>
               <TableHead sx={{ bgcolor: "#1565c0" }}>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Client</TableCell>
-                  <TableCell>Voyage</TableCell>
-                  <TableCell>Prix</TableCell>
-                  <TableCell>Statut</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>ID</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Client</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Voyage</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Prix</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Statut</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Bagages</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
 
@@ -136,6 +155,28 @@ export default function TicketsIndex({ tickets }) {
                         }
                       />
                     </TableCell>
+
+                    {/* Colonne Bagages avec modal */}
+                    <TableCell>
+                      <Stack direction="row" spacing={1}>
+                        {ticket.baggages?.map((bag, idx) => (
+                          <Chip
+                            key={idx}
+                            label={`${bag.weight}kg - ${bag.price?.toLocaleString()} FCFA`}
+                            color="primary"
+                            size="small"
+                          />
+                        ))}
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleOpenBaggage(ticket)}
+                        >
+                          <AddIcon />
+                        </IconButton>
+                      </Stack>
+                    </TableCell>
+
                     <TableCell>
                       <IconButton color="primary" onClick={() => Inertia.get(route("ticket.show", ticket.id))}>
                         <VisibilityIcon />
@@ -149,19 +190,22 @@ export default function TicketsIndex({ tickets }) {
                     </TableCell>
                   </TableRow>
                 ))}
-
-                {filteredTickets.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      Aucun ticket trouvé.
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           </TableContainer>
         </Box>
       </Card>
+
+      {/* Modal Bagage */}
+      <Dialog open={openBaggageModal} onClose={handleCloseBaggage} maxWidth="sm" fullWidth>
+        <DialogTitle>Ajouter un bagage pour le ticket #{selectedTicket?.id}</DialogTitle>
+        <DialogContent>
+          {selectedTicket && <BaggageForm ticket={selectedTicket} onSuccess={handleCloseBaggage} />}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBaggage} color="secondary">Annuler</Button>
+        </DialogActions>
+      </Dialog>
     </GuestLayout>
   );
 }

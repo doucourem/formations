@@ -15,10 +15,20 @@ import {
   Typography,
   Paper,
   Stack,
+  Chip,
 } from "@mui/material";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 
 export default function IndexByTrip({ trip, parcels }) {
+  const statusColor = (status) => {
+    switch (status) {
+      case "Livré": return "success";
+      case "En transit": return "warning";
+      case "En attente": return "default";
+      default: return "default";
+    }
+  };
+
   return (
     <GuestLayout>
       <Box p={3}>
@@ -39,7 +49,7 @@ export default function IndexByTrip({ trip, parcels }) {
               <Table>
                 <TableHead sx={{ bgcolor: "#1565c0" }}>
                   <TableRow>
-                    {["ID", "Expéditeur", "Destinataire", "Montant", "Statut"].map((col) => (
+                    {["ID", "Expéditeur", "Destinataire", "Description", "Poids (kg)", "Montant", "Statut"].map((col) => (
                       <TableCell key={col} sx={{ color: "white", fontWeight: "bold" }}>
                         {col}
                       </TableCell>
@@ -53,14 +63,18 @@ export default function IndexByTrip({ trip, parcels }) {
                       <TableRow key={p.id} hover>
                         <TableCell>{p.id}</TableCell>
                         <TableCell>{p.sender_name}</TableCell>
-                        <TableCell>{p.receiver_name}</TableCell>
+                        <TableCell>{p.recipient_name}</TableCell>
+                        <TableCell>{p.description}</TableCell>
+                        <TableCell>{p.weight}</TableCell>
                         <TableCell>{p.price.toLocaleString()} FCFA</TableCell>
-                        <TableCell>{p.status}</TableCell>
+                        <TableCell>
+                          <Chip label={p.status} color={statusColor(p.status)} size="small" />
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} align="center">
+                      <TableCell colSpan={7} align="center">
                         <Typography>Aucun colis trouvé</Typography>
                       </TableCell>
                     </TableRow>

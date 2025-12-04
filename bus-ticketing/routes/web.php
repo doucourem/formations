@@ -23,6 +23,7 @@ use App\Http\Controllers\TransferController;
 use App\Http\Controllers\SenderController;
 use App\Http\Controllers\ReceiverController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\BaggageController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -34,9 +35,6 @@ Route::get('/', function () {
     return Inertia::render('HomePage');
 })->name('home');
 
-
-
-
 // Routes protégées (auth + email vérifié)
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -45,9 +43,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/send-whatsapp', [NotificationController::class, 'sendWhatsapp']);
 
     // Dashboard
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
 
 
 
@@ -62,13 +57,47 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('cities', CityController::class);
     Route::resource('agencies', AgencyController::class);
     Route::resource('buses', BusController::class);
+       Route::get('/buses/{bus}/trips', [BusController::class, 'byBus'])
+        ->name('trips.byBus');
     Route::resource('busroutes', TripRouteController::class); // Routes
     Route::resource('trips', TripController::class);
     Route::resource('ticket', TicketController::class);
+    // routes/web.php
+Route::post('/ticket/{ticket}/baggage', [BaggageController::class, 'store'])->name('baggage.store');
+// Route pour afficher le formulaire de création d'un bagage
+Route::get('/tickets/{ticket}/baggage/create', [BaggageController::class, 'create'])
+    ->name('baggage.create');
+
+// Route pour enregistrer le bagage
+Route::post('/tickets/{ticket}/baggage', [BaggageController::class, 'store'])
+    ->name('baggage.store');
+
+
     Route::resource('users', UserController::class);
     Route::resource('parcels',ParcelController::class);
+    Route::get('/parcels/{parcel}', [ParcelController::class, 'show'])->name('parcels.show');
+
     Route::resource('drivers', DriverController::class);
-    Route::resource('transfers', TransferController::class);
+ // Page pour les transferts quotidiens (React/Inertia)
+Route::get('/transfers/daily', function () {
+    return Inertia::render('Transfers/DailyTransfers');
+})->name('transfers.daily');
+
+// API JSON
+Route::get('/transfers/daily/data', [TransferController::class, 'daily'])
+    ->name('transfers.daily.data');
+
+// Ensuite seulement la resource
+Route::resource('transfers', TransferController::class);
+
+
+
+
+
+// TransferController.php
+
+
+
     
 Route::get('/trips/{trip}/parcels', [ParcelController::class, 'indexByTrip'])
      ->name('parcels.byTrip');
@@ -77,7 +106,7 @@ Route::get('/trips/{trip}/parcels', [ParcelController::class, 'indexByTrip'])
     ->name('payment.process');
 
 
-    
+
 // Enregistrement expéditeur
 Route::post('/senders', [SenderController::class, 'store'])->name('senders.store');
 

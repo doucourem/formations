@@ -213,9 +213,7 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
               Affecter
             </Button>
           </Box>
-
-          {/* LISTE AFFECTATIONS */}
-          <TableContainer component={Paper} sx={{ mt: 2 }}>
+<TableContainer component={Paper} sx={{ mt: 2 }}>
             <Table>
               <TableHead>
                 <TableRow>
@@ -223,7 +221,8 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
                   <TableCell>Détails</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
+          {/* LISTE AFFECTATIONS */}
+         <TableBody>
   {driver.assignments?.length > 0 ? (
     driver.assignments.map((a) => {
       if (a.type === "bus") {
@@ -254,8 +253,7 @@ export default function DriverDetails({ driver, buses = [], trips = [] }) {
     </TableRow>
   )}
 </TableBody>
-
-            </Table>
+ </Table>
           </TableContainer>
         </CardContent>
       </Card>

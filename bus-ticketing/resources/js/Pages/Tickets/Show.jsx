@@ -138,6 +138,31 @@ export default function Show({ ticket }) {
               </span>
             </Typography>
           </Stack>
+{/* --- BAGAGES --- */}
+{ticket.baggages && ticket.baggages.length > 0 && (
+  <>
+    <Divider sx={{ my: 2 }} />
+    <Typography variant="h6" color="primary" align="center">
+      🧳 Bagages
+    </Typography>
+    <Stack direction="row" spacing={1} flexWrap="wrap">
+      {ticket.baggages.map((bag) => (
+        <Box
+          key={bag.id}
+          sx={{
+            border: "1px solid #1976d2",
+            borderRadius: 1,
+            px: 1.5,
+            py: 0.5,
+            mb: 1,
+          }}
+        >
+          {bag.weight} kg - {bag.price?.toLocaleString()} FCFA
+        </Box>
+      ))}
+    </Stack>
+  </>
+)}
 
           {/* --- BOUTONS --- */}
           <Box

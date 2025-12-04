@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Bus;
 use App\Models\Agency;
-
+use App\Models\Trip;
 class BusController extends Controller
 {
     public function index(Request $request)
@@ -120,4 +120,42 @@ class BusController extends Controller
             ->route('buses.index')
             ->with('success', 'Bus supprimé avec succès.');
     }
+
+
+public function byBus(Bus $bus)
+{
+    $trips = Trip::with(['route.departureCity', 'route.arrivalCity', 'bus'])
+        ->where('bus_id', $bus->id)
+        ->withCount(['tickets as tickets_total' => function ($query) {
+            $query->select(\DB::raw("COALESCE(SUM(price),0)"));
+        }])
+        ->orderByDesc('departure_at')
+        ->paginate(10);
+
+    return Inertia::render('Buses/TripsByBus', [
+        'bus' => [
+            'id' => $bus->id,
+            'registration_number' => $bus->registration_number,
+            'model' => $bus->model,
+            'capacity' => $bus->capacity,
+        ],
+        'trips' => $trips->through(fn($trip) => [
+            'id' => $trip->id,
+            'departure_at' => $trip->departure_at ? \Carbon\Carbon::parse($trip->departure_at)->format('d/m/Y H:i') : null,
+            'arrival_at' => $trip->arrival_at ? \Carbon\Carbon::parse($trip->arrival_at)->format('d/m/Y H:i') : null,
+            'tickets_total' => $trip->tickets_total,
+            'route' => $trip->route ? [
+                'departureCity' => $trip->route->departureCity?->name ?? '-',
+                'arrivalCity' => $trip->route->arrivalCity?->name ?? '-',
+                'price' => $trip->route->price ?? 0,
+            ] : null,
+            'bus' => $trip->bus ? [
+                'registration_number' => $trip->bus->registration_number,
+            ] : null,
+        ]),
+        'filters' => request()->only(['page', 'per_page', 'sort_field', 'sort_direction']),
+    ]);
+}
+
+
 }

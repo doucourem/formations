@@ -25,6 +25,9 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PaidIcon from "@mui/icons-material/Paid";
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { green } from '@mui/material/colors';
+
 
 export default function Index({ transfers, filters }) {
   const [perPage, setPerPage] = useState(filters?.per_page || 10);
@@ -59,45 +62,66 @@ export default function Index({ transfers, filters }) {
   };
 
   // Paiement depuis la liste
-  const handlePayment = async (transferId, amount) => {
-    if (!confirm("Confirmer le paiement ?")) return;
+ const handlePayment = async (transferId, amount) => {
+  if (!confirm("Confirmer le paiement ?")) return;
 
-    try {
-      const response = await fetch(route("payment.process"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transfer_id: transferId, amount }),
-      });
+  try {
+    // Récupérer le token CSRF depuis la balise meta
+    const token = document.querySelector('meta[name="csrf-token"]').content;
 
-      const data = await response.json();
-      if (data.success) {
-        alert("Paiement effectué !");
-        Inertia.reload(); // rafraîchit la liste
-      } else {
-        alert("Échec du paiement : " + data.message);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Erreur lors du paiement");
+    const response = await fetch(route("payment.process"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": token, // 🔑 obligatoire pour Laravel
+      },
+      credentials: "same-origin", // 🔑 pour envoyer les cookies de session
+      body: JSON.stringify({ transfer_id: transferId, amount }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert("Paiement effectué !");
+      Inertia.reload(); // rafraîchit la liste
+    } else {
+      alert("Échec du paiement : " + data.message);
     }
-  };
+  } catch (error) {
+    console.error(error);
+    alert("Erreur lors du paiement");
+  }
+};
+
 
   return (
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
-        <CardHeader
-          title={<Typography variant="h5">💸 Transferts d’argent</Typography>}
-          action={
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={() => Inertia.get(route("transfers.create"))}
-            >
-              Nouveau transfert
-            </Button>
-          }
-        />
+       <CardHeader
+  title={<Typography variant="h5">💸 Transferts d’argent</Typography>}
+  action={
+    <Box sx={{ display: "flex", gap: 1 }}>
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={() => Inertia.get(route("transfers.create"))}
+      >
+        Nouveau transfert
+      </Button>
+
+      <Button
+        variant="outlined"
+        color="secondary"
+        startIcon={<VisibilityIcon />}
+        onClick={() => Inertia.get(route("transfers.daily"))} // ← ici
+      >
+        Transferts par jour
+      </Button>
+    </Box>
+  }
+/>
+
 
         <CardContent>
           {/* Filtres */}
@@ -211,21 +235,24 @@ export default function Index({ transfers, filters }) {
                     {/* Paiement */}
                     <TableCell>
                       {t.paid ? (
-                        <Box
-                          sx={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            bgcolor: "green.main",
-                            color: "white",
-                            px: 1.5,
-                            py: 0.5,
-                            borderRadius: 1,
-                            fontWeight: "bold",
-                          }}
-                        >
-                          <PaidIcon sx={{ mr: 0.5, fontSize: 16 }} />
-                          Payé
-                        </Box>
+                        
+
+<Box
+  sx={{
+    display: 'inline-flex',
+    alignItems: 'center',
+    bgcolor: green[500],
+    color: 'white',
+    px: 1.5,
+    py: 0.5,
+    borderRadius: 1,
+    fontWeight: 'bold',
+  }}
+>
+  <PaidIcon sx={{ mr: 0.5, fontSize: 16 }} />
+  Payé
+</Box>
+
                       ) : (
                         <Button
                           variant="contained"
@@ -262,16 +289,28 @@ export default function Index({ transfers, filters }) {
 
                     {/* Actions */}
                     <TableCell align="right">
-                      <IconButton
-                        color="primary"
-                        onClick={() => Inertia.get(route("transfers.edit", t.id))}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton color="error" onClick={() => handleDelete(t.id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
+  {/* Voir le détail */}
+  <IconButton
+    color="info"
+    onClick={() => Inertia.get(route("transfers.show", t.id))}
+    title="Voir le détail"
+  >
+    <VisibilityIcon />
+  </IconButton>
+
+  {/* Modifier */}
+  <IconButton
+    color="primary"
+    onClick={() => Inertia.get(route("transfers.edit", t.id))}
+  >
+    <EditIcon />
+  </IconButton>
+
+  {/* Supprimer */}
+  <IconButton color="error" onClick={() => handleDelete(t.id)}>
+    <DeleteIcon />
+  </IconButton>
+</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

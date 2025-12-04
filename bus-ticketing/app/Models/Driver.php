@@ -20,15 +20,16 @@ class Driver extends Model
         return $this->hasMany(DriverAssignment::class);
     }
 
+    // ➜ Relation correcte pour récupérer les voyages du chauffeur
     public function trips()
-    {
-        return $this->hasManyThrough(
-            Trip::class, 
-            DriverAssignment::class,
-            'driver_id', // Foreign key on assignments
-            'id',        // Foreign key on trips
-            'id',        // Local key on driver
-            'trip_id'    // Local key on assignment
-        );
-    }
+{
+    return $this->belongsToMany(
+        Trip::class,           // Modèle cible
+        'driver_assignments',  // Table pivot
+        'driver_id',           // Clé du chauffeur
+        'trip_id'              // Clé du voyage
+    )->with('route.departureCity', 'route.arrivalCity');
 }
+
+}
+

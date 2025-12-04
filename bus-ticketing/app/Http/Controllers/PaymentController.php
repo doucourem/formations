@@ -38,26 +38,29 @@ class PaymentController extends Controller
             ]);
         }
 
-        try {
-            Transaction::create([
-    'transfer_id' => $transfer->id,
-    'amount'      => $request->amount,
-    'method'      => 'cash',
-    'status'      => 'success',
-    'user_id'     => auth()->id(),
-    'paid_at'     => now(),
-]);
+       try {
+    Transaction::create([
+        'transfer_id' => $transfer->id,
+        'amount'      => $request->amount,
+        'method'      => 'cash',
+        'status'      => 'success',
+        'user_id'     => auth()->id(),
+        'paid_at'     => now(),
+    ]);
 
+    // ⚡ Mettre à jour le transfert pour qu'il soit marqué comme payé
+    $transfer->update(['paid' => true]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Paiement effectué avec succès.'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors du paiement : ' . $e->getMessage()
-            ], 500);
-        }
+    return response()->json([
+        'success' => true,
+        'message' => 'Paiement effectué avec succès.'
+    ]);
+} catch (\Exception $e) {
+    return response()->json([
+        'success' => false,
+        'message' => 'Erreur lors du paiement : ' . $e->getMessage()
+    ], 500);
+}
+
     }
 }

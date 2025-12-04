@@ -194,16 +194,98 @@ public function update(Request $request, Parcel $parcel)
             ->with('success', 'Colis supprimé avec succès.');
     }
 
-    public function indexByTrip(Trip $trip)
+public function indexByTrip(Trip $trip)
 {
+    // Charger les relations nécessaires
+    $trip->load([
+        'route.departureCity',
+        'route.arrivalCity',
+        'bus',
+    ]);
+
+    // Récupérer les colis liés au trajet, paginés
     $parcels = Parcel::where('trip_id', $trip->id)
         ->orderByDesc('created_at')
         ->paginate(20);
 
     return Inertia::render('Parcels/IndexByTrip', [
-        'trip' => $trip,
-        'parcels' => $parcels,
+        'trip' => [
+            'id' => $trip->id,
+            'departure_time' => $trip->departure_at
+                ? \Carbon\Carbon::parse($trip->departure_at)->format('d/m/Y H:i')
+                : null,
+            'arrival_time' => $trip->arrival_at
+                ? \Carbon\Carbon::parse($trip->arrival_at)->format('d/m/Y H:i')
+                : null,
+            'bus' => $trip->bus ? [
+                'registration_number' => $trip->bus->registration_number,
+            ] : null,
+            'route' => $trip->route ? [
+                'departureCity' => $trip->route->departureCity?->name ?? '-',
+                'arrivalCity' => $trip->route->arrivalCity?->name ?? '-',
+                'price' => $trip->route->price ?? 0,
+            ] : null,
+        ],
+
+        // Transformation des colis pour le front
+        'parcels' => $parcels->through(fn($parcel) => [
+            'id' => $parcel->id,
+            'description' => $parcel->description,
+            'weight' => $parcel->weight,
+            'price' => $parcel->price ?? 0,
+            'sender_name' => $parcel->sender_name,
+            'recipient_name' => $parcel->recipient_name,
+            'recipient_phone' => $parcel->recipient_phone,
+            'status' => $parcel->status,
+        ]),
+
+        // Pagination meta pour le front (pratique si tu veux TablePagination MUI)
+        'pagination' => [
+            'current_page' => $parcels->currentPage(),
+            'last_page' => $parcels->lastPage(),
+            'per_page' => $parcels->perPage(),
+            'total' => $parcels->total(),
+        ],
     ]);
 }
+
+public function show(Parcel $parcel)
+{
+    // Charger les relations nécessaires
+    $parcel->load([
+        'trip.route.departureCity',
+        'trip.route.arrivalCity',
+        'trip.bus',
+    ]);
+
+    return Inertia::render('Parcels/Show', [
+        'parcel' => [
+            'id' => $parcel->id,
+            'tracking_number' => $parcel->tracking_number,
+            'sender_name' => $parcel->sender_name,
+            'recipient_name' => $parcel->recipient_name,
+            'weight_kg' => $parcel->weight_kg,
+            'price' => $parcel->price,
+            'status' => $parcel->status,
+            'description' => $parcel->description,
+            'trip' => $parcel->trip ? [
+                'id' => $parcel->trip->id,
+                'departureCity' => $parcel->trip->route->departureCity?->name,
+                'arrivalCity' => $parcel->trip->route->arrivalCity?->name,
+                'departure_at' => $parcel->trip->departure_at
+                    ? \Carbon\Carbon::parse($parcel->trip->departure_at)->format('d/m/Y H:i')
+                    : null,
+                'arrival_at' => $parcel->trip->arrival_at
+                    ? \Carbon\Carbon::parse($parcel->trip->arrival_at)->format('d/m/Y H:i')
+                    : null,
+                'bus' => $parcel->trip->bus ? [
+                    'registration_number' => $parcel->trip->bus->registration_number,
+                ] : null,
+            ] : null,
+        ],
+    ]);
+}
+
+
 
 }

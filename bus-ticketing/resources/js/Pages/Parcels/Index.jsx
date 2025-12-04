@@ -24,11 +24,19 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+
 
 export default function Index({ parcels, filters }) {
   const [parPage, setParPage] = useState(filters?.per_page || 10);
   const [tracking, setTracking] = useState(filters?.tracking || '');
   const [status, setStatus] = useState(filters?.status || '');
+
+  const statusMap = {
+    pending: '🟡 En attente',
+    in_transit: '🟠 En transit',
+    delivered: '🟢 Livré',
+  };
 
   const filtrer = () => {
     Inertia.get(
@@ -39,7 +47,7 @@ export default function Index({ parcels, filters }) {
   };
 
   const handleDelete = (id) => {
-    if (confirm("Voulez-vous supprimer ce colis ?")) {
+    if (confirm('Voulez-vous supprimer ce colis ?')) {
       Inertia.delete(route('parcels.destroy', id), { preserveState: true });
     }
   };
@@ -71,7 +79,17 @@ export default function Index({ parcels, filters }) {
 
         <CardContent>
           {/* Filtres */}
-          <Box display="flex" gap={2} mb={3} alignItems="flex-end">
+          <Box
+            component="form"
+            display="flex"
+            gap={2}
+            mb={3}
+            alignItems="flex-end"
+            onSubmit={(e) => {
+              e.preventDefault();
+              filtrer();
+            }}
+          >
             <TextField
               label="Tracking"
               value={tracking}
@@ -98,57 +116,76 @@ export default function Index({ parcels, filters }) {
               label="Par page"
               type="number"
               value={parPage}
-              onChange={(e) => setParPage(Number(e.target.value))}
+              onChange={(e) => setParPage(Math.max(1, Number(e.target.value)))}
               variant="outlined"
               size="small"
               sx={{ width: 120 }}
             />
 
-            <Button variant="contained" color="primary" onClick={filtrer} sx={{ height: 40 }}>
+            <Button variant="contained" color="primary" sx={{ height: 40 }} type="submit">
               Filtrer
             </Button>
           </Box>
 
           {/* Tableau */}
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>ID</TableCell>
-                  <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Tracking</TableCell>
-                  <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Expéditeur</TableCell>
-                  <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Destinataire</TableCell>
-                  <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Poids (kg)</TableCell>
-                  <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Statut</TableCell>
-                  <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
+                  {['ID', 'Tracking', 'Expéditeur', 'Destinataire', 'Poids (kg)', 'Statut', 'Actions'].map(
+                    (col) => (
+                      <TableCell
+                        key={col}
+                        sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}
+                      >
+                        {col}
+                      </TableCell>
+                    )
+                  )}
                 </TableRow>
               </TableHead>
 
               <TableBody>
                 {parcels?.data?.length > 0 ? (
                   parcels.data.map((colis) => (
-                    <TableRow key={colis.id}>
+                    <TableRow key={colis.id} hover>
                       <TableCell>{colis.id}</TableCell>
                       <TableCell>{colis.tracking_number}</TableCell>
                       <TableCell>{colis.sender_name}</TableCell>
                       <TableCell>{colis.recipient_name}</TableCell>
                       <TableCell>{colis.weight_kg} kg</TableCell>
                       <TableCell>
-                        <strong>
-                          {colis.status === "pending" && "🟡 En attente"}
-                          {colis.status === "in_transit" && "🟠 En transit"}
-                          {colis.status === "delivered" && "🟢 Livré"}
-                        </strong>
+                        <strong>{statusMap[colis.status] || colis.status}</strong>
                       </TableCell>
                       <TableCell>
-                        <IconButton color="primary" href={route('parcels.edit', colis.id)} size="small">
-                          <EditIcon />
-                        </IconButton>
+  <IconButton
+    color="primary"
+    href={route('parcels.show', colis.id)}
+    size="small"
+    title="Voir le détail"
+  >
+    <VisibilityIcon />
+  </IconButton>
 
-                        <IconButton color="error" onClick={() => handleDelete(colis.id)} size="small">
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
+  <IconButton
+    color="primary"
+    href={route('parcels.edit', colis.id)}
+    size="small"
+    title="Modifier"
+  >
+    <EditIcon />
+  </IconButton>
+
+  <IconButton
+    color="error"
+    onClick={() => handleDelete(colis.id)}
+    size="small"
+    title="Supprimer"
+  >
+    <DeleteIcon />
+  </IconButton>
+</TableCell>
+
                     </TableRow>
                   ))
                 ) : (

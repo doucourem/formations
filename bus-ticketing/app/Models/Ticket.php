@@ -46,4 +46,10 @@ class Ticket extends Model
     {
         return $this->hasMany(Parcel::class);
     }
+
+    public function baggages()
+{
+    return $this->hasMany(baggages::class);
+}
+
 }

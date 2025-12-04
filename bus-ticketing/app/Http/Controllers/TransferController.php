@@ -126,6 +126,40 @@ public function edit(Transfer $transfer)
 }
 
 
+public function show(Transfer $transfer)
+{
+    $transfer->loadMissing(['sender', 'receiver']);
+
+    return Inertia::render('Transfers/Show', [
+        'transfer' => $transfer,
+    ]);
+}
+
+public function daily(Request $request)
+{
+    $query = Transfer::query();
+
+    // Filtrer par jour précis
+    if ($request->has('date') && $request->date) {
+        $query->whereDate('created_at', $request->date);
+    }
+
+    // Filtrer par période
+    if ($request->has('start_date') && $request->start_date && $request->has('end_date') && $request->end_date) {
+        $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
+    }
+
+    $dailyTransfers = $query
+        ->selectRaw('DATE(created_at) as day, COUNT(*) as total_transfers, SUM(amount) as total_amount')
+        ->groupBy('day')
+        ->orderBy('day', 'desc')
+        ->get();
+
+    return response()->json($dailyTransfers);
+}
+
+
+
     public function destroy(Transfer $transfer)
     {
         $transfer->delete();

@@ -59,28 +59,6 @@ export default function AuthenticatedLayout({ children }) {
   { text: "Boutique", icon: <StoreIcon />, route: route("boutiques.index") },
   { text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") },
 ];
-  if (user.role === "admin" || user.role === "manager") {
-    menuItems = [
-      { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
-      { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
-      { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") },
-      { text: "Trajets", icon: <RouteIcon />, route: route("busroutes.index") },
-      { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
-      { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
-      { text: "Colis", icon: <ConfirmationNumberIcon />, route: route("parcels.index") },
-      { text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") },
-    ];
-  } else if (user.role === "manageragence") {
-    menuItems = [
-      { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
-      { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index", { agence_id: user.agence_id }) },
-    ];
-  } else if (user.role === "agent") {
-    menuItems = [
-      { text: "Voyages", icon: <TripOriginIcon />, route: route("trips.index") },
-      { text: "Billets", icon: <ConfirmationNumberIcon />, route: route("ticket.index", { agence_id: user.agence_id }) },
-    ];
-  }
 
   const drawerContent = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -118,7 +96,7 @@ export default function AuthenticatedLayout({ children }) {
             <MenuIcon />
           </IconButton>
 
-          <Link href="/" style={{ display: "flex", alignItems: "center", marginRight: 10 }}>
+          <Link href="/boutiques" style={{ display: "flex", alignItems: "center", marginRight: 10 }}>
             <ApplicationLogo className="h-10 w-10 mr-2" />
           </Link>
 

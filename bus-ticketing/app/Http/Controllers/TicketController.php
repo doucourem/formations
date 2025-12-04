@@ -300,62 +300,69 @@ public function index(Request $request)
     /**
      * 🔍 Détail du ticket
      */
-  public function show($id)
-    {
-        $ticket = Ticket::with([
-            'trip.route.departureCity',
-            'trip.route.arrivalCity',
-            'trip.bus',
-            'startStop.city',
-            'startStop.toCity',
-            'endStop.city',
-            'endStop.toCity',
-            'user.agency',
-        ])->findOrFail($id);
+ public function show($id)
+{
+    $ticket = Ticket::with([
+        'trip.route.departureCity',
+        'trip.route.arrivalCity',
+        'trip.bus',
+        'startStop.city',
+        'startStop.toCity',
+        'endStop.city',
+        'endStop.toCity',
+        'user.agency',
+        'baggages', // 🔹 Ajout de la relation bagages
+    ])->findOrFail($id);
 
-        return Inertia::render('Tickets/Show', [
-            'ticket' => [
-                'id' => $ticket->id,
-                'seat_number' => $ticket->seat_number,
-                'client_name' => $ticket->client_name,
-                'status' => $ticket->status,
-                'price' => $ticket->price,
-                'start_stop' => $ticket->startStop ? [
-                    'city_name' => $ticket->startStop->city?->name,
-                    'to_city_name' => $ticket->startStop->toCity?->name,
-                    'distance_from_start' => $ticket->startStop->distance_from_start,
-                    'price' => $ticket->startStop->partial_price,
+    return Inertia::render('Tickets/Show', [
+        'ticket' => [
+            'id' => $ticket->id,
+            'seat_number' => $ticket->seat_number,
+            'client_name' => $ticket->client_name,
+            'status' => $ticket->status,
+            'price' => $ticket->price,
+            'start_stop' => $ticket->startStop ? [
+                'city_name' => $ticket->startStop->city?->name,
+                'to_city_name' => $ticket->startStop->toCity?->name,
+                'distance_from_start' => $ticket->startStop->distance_from_start,
+                'price' => $ticket->startStop->partial_price,
+            ] : null,
+            'end_stop' => $ticket->endStop ? [
+                'city_name' => $ticket->endStop->city?->name,
+                'to_city_name' => $ticket->endStop->toCity?->name,
+                'distance_from_start' => $ticket->endStop->distance_from_start,
+                'price' => $ticket->endStop->partial_price,
+            ] : null,
+            'user' => $ticket->user ? [
+                'name' => $ticket->user->name,
+                'email' => $ticket->user->email,
+                'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
+            ] : null,
+            'trip' => $ticket->trip ? [
+                'departure_time' => optional($ticket->trip->departure_at)
+                    ? \Carbon\Carbon::parse($ticket->trip->departure_at)->format('d/m/Y H:i')
+                    : null,
+                'arrival_time' => optional($ticket->trip->arrival_at)
+                    ? \Carbon\Carbon::parse($ticket->trip->arrival_at)->format('d/m/Y H:i')
+                    : null,
+                'bus' => $ticket->trip->bus ? [
+                    'plate_number' => $ticket->trip->bus->registration_number,
                 ] : null,
-                'end_stop' => $ticket->endStop ? [
-                    'city_name' => $ticket->endStop->city?->name,
-                    'to_city_name' => $ticket->endStop->toCity?->name,
-                    'distance_from_start' => $ticket->endStop->distance_from_start,
-                    'price' => $ticket->endStop->partial_price,
+                'route' => $ticket->trip->route ? [
+                    'departureCity' => $ticket->trip->route->departureCity?->name,
+                    'arrivalCity' => $ticket->trip->route->arrivalCity?->name,
+                    'price' => $ticket->trip->route->price,
                 ] : null,
-                'user' => $ticket->user ? [
-                    'name' => $ticket->user->name,
-                    'email' => $ticket->user->email,
-                    'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
-                ] : null,
-                'trip' => $ticket->trip ? [
-                    'departure_time' => optional($ticket->trip->departure_at)
-                        ? Carbon::parse($ticket->trip->departure_at)->format('d/m/Y H:i')
-                        : null,
-                    'arrival_time' => optional($ticket->trip->arrival_at)
-                        ? Carbon::parse($ticket->trip->arrival_at)->format('d/m/Y H:i')
-                        : null,
-                    'bus' => $ticket->trip->bus ? [
-                        'plate_number' => $ticket->trip->bus->registration_number,
-                    ] : null,
-                    'route' => $ticket->trip->route ? [
-                        'departureCity' => $ticket->trip->route->departureCity?->name,
-                        'arrivalCity' => $ticket->trip->route->arrivalCity?->name,
-                        'price' => $ticket->trip->route->price,
-                    ] : null,
-                ] : null,
-            ],
-        ]);
-    }
+            ] : null,
+            // 🔹 Ajout des bagages dans le tableau retourné
+            'baggages' => $ticket->baggages->map(fn($bag) => [
+                'id' => $bag->id,
+                'weight' => $bag->weight,
+                'price' => $bag->price,
+            ]),
+        ],
+    ]);
+}
 
 
     /**

@@ -21,14 +21,17 @@ import {
 } from "@mui/material";
 
 import MenuIcon from "@mui/icons-material/Menu";
-import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import LocationCityIcon from "@mui/icons-material/LocationCity";
-import PeopleIcon from "@mui/icons-material/People";
 import StoreIcon from "@mui/icons-material/Store";
+import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
+import PersonIcon from "@mui/icons-material/Person";
+import GroupIcon from "@mui/icons-material/Group";
 import AltRouteIcon from "@mui/icons-material/AltRoute";
+import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import TravelExploreIcon from "@mui/icons-material/TravelExplore";
+import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ApplicationLogo from "@/Components/ApplicationLogo";
@@ -49,29 +52,31 @@ export default function AuthenticatedLayout({ children }) {
   const handleMenuClose = () => setAnchorEl(null);
   const handleLogout = () => post(route("logout"));
 
-  /** --------------------------------------------------------
-   * MENUS SELON LE ROLE
-   * -------------------------------------------------------- */
-  const managementMenu = [
-  { text: "Tableau de bord", icon: <LocationCityIcon />, route: route("dashboard") },
-    { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
-    { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") },
-    { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
-    { text: "Chauffeurs", icon: <PeopleIcon />, route: route("drivers.index") },
-    { text: "Routes", icon: <AltRouteIcon />, route: route("busroutes.index") },
-    { text: "Voyages", icon: <TravelExploreIcon />, route: route("trips.index") },
-    { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
-    { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
-    { text: "Transfers", icon: <LocalShippingIcon />, route: route("transfers.index") },
-    { text: "Utilisateurs",  icon: <PeopleIcon />,   route: route("users.index") },
-  ];
 
-  const ticketMenu = [
-    { text: "Tableau de bord", icon: <LocationCityIcon />, route: route("dashboard") },
-    { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
-    { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
-    { text: "Transfers", icon: <LocalShippingIcon />, route: route("transfers.index") },
-  ];
+
+// Menu pour les gestionnaires/admin
+const managementMenu = [
+  { text: "Tableau de bord", icon: <DashboardIcon />, route: route("dashboard") },
+  { text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") },
+  { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") },
+  { text: "Bus", icon: <DirectionsBusIcon />, route: route("buses.index") },
+  { text: "Chauffeurs", icon: <PersonIcon />, route: route("drivers.index") },
+  { text: "Routes", icon: <AltRouteIcon />, route: route("busroutes.index") },
+  { text: "Voyages", icon: <TravelExploreIcon />, route: route("trips.index") },
+  { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
+  { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
+  { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") },
+  { text: "Utilisateurs", icon: <GroupIcon />, route: route("users.index") },
+];
+
+// Menu pour les agents (tickets + colis)
+const ticketMenu = [
+  { text: "Tableau de bord", icon: <DashboardIcon />, route: route("dashboard") },
+  { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
+  { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
+  { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") },
+];
+
 
   // Si agent : seulement tickets + colis
   const menuToShow =
