@@ -55,6 +55,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 
+
+    // Daily Transfers (React/Inertia)
+    Route::get('/transfers/daily', function () {
+        return Inertia::render('Transfers/DailyTransfers');
+    })->name('transfers.daily');
+    Route::get('/transfers/daily/data', [TransferController::class, 'daily'])->name('transfers.daily.data');
+
     // CRUD standard
     Route::resources([
         'cities' => CityController::class,
@@ -110,13 +117,9 @@ Route::prefix('drivers/{driver}')->name('driver_trips.')->group(function () {
 
     // Show driver
     Route::get('/drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');
+Route::put('/drivers/{driver}', [DriverController::class, 'update']);
 
-    // Daily Transfers (React/Inertia)
-    Route::get('/transfers/daily', function () {
-        return Inertia::render('Transfers/DailyTransfers');
-    })->name('transfers.daily');
-    Route::get('/transfers/daily/data', [TransferController::class, 'daily'])->name('transfers.daily.data');
-
+    
     // Assign driver to trip
     Route::get('/trips/{trip}/assign-driver', [TripAssignmentController::class, 'view'])->name('trips.assign-driver.view');
     Route::post('/trips/{trip}/assign-driver', [TripAssignmentController::class, 'store'])->name('trips.assign-driver.store');

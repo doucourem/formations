@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios"; // ✅ Import axios
+import axios from "axios";
 import {
   Card, CardContent, CardHeader, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Typography,
-  Box, TextField, MenuItem, Button
+  Box, TextField, MenuItem, Button, CircularProgress
 } from "@mui/material";
 import GuestLayout from "@/Layouts/GuestLayout";
 
@@ -13,6 +13,8 @@ export default function DailyTransfers() {
   const [selectedDate, setSelectedDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [loading, setLoading] = useState(false); // indicateur de chargement
+  const [error, setError] = useState(null);      // message d'erreur
 
   const handleFilterChange = (value) => {
     setFilter(value);
@@ -22,10 +24,12 @@ export default function DailyTransfers() {
   };
 
   const fetchData = async () => {
-    try {
-      let url = "/transfers/daily/data"; // Utilise directement l’URL Laravel
+    setLoading(true);
+    setError(null);
 
-      // Paramètres pour le jour précis ou la période
+    try {
+      const url = "/transfers/daily/data"; // ou route('transfers.daily.data') si disponible
+
       const params = {};
       if (filter === "day" && selectedDate) params.date = selectedDate;
       if (filter === "range" && startDate && endDate) {
@@ -34,21 +38,45 @@ export default function DailyTransfers() {
       }
 
       const response = await axios.get(url, { params });
-      setData(response.data);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des transferts :", error);
+
+      if (response.status === 200 && Array.isArray(response.data)) {
+        setData(response.data);
+      } else {
+        console.error("Réponse invalide :", response);
+        setData([]);
+        setError("Les données reçues sont invalides.");
+      }
+    } catch (err) {
+      console.error("Erreur lors de la récupération des transferts :", err);
+      setData([]);
+      if (err.response) {
+        setError(`Erreur serveur : ${err.response.status}`);
+      } else if (err.request) {
+        setError("Impossible de contacter le serveur.");
+      } else {
+        setError("Erreur inconnue lors de la récupération des données.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (
+      filter === "all" ||
+      (filter === "day" && selectedDate) ||
+      (filter === "range" && startDate && endDate)
+    ) {
+      fetchData();
+    }
+  }, [filter, selectedDate, startDate, endDate]);
 
   return (
     <GuestLayout>
       <Card sx={{ borderRadius: 3, p: 3 }}>
         <CardHeader title={<Typography variant="h5">💸 Transferts par jour</Typography>} />
         <CardContent>
+          {/* FILTRES */}
           <Box display="flex" gap={2} mb={3} alignItems="center" flexWrap="wrap">
             <TextField
               select
@@ -91,20 +119,37 @@ export default function DailyTransfers() {
               </>
             )}
 
-            <Button variant="contained" onClick={fetchData}>Appliquer</Button>
+            <Button variant="contained" onClick={fetchData} disabled={loading}>
+              Appliquer
+            </Button>
           </Box>
 
+          {/* INDICATEUR DE CHARGEMENT */}
+          {loading && (
+            <Box textAlign="center" my={2}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {/* MESSAGE D'ERREUR */}
+          {error && (
+            <Typography color="error" align="center" my={2}>
+              {error}
+            </Typography>
+          )}
+
+          {/* TABLEAU DES TRANSFERTS */}
           <TableContainer component={Paper}>
             <Table>
               <TableHead sx={{ bgcolor: "#1565c0" }}>
                 <TableRow>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Nombre de transferts</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Montant total</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Montant total (CFA)</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {data.length === 0 ? (
+                {!loading && data.length === 0 && !error ? (
                   <TableRow>
                     <TableCell colSpan={3} align="center">Aucun transfert</TableCell>
                   </TableRow>
@@ -112,8 +157,8 @@ export default function DailyTransfers() {
                   data.map((row, index) => (
                     <TableRow key={index}>
                       <TableCell>{row.day}</TableCell>
-                      <TableCell>{row.total_transfers}</TableCell>
-                      <TableCell>{row.total_amount.toLocaleString()} CFA</TableCell>
+                      <TableCell>{row.total_transfers ?? 0}</TableCell>
+                      <TableCell>{(row.total_amount ?? 0).toLocaleString()} CFA</TableCell>
                     </TableRow>
                   ))
                 )}

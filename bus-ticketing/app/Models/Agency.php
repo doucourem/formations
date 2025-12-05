@@ -47,7 +47,7 @@ class Agency extends Model
     return $this->hasManyThrough(
         Ticket::class,   // Modèle final
         User::class,     // Modèle intermédiaire
-        'agency_id',     // FK dans users vers agency
+        'agence_id',     // FK dans users vers agency
         'user_id',       // FK dans tickets vers user
         'id',            // PK dans agency
         'id'             // PK dans user
