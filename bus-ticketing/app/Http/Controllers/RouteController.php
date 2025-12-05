@@ -88,7 +88,7 @@ $i = 1;
     }
 
     // Formulaire d'édition
-public function edit(\App\Models\Route $busroute)
+public function edit(Route $busroute)
 {
     $cities = City::orderBy('name')->get();
     $busroute->load('stops.city');
