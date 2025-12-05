@@ -359,10 +359,10 @@ public function dailySummary(Request $request)
             ] : null,
             'trip' => $ticket->trip ? [
                 'departure_time' => optional($ticket->trip->departure_at)
-                    ? \Carbon\Carbon::parse($ticket->trip->departure_at)->format('d/m/Y H:i')
+                    ? Carbon::parse($ticket->trip->departure_at)->format('d/m/Y H:i')
                     : null,
                 'arrival_time' => optional($ticket->trip->arrival_at)
-                    ? \Carbon\Carbon::parse($ticket->trip->arrival_at)->format('d/m/Y H:i')
+                    ? Carbon::parse($ticket->trip->arrival_at)->format('d/m/Y H:i')
                     : null,
                 'bus' => $ticket->trip->bus ? [
                     'plate_number' => $ticket->trip->bus->registration_number,
