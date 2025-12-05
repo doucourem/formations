@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
+import { router } from "@inertiajs/react";   // ✅ MANQUAIT !
 import {
   Box,
   Table,

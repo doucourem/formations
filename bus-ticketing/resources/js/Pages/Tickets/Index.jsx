@@ -75,18 +75,31 @@ export default function TicketsIndex({ tickets }) {
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
         <CardHeader
-          title={<Typography variant="h5">📦 Liste des Tickets</Typography>}
-          action={
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={() => Inertia.get(route('ticket.create'))}
-            >
-              Créer un ticket
-            </Button>
-          }
-        />
+  title={<Typography variant="h5">📦 Liste des Tickets</Typography>}
+  action={
+    <Stack direction="row" spacing={1}>
+      {/* Bouton créer un ticket */}
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={() => Inertia.get(route('ticket.create'))}
+      >
+        Créer un ticket
+      </Button>
+
+      {/* Nouveau bouton → exemple : voir résumé quotidien */}
+      <Button
+        variant="outlined"
+        color="secondary"
+        onClick={() => Inertia.get(route('tickets.daily-summary'))} // route vers le nouvel écran
+      >
+        Résumé par jour
+      </Button>
+    </Stack>
+  }
+/>
+
 
         <Box mt={2}>
           {/* 🔍 Filtres */}

@@ -78,7 +78,26 @@ public function index(Request $request)
     ]);
 }
 
+public function dailySummary(Request $request)
+    {
+        // Optionnel : filtrer par agence, utilisateur ou dates
+        $ticketsQuery = Ticket::query();
 
+        if ($request->has('from') && $request->has('to')) {
+            $from = Carbon::parse($request->from)->startOfDay();
+            $to = Carbon::parse($request->to)->endOfDay();
+            $ticketsQuery->whereBetween('created_at', [$from, $to]);
+        }
+
+        $tickets = $ticketsQuery
+            ->select('id', 'created_at', 'price')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return Inertia::render('Tickets/DailyTicketsSummary', [
+            'tickets' => $tickets,
+        ]);
+    }
 
     /**
      * ➕ Formulaire de création

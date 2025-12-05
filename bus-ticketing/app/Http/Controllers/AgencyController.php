@@ -12,32 +12,36 @@ class AgencyController extends Controller
     /**
      * Liste des agences avec filtre par ville.
      */
-    public function index(Request $request)
-    {
-        $perPage = (int) $request->input('per_page', 10);
-        $cityId = $request->input('city_id');
+   public function index(Request $request)
+{
+    $perPage = (int) $request->input('per_page', 10);
+    $cityId = $request->input('city_id');
 
-        $agencies = Agency::with('city')
-            ->when($cityId, fn($q) => $q->where('city_id', $cityId))
-            ->orderBy('name')
-            ->paginate($perPage)
-            ->withQueryString()
-            ->through(fn($agency) => [
-                'id' => $agency->id,
-                'name' => $agency->name,
-                'city' => $agency->city?->name ?? '-',
-                'created_at' => $agency->created_at?->toDateTimeString() ?? '',
-                'updated_at' => $agency->updated_at?->toDateTimeString() ?? '',
-            ]);
-
-        return Inertia::render('Agencies/Index', [
-            'agencies' => $agencies,
-            'filters' => [
-                'city_id' => $cityId,
-                'per_page' => $perPage,
-            ],
+    // Charger agences avec ville + compter les tickets vendus via les agents
+    $agencies = Agency::with('city')
+        ->withCount('tickets') // tickets vendus par les utilisateurs de l'agence
+        ->when($cityId, fn($q) => $q->where('city_id', $cityId))
+        ->orderBy('name')
+        ->paginate($perPage)
+        ->withQueryString()
+        ->through(fn($agency) => [
+            'id' => $agency->id,
+            'name' => $agency->name,
+            'city' => $agency->city?->name ?? '-',
+            'tickets_sold' => $agency->tickets_count ?? 0, // ajout nombre de billets vendus
+            'created_at' => $agency->created_at?->toDateTimeString() ?? '',
+            'updated_at' => $agency->updated_at?->toDateTimeString() ?? '',
         ]);
-    }
+
+    return Inertia::render('Agencies/Index', [
+        'agencies' => $agencies,
+        'filters' => [
+            'city_id' => $cityId,
+            'per_page' => $perPage,
+        ],
+    ]);
+}
+
 
     /**
      * Affiche le formulaire de création avec la liste des villes.

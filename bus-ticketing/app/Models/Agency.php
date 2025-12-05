@@ -43,7 +43,15 @@ class Agency extends Model
      * Une agence peut accéder indirectement aux tickets via ses utilisateurs
      */
     public function tickets()
-    {
-        return $this->hasManyThrough(Ticket::class, User::class);
-    }
+{
+    return $this->hasManyThrough(
+        Ticket::class,   // Modèle final
+        User::class,     // Modèle intermédiaire
+        'agency_id',     // FK dans users vers agency
+        'user_id',       // FK dans tickets vers user
+        'id',            // PK dans agency
+        'id'             // PK dans user
+    );
+}
+
 }

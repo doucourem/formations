@@ -18,14 +18,16 @@ import {
   TextField,
   IconButton,
   Pagination,
+  Alert
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import DescriptionIcon from '@mui/icons-material/Description';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 
-
-export default function DriversIndex({ drivers, filters }) {
+export default function DriversIndex({ drivers, filters, flash }) {
   const [perPage, setPerPage] = useState(filters?.per_page || 10);
   const [search, setSearch] = useState(filters?.search || '');
 
@@ -68,6 +70,10 @@ export default function DriversIndex({ drivers, filters }) {
           }
         />
         <CardContent>
+          {/* Messages flash */}
+          {flash?.success && <Alert severity="success" sx={{ mb: 2 }}>{flash.success}</Alert>}
+          {flash?.error && <Alert severity="error" sx={{ mb: 2 }}>{flash.error}</Alert>}
+
           {/* Filtres */}
           <Box display="flex" gap={2} mb={3} alignItems="flex-end">
             <TextField
@@ -104,43 +110,71 @@ export default function DriversIndex({ drivers, filters }) {
                   <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
-           <TableBody>
-  {drivers.data.map((driver) => (
-    <TableRow key={driver.id}>
-      <TableCell>{driver.id}</TableCell>
-      <TableCell>{driver.first_name} {driver.last_name}</TableCell>
-      <TableCell>{driver.phone ?? '-'}</TableCell>
-      <TableCell>{driver.email ?? '-'}</TableCell>
-      <TableCell>{driver.documents?.length || 0}</TableCell>
+              <TableBody>
+                {drivers?.data?.length > 0 ? (
+                  drivers.data.map((driver) => (
+                    <TableRow key={driver.id}>
+                      <TableCell>{driver.id}</TableCell>
+                      <TableCell>{driver.first_name} {driver.last_name}</TableCell>
+                      <TableCell>{driver.phone ?? '-'}</TableCell>
+                      <TableCell>{driver.email ?? '-'}</TableCell>
+                      <TableCell>{driver.documents?.length || 0}</TableCell>
+                      <TableCell>
+                        {/* Voir détails */}
+                        <IconButton
+                          color="info"
+                          onClick={() => Inertia.get(route('drivers.show', driver.id))}
+                          title="Voir détails"
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
 
-      {/* Actions */}
-      <TableCell>
-        <IconButton
-          color="info"
-          onClick={() => Inertia.get(route('drivers.show', driver.id))}
-        >
-          <VisibilityIcon />
-        </IconButton>
+                        {/* Modifier */}
+                        <IconButton
+                          color="primary"
+                          onClick={() => Inertia.get(route('drivers.edit', driver.id))}
+                          title="Modifier"
+                        >
+                          <EditIcon />
+                        </IconButton>
 
-        <IconButton
-          color="primary"
-          onClick={() => Inertia.get(route('drivers.edit', driver.id))}
-        >
-          <EditIcon />
-        </IconButton>
+                        {/* Supprimer */}
+                        <IconButton
+                          color="error"
+                          onClick={() => handleDelete(driver.id)}
+                          title="Supprimer"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
 
-        <IconButton
-          color="error"
-          onClick={() => handleDelete(driver.id)}
-        >
-          <DeleteIcon />
-        </IconButton>
-      </TableCell>
-    </TableRow>
-  ))}
-</TableBody>
+                        {/* Gérer documents */}
+                        <IconButton
+                          color="secondary"
+                          onClick={() => Inertia.get(route('driver_documents.index', { driver: driver.id }))}
+                          title="Gérer documents"
+                        >
+                          <DescriptionIcon />
+                        </IconButton>
 
-
+                        {/* Assigner au voyage */}
+                        <IconButton
+                          color="success"
+                          onClick={() => Inertia.get(route('driver_trips.create', { driver: driver.id }))}
+                          title="Assigner au voyage"
+                        >
+                          <EventAvailableIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      Aucun chauffeur trouvé.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
             </Table>
           </TableContainer>
 

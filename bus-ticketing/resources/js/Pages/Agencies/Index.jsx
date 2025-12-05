@@ -18,19 +18,20 @@ import {
   TextField,
   IconButton,
   Pagination,
+  Alert
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-export default function Index({ agencies, filters }) {
+export default function Index({ agencies, filters, flash }) {
   const [parPage, setParPage] = useState(filters?.per_page || 10);
-  const [ville, setVille] = useState(filters?.city || '');
+  const [cityId, setCityId] = useState(filters?.city_id || '');
 
   const filtrer = () => {
     Inertia.get(
       route('agencies.index'),
-      { per_page: parPage, city: ville },
+      { per_page: parPage, city_id: cityId },
       { preserveState: true }
     );
   };
@@ -44,7 +45,7 @@ export default function Index({ agencies, filters }) {
   const handlePage = (page) => {
     Inertia.get(
       route('agencies.index'),
-      { per_page: parPage, city: ville, page },
+      { per_page: parPage, city_id: cityId, page },
       { preserveState: true }
     );
   };
@@ -64,16 +65,21 @@ export default function Index({ agencies, filters }) {
               Créer une agence
             </Button>
           }
-        />
+                  />
         <CardContent>
+          {/* Messages flash */}
+
+
           {/* Filtres */}
           <Box display="flex" gap={2} mb={3} alignItems="flex-end">
             <TextField
               label="Ville"
-              value={ville}
-              onChange={(e) => setVille(e.target.value)}
+              type="number"
+              value={cityId}
+              onChange={(e) => setCityId(e.target.value)}
               variant="outlined"
               size="small"
+              sx={{ width: 120 }}
             />
             <TextField
               label="Par page"
@@ -97,6 +103,7 @@ export default function Index({ agencies, filters }) {
                   <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>ID</TableCell>
                   <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Nom</TableCell>
                   <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Ville</TableCell>
+                  <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Billets vendus</TableCell>
                   <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -107,6 +114,7 @@ export default function Index({ agencies, filters }) {
                       <TableCell>{agence.id}</TableCell>
                       <TableCell>{agence.name}</TableCell>
                       <TableCell>{agence.city || '-'}</TableCell>
+                      <TableCell>{agence.tickets_sold ?? 0}</TableCell>
                       <TableCell>
                         <IconButton color="primary" href={route('agencies.edit', agence.id)} size="small">
                           <EditIcon />
@@ -119,7 +127,7 @@ export default function Index({ agencies, filters }) {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} align="center">
+                    <TableCell colSpan={5} align="center">
                       Aucune agence trouvée.
                     </TableCell>
                   </TableRow>

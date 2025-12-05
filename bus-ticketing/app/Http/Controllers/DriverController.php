@@ -21,24 +21,27 @@ class DriverController extends Controller
         return inertia('Drivers/Create');
     }
 
-    public function store(Request $request) {
-        $data = $request->validate([
-            'first_name'=>'required',
-            'last_name'=>'required',
-            'birth_date'=>'nullable|date',
-            'phone'=>'nullable',
-            'email'=>'nullable|email',
-            'address'=>'nullable',
-            'photo'=>'nullable|image|max:2048',
-        ]);
+  public function store(Request $request)
+{
+    $validated = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name'  => 'required|string|max:255',
+        'phone'      => 'required|string|max:20',
+        'email'      => 'nullable|email',
+        'birth_date' => 'nullable|date',
+        'address'    => 'nullable|string',
+        'photo'      => 'nullable|image|max:2048',
+    ]);
 
-        if($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('drivers', 'public');
-        }
-
-        Driver::create($data);
-        return redirect()->route('drivers.index');
+    if ($request->hasFile('photo')) {
+        $validated['photo'] = $request->file('photo')->store('drivers', 'public');
     }
+
+    Driver::create($validated);
+
+    return back()->with('success', true);
+}
+
 
     public function edit(Driver $driver) {
         return inertia('Drivers/Edit', ['driver'=>$driver]);
@@ -113,7 +116,7 @@ class DriverController extends Controller
     }
 
     // Show Driver Details for Inertia
-    public function show(Driver $driver){
+    public function show1(Driver $driver){
         $driver->load(['documents', 'assignments.bus', 'assignments.trip.route.departureCity', 'assignments.trip.route.arrivalCity']);
         $buses = \App\Models\Bus::all();
         $trips = \App\Models\Trip::with('route.departureCity','route.arrivalCity')->get();
@@ -124,4 +127,30 @@ class DriverController extends Controller
             'trips' => $trips
         ]);
     }
+
+    public function show(Driver $driver)
+{
+    $driver->load('documents'); // relation déjà définie dans ton modèle
+
+    return inertia('Drivers/Show', [
+        'driver' => [
+            'id' => $driver->id,
+            'first_name' => $driver->first_name,
+            'last_name' => $driver->last_name,
+            'phone' => $driver->phone,
+            'email' => $driver->email,
+            'birth_date' => $driver->birth_date,
+            'address' => $driver->address,
+            'photo' => $driver->photo ? asset('storage/'.$driver->photo) : null,
+
+            'documents' => $driver->documents->map(fn($doc) => [
+                'id' => $doc->id,
+                'type' => $doc->type,
+                'file_path' => asset('storage/'.$doc->file_path),
+                'expires_at' => $doc->expires_at,
+            ]),
+        ]
+    ]);
+}
+
 }

@@ -1,29 +1,30 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\BusController;
-use App\Http\Controllers\AgencyController;
-use App\Http\Controllers\RouteController as TripRouteController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\CityController;
-use App\Http\Controllers\TripController;
-use App\Http\Controllers\TicketController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DriverController;
+use App\Http\Controllers\{
+    ProfileController,
+    BusController,
+    AgencyController,
+    RouteController as TripRouteController,
+    UserController,
+    CityController,
+    TripController,
+    TicketController,
+    NotificationController,
+    DashboardController,
+    DriverController,
+    DriverDocumentController,
+    ParcelController,
+    TransferController,
+    SenderController,
+    ReceiverController,
+    PaymentController,
+    BaggageController,
+    TripAssignmentController
+};
 
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Illuminate\Http\Request;
-use Twilio\TwiML\MessagingResponse;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\ParcelController;
-use App\Http\Controllers\TransferController;
-use App\Http\Controllers\SenderController;
-use App\Http\Controllers\ReceiverController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\BaggageController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -38,89 +39,88 @@ Route::get('/', function () {
 // Routes protégées (auth + email vérifié)
 Route::middleware(['auth', 'verified'])->group(function () {
 
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/data', [DashboardController::class, 'data']);
+    Route::get('/abonnements', [DashboardController::class, 'abonnements']);
+
     // Notifications SMS/WhatsApp
     Route::get('/send-sms', [NotificationController::class, 'sendSms']);
     Route::get('/send-whatsapp', [NotificationController::class, 'sendWhatsapp']);
 
-    // Dashboard
-
-
-
     // Profil utilisateur
-    Route::prefix('profile')->group(function () {
-        Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::patch('/', [ProfileController::class, 'update'])->name('profile.update');
-        Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'edit'])->name('edit');
+        Route::patch('/', [ProfileController::class, 'update'])->name('update');
+        Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 
-    // CRUD
-    Route::resource('cities', CityController::class);
-    Route::resource('agencies', AgencyController::class);
-    Route::resource('buses', BusController::class);
-       Route::get('/buses/{bus}/trips', [BusController::class, 'byBus'])
-        ->name('trips.byBus');
-    Route::resource('busroutes', TripRouteController::class); // Routes
-    Route::resource('trips', TripController::class);
-    Route::resource('ticket', TicketController::class);
-    // routes/web.php
-Route::post('/ticket/{ticket}/baggage', [BaggageController::class, 'store'])->name('baggage.store');
-// Route pour afficher le formulaire de création d'un bagage
-Route::get('/tickets/{ticket}/baggage/create', [BaggageController::class, 'create'])
-    ->name('baggage.create');
+    // CRUD standard
+    Route::resources([
+        'cities' => CityController::class,
+        'agencies' => AgencyController::class,
+        'buses' => BusController::class,
+        'busroutes' => TripRouteController::class,
+        'trips' => TripController::class,
+        'ticket' => TicketController::class,
+        'users' => UserController::class,
+        'parcels' => ParcelController::class,
+        'drivers' => DriverController::class,
+        'transfers' => TransferController::class
+    ]);
 
-// Route pour enregistrer le bagage
-Route::post('/tickets/{ticket}/baggage', [BaggageController::class, 'store'])
-    ->name('baggage.store');
+    // Buses -> Trips
+    Route::get('/buses/{bus}/trips', [BusController::class, 'byBus'])->name('trips.byBus');
 
+    // Tickets -> Baggage
+    Route::prefix('tickets/{ticket}')->name('baggage.')->group(function () {
+        Route::get('baggage/create', [BaggageController::class, 'create'])->name('create');
+        Route::post('baggage', [BaggageController::class, 'store'])->name('store');
+    });
+    Route::get('/tickets/daily-summary', [TicketController::class, 'dailySummary'])->name('tickets.daily-summary');
 
-    Route::resource('users', UserController::class);
-    Route::resource('parcels',ParcelController::class);
-    Route::get('/parcels/{parcel}', [ParcelController::class, 'show'])->name('parcels.show');
+    // Parcels by Trip
+    Route::get('/trips/{trip}/parcels', [ParcelController::class, 'indexByTrip'])->name('parcels.byTrip');
 
-    Route::resource('drivers', DriverController::class);
- // Page pour les transferts quotidiens (React/Inertia)
-Route::get('/transfers/daily', function () {
-    return Inertia::render('Transfers/DailyTransfers');
-})->name('transfers.daily');
+    // Payment
+    Route::post('/payment/process', [PaymentController::class, 'process'])->name('payment.process');
 
-// API JSON
-Route::get('/transfers/daily/data', [TransferController::class, 'daily'])
-    ->name('transfers.daily.data');
+    // Sender & Receiver
+    Route::post('/senders', [SenderController::class, 'store'])->name('senders.store');
+    Route::post('/receivers', [ReceiverController::class, 'store'])->name('receivers.store');
 
-// Ensuite seulement la resource
-Route::resource('transfers', TransferController::class);
+    // Driver documents
+    Route::prefix('drivers/{driver}')->name('driver_documents.')->group(function () {
+        Route::get('documents', [DriverDocumentController::class, 'index'])->name('index');
+        Route::post('documents', [DriverDocumentController::class, 'store'])->name('store');
+        Route::delete('documents/{document}', [DriverDocumentController::class, 'destroy'])->name('destroy');
+        Route::post('assign', [DriverController::class, 'assignBusOrTrip'])->name('assign');
+    });
 
-
-
-
-
-// TransferController.php
-
-
-
-    
-Route::get('/trips/{trip}/parcels', [ParcelController::class, 'indexByTrip'])
-     ->name('parcels.byTrip');
-
-  Route::post('/payment/process', [PaymentController::class, 'process'])
-    ->name('payment.process');
-
-
-
-// Enregistrement expéditeur
-Route::post('/senders', [SenderController::class, 'store'])->name('senders.store');
-
-// Enregistrement destinataire
-Route::post('/receivers', [ReceiverController::class, 'store'])->name('receivers.store');
-
-Route::post('drivers/{driver}/documents', [DriverController::class, 'uploadDocument']);
-Route::post('drivers/{driver}/assign', [DriverController::class, 'assignBusOrTrip']);
-Route::get('drivers/{driver}/show', [DriverController::class, 'show']);
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('/dashboard/data', [DashboardController::class, 'data']);
-Route::get('/abonnements', [DashboardController::class, 'abonnements']);
+    // Si tu gères les trips d’un driver via resource
+Route::prefix('drivers/{driver}')->name('driver_trips.')->group(function () {
+    Route::get('trips/create', [TripAssignmentController::class, 'create'])->name('create');
+    Route::post('trips', [TripAssignmentController::class, 'store'])->name('store');
 });
 
+
+// Assignation driver → trip
+
+
+
+    // Show driver
+    Route::get('/drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');
+
+    // Daily Transfers (React/Inertia)
+    Route::get('/transfers/daily', function () {
+        return Inertia::render('Transfers/DailyTransfers');
+    })->name('transfers.daily');
+    Route::get('/transfers/daily/data', [TransferController::class, 'daily'])->name('transfers.daily.data');
+
+    // Assign driver to trip
+    Route::get('/trips/{trip}/assign-driver', [TripAssignmentController::class, 'view'])->name('trips.assign-driver.view');
+    Route::post('/trips/{trip}/assign-driver', [TripAssignmentController::class, 'store'])->name('trips.assign-driver.store');
+});
 
 // Auth routes (login, register, logout...)
 require __DIR__ . '/auth.php';

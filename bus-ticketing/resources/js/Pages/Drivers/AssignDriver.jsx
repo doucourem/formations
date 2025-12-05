@@ -44,11 +44,17 @@ export default function AssignDriver({ driver, buses = [], trips = [] }) {
               fullWidth
             >
               <MenuItem value="">-- Sélectionner un voyage --</MenuItem>
-              {trips.map(trip => (
-                <MenuItem key={trip.id} value={trip.id}>
-                  {trip.route.departureCity.name} → {trip.route.arrivalCity.name} ({new Date(trip.departure_at).toLocaleString()})
-                </MenuItem>
-              ))}
+              {trips.map(trip => {
+                const departure = trip.route?.departureCity?.name ?? "N/A";
+                const arrival = trip.route?.arrivalCity?.name ?? "N/A";
+                const date = trip.departure_at ? new Date(trip.departure_at).toLocaleString() : "N/A";
+
+                return (
+                  <MenuItem key={trip.id} value={trip.id}>
+                    {departure} → {arrival} ({date})
+                  </MenuItem>
+                );
+              })}
             </TextField>
 
             <Button type="submit" variant="contained" color="primary">
