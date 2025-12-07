@@ -1,0 +1,161 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use App\Models\Bus;
+use App\Models\Agency;
+use App\Models\Trip;
+class BusController extends Controller
+{
+    public function index(Request $request)
+    {
+        $perPage = (int) $request->input('per_page', 10);
+        $agencyId = $request->input('agency_id');
+
+        $buses = Bus::with('agency')
+            ->when($agencyId, fn($q) => $q->where('agency_id', $agencyId))
+            ->orderBy('model')
+            ->paginate($perPage)
+            ->withQueryString()
+            ->through(fn($bus) => [
+                'id' => $bus->id,
+                'registration_number' => $bus->registration_number,
+                'model' => $bus->model,
+                'capacity' => $bus->capacity,
+                'status' => $bus->status,
+                'agency' => $bus->agency?->name ?? '-',
+                'created_at' => $bus->created_at?->toDateTimeString() ?? '',
+                'updated_at' => $bus->updated_at?->toDateTimeString() ?? '',
+            ]);
+
+        return Inertia::render('Buses/Index', [
+            'buses' => $buses,
+            'filters' => [
+                'agency_id' => $agencyId,
+                'per_page' => $perPage,
+            ],
+        ]);
+    }
+    
+
+    public function create()
+    {
+        $agencies = Agency::select('id', 'name')->get();
+    
+        return Inertia::render('Buses/Create', [
+            'agencies' => $agencies,
+        ]);
+    }
+    
+    public function edit(Bus $bus)
+    {
+        $bus->load('agency');
+    
+        // Charger toutes les agences pour le select
+        $agencies = \App\Models\Agency::select('id', 'name')->get();
+    
+        return Inertia::render('Buses/Edit', [
+            'bus' => [
+                'id' => $bus->id,
+                'registration_number' => $bus->registration_number,
+                'model' => $bus->model,
+                'capacity' => $bus->capacity,
+                'status' => $bus->status,
+                'agency_id' => $bus->agency_id,
+                'agency' => $bus->agency?->name ?? '',
+            ],
+            'agencies' => $agencies,
+        ]);
+    }
+    
+    /**
+     * Store a newly created bus in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'registration_number' => ['required', 'string', 'max:50', 'unique:buses,registration_number'],
+            'model' => ['required', 'string', 'max:255'],
+            'capacity' => ['required', 'integer', 'min:1'],
+            'status' => ['required', 'in:active,inactive,maintenance'],
+        ]);
+
+        Bus::create($validated);
+
+        return redirect()
+            ->route('buses.index')
+            ->with('success', 'Bus créé avec succès.');
+    }
+
+    /**
+     * Update the specified bus in storage.
+     */
+    public function update(Request $request, Bus $bus)
+    {
+        $validated = $request->validate([
+            'registration_number' => ['required', 'string', 'max:50', 'unique:buses,registration_number,' . $bus->id],
+            'model' => ['required', 'string', 'max:255'],
+            'capacity' => ['required', 'integer', 'min:1'],
+            'status' => ['required', 'in:active,inactive,maintenance'],
+            'agency_id' => ['required', 'exists:agencies,id'],
+        ]);
+
+        $bus->update($validated);
+
+        return redirect()
+            ->route('buses.index')
+            ->with('success', 'Bus mis à jour avec succès.');
+    }
+
+    /**
+     * Optionnel : suppression d’un bus
+     */
+    public function destroy(Bus $bus)
+    {
+        $bus->delete();
+
+        return redirect()
+            ->route('buses.index')
+            ->with('success', 'Bus supprimé avec succès.');
+    }
+
+
+public function byBus(Bus $bus)
+{
+    $trips = Trip::with(['route.departureCity', 'route.arrivalCity', 'bus'])
+        ->where('bus_id', $bus->id)
+        ->withCount(['tickets as tickets_total' => function ($query) {
+            $query->select(\DB::raw("COALESCE(SUM(price),0)"));
+        }])
+        ->orderByDesc('departure_at')
+        ->paginate(10);
+
+    return Inertia::render('Buses/TripsByBus', [
+        'bus' => [
+            'id' => $bus->id,
+            'registration_number' => $bus->registration_number,
+            'model' => $bus->model,
+            'capacity' => $bus->capacity,
+        ],
+        'trips' => $trips->through(fn($trip) => [
+            'id' => $trip->id,
+            'departure_at' => $trip->departure_at ? \Carbon\Carbon::parse($trip->departure_at)->format('d/m/Y H:i') : null,
+            'arrival_at' => $trip->arrival_at ? \Carbon\Carbon::parse($trip->arrival_at)->format('d/m/Y H:i') : null,
+            'tickets_total' => $trip->tickets_total,
+            'route' => $trip->route ? [
+                'departureCity' => $trip->route->departureCity?->name ?? '-',
+                'arrivalCity' => $trip->route->arrivalCity?->name ?? '-',
+                'price' => $trip->route->price ?? 0,
+            ] : null,
+            'bus' => $trip->bus ? [
+                'registration_number' => $trip->bus->registration_number,
+            ] : null,
+        ]),
+        'filters' => request()->only(['page', 'per_page', 'sort_field', 'sort_direction']),
+    ]);
+}
+
+
+}
