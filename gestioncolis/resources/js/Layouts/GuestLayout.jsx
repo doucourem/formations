@@ -20,7 +20,7 @@ const drawerWidth = 240;
 const menus = {
   management: [
     { title: "Général", items: [{ text: "Tableau de bord", icon: <DashboardIcon />, route: route("dashboard") }] },
-    { title: "Paramètres géographiques", items: [{ text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") }, { text: "Agences", icon: <StoreIcon />, route: route("agencies.index") }] },
+    { title: "Paramètres géographiques", items: [{ text: "Villes", icon: <LocationCityIcon />, route: route("cities.index") }] },
     { title: "Transport", items: [{ text: "Transport", icon: <DirectionsBusIcon />,
         children: [{ text: "Avion", route: route("buses.index") },
              { text: "Routes", route: route("busroutes.index") }, { text: "Vol", route: route("trips.index") }] }] },

@@ -14,7 +14,7 @@ import {
 
 export default function Edit({ parcel, trips }) {
   const [form, setForm] = useState({
-    _method: "put", 
+    _method: "put",
     trip_id: parcel.trip_id,
     tracking_number: parcel.tracking_number,
     sender_name: parcel.sender_name,
@@ -79,7 +79,7 @@ export default function Edit({ parcel, trips }) {
               {/* Voyage */}
               <TextField
                 select
-                label="Voyage (Trip)"
+                label="Vol"
                 name="trip_id"
                 value={form.trip_id}
                 onChange={handleChange}

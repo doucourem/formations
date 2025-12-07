@@ -87,7 +87,7 @@ export default function TripsIndex({
             title={
               <Stack direction="row" alignItems="center" spacing={1}>
                 <DirectionsBusIcon color="primary" />
-                <Typography variant="h5">Gestion des trajets</Typography>
+                <Typography variant="h5">Gestion des vols</Typography>
               </Stack>
             }
             action={

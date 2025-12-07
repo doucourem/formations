@@ -100,7 +100,7 @@ export default function Create({ trips }) {
               {/* Voyage */}
               <TextField
                 select
-                label="Voyage"
+                label="Vol"
                 name="trip_id"
                 value={form.trip_id}
                 onChange={handleChange}

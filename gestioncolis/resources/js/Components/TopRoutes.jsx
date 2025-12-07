@@ -15,7 +15,7 @@ export default function TopRoutes({ routes }) {
         <div className="space-y-4">
 
             {routes.map((r, index) => (
-                <div 
+                <div
                     key={index}
                     className="p-4 bg-gray-50 border rounded-lg flex items-center justify-between hover:bg-gray-100 transition"
                 >
@@ -23,8 +23,8 @@ export default function TopRoutes({ routes }) {
                     <div className="flex items-center space-x-4">
 
                         {/* Rank bubble */}
-                        <div className="w-10 h-10 flex items-center justify-center rounded-full 
-                            font-bold text-white 
+                        <div className="w-10 h-10 flex items-center justify-center rounded-full
+                            font-bold text-white
                             bg-gradient-to-br from-blue-500 to-blue-700">
                             {index + 1}
                         </div>
@@ -38,7 +38,7 @@ export default function TopRoutes({ routes }) {
 
                             <div className="text-sm text-gray-600 flex items-center">
                                 <Ticket className="w-4 h-4 text-gray-500 mr-1" />
-                                {r.tickets_sold} tickets vendus
+                                {r.parcels_count} tickets vendus
                             </div>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -39,17 +39,23 @@ private function parcelByRoute()
 }
 
 
-
-
-    public function data()
+public function data()
 {
-    // Ventes jour/semaine/mois (dernier mois)
-    $sales = Ticket::selectRaw('DATE(created_at) as date, SUM(price) as revenue, COUNT(*) as tickets')
+    // 📦 COLIS (30 derniers jours)
+    $colis = Parcel::selectRaw('DATE(created_at) as date, SUM(price) as montant, COUNT(*) as total')
         ->where('created_at', '>=', now()->subMonth())
         ->groupBy('date')
         ->orderBy('date')
         ->get()
-        ->toArray(); // <- optionnel, mais OK
+        ->toArray();
+
+    // 🔄 TRANSFERTS (30 derniers jours)
+    $transferts = \App\Models\Transfer::selectRaw('DATE(created_at) as date, SUM(amount) as montant, COUNT(*) as total')
+        ->where('created_at', '>=', now()->subMonth())
+        ->groupBy('date')
+        ->orderBy('date')
+        ->get()
+        ->toArray();
 
     // Taux de remplissage bus
     $buses = Bus::with('trips.tickets')->get()->map(function($bus) {
@@ -61,30 +67,39 @@ private function parcelByRoute()
             'tickets_sold' => $sold,
             'capacity' => $capacity,
         ];
-    })->values()->toArray(); // <- important
+    })->values()->toArray();
 
     // Top chauffeurs
     $drivers = Driver::with('trips.tickets')->get()->map(fn($d) => [
         'first_name' => $d->first_name.' '.$d->last_name,
         'revenue' => $d->trips->sum(fn($t) => $t->tickets->sum('price')),
         'tickets' => $d->trips->sum(fn($t) => $t->tickets->count()),
-    ])->sortByDesc('revenue')->take(10)->values()->toArray(); // <- values() + toArray()
+    ])->sortByDesc('revenue')->take(10)->values()->toArray();
 
     // Top routes
-    $routes = RouteModel::with('trips.tickets')->get()->map(fn($r) => [
+// Top routes (basées sur les COLIS)
+$routes = RouteModel::with('trips.parcels')->get()->map(function($r) {
+    return [
         'route' => $r->departureCity->name . ' → ' . $r->arrivalCity->name,
-        'revenue' => $r->trips->sum(fn($t) => $t->tickets->sum('price')),
-        'tickets_sold' => $r->trips->sum(fn($t) => $t->tickets->count()),
-    ])->sortByDesc('revenue')->take(10)->values()->toArray(); // <- values() + toArray()
+        'revenue' => $r->trips->sum(fn($t) => $t->parcels->sum('price')),
+        'parcels_count' => $r->trips->sum(fn($t) => $t->parcels->count()),
+    ];
+})
+->sortByDesc('revenue')
+->take(10)
+->values()
+->toArray();
 
     return response()->json([
-        'sales' => $sales,
+        'colis' => $colis,
+        'transferts' => $transferts,
         'buses' => $buses,
         'top_drivers' => $drivers,
         'top_routes' => $routes,
         'parcel_routes' => $this->parcelByRoute(),
     ]);
 }
+
 
 
 
