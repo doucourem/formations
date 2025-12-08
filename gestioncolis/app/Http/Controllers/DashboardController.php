@@ -42,7 +42,7 @@ private function parcelByRoute()
 public function data()
 {
     // 📦 COLIS (30 derniers jours)
-    $colis = Parcel::selectRaw('DATE(created_at) as date, SUM(price) as montant, COUNT(*) as total')
+    $colis = Parcel::selectRaw('DATE(created_at) as date, SUM(price) as revenue, COUNT(*) as total')
         ->where('created_at', '>=', now()->subMonth())
         ->groupBy('date')
         ->orderBy('date')
@@ -50,7 +50,7 @@ public function data()
         ->toArray();
 
     // 🔄 TRANSFERTS (30 derniers jours)
-    $transferts = \App\Models\Transfer::selectRaw('DATE(created_at) as date, SUM(amount) as montant, COUNT(*) as total')
+    $transferts = \App\Models\Transfer::selectRaw('DATE(created_at) as date, SUM(amount) as revenue, COUNT(*) as total')
         ->where('created_at', '>=', now()->subMonth())
         ->groupBy('date')
         ->orderBy('date')

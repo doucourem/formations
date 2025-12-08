@@ -19,9 +19,9 @@ use App\Http\Controllers\{
     ReceiverController,
     PaymentController,
     BaggageController,
-    TripAssignmentController
+    TripAssignmentController,
+    FinancialNotesController
 };
-
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -33,8 +33,9 @@ use Inertia\Inertia;
 
 // Page d'accueil
 Route::get('/', function () {
-    return Inertia::render('HomePage');
-})->name('home');
+    return redirect()->route('login');
+});
+
 
 // Routes protégées (auth + email vérifié)
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -124,6 +125,14 @@ Route::put('/drivers/{driver}', [DriverController::class, 'update']);
     Route::get('/trips/{trip}/assign-driver', [TripAssignmentController::class, 'view'])->name('trips.assign-driver.view');
     Route::post('/trips/{trip}/assign-driver', [TripAssignmentController::class, 'store'])->name('trips.assign-driver.store');
 });
+
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/financial-notes', [FinancialNotesController::class, 'index'])->name('financial-notes.index');
+    Route::post('/financial-notes/{note}', [FinancialNotesController::class, 'update'])->name('financial-notes.update');
+});
+
 
 // Auth routes (login, register, logout...)
 require __DIR__ . '/auth.php';

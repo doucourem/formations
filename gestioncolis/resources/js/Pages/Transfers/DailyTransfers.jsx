@@ -140,31 +140,37 @@ export default function DailyTransfers() {
 
           {/* TABLEAU DES TRANSFERTS */}
           <TableContainer component={Paper}>
-            <Table>
-              <TableHead sx={{ bgcolor: "#1565c0" }}>
-                <TableRow>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Nombre de transferts</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Montant total (CFA)</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {!loading && data.length === 0 && !error ? (
-                  <TableRow>
-                    <TableCell colSpan={3} align="center">Aucun transfert</TableCell>
-                  </TableRow>
-                ) : (
-                  data.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{row.day}</TableCell>
-                      <TableCell>{row.total_transfers ?? 0}</TableCell>
-                      <TableCell>{(row.total_amount ?? 0).toLocaleString()} CFA</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+  <Table>
+    <TableHead sx={{ bgcolor: "#1565c0" }}>
+      <TableRow>
+        <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
+        <TableCell sx={{ color: "white", fontWeight: "bold" }}>Nombre de transferts</TableCell>
+        <TableCell sx={{ color: "white", fontWeight: "bold" }}>Montant total (CFA)</TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {!loading && data.length === 0 && !error ? (
+        <TableRow>
+          <TableCell colSpan={3} align="center">Aucun transfert</TableCell>
+        </TableRow>
+      ) : (
+        data.map((row, index) => {
+          // Conversion de la date en français
+          const dateFR = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(row.day));
+
+          return (
+            <TableRow key={index}>
+              <TableCell>{dateFR}</TableCell>
+              <TableCell>{row.total_transfers ?? 0}</TableCell>
+              <TableCell>{(row.total_amount ?? 0).toLocaleString()} CFA</TableCell>
+            </TableRow>
+          )
+        })
+      )}
+    </TableBody>
+  </Table>
+</TableContainer>
+
         </CardContent>
       </Card>
     </GuestLayout>

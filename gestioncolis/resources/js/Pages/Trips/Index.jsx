@@ -123,7 +123,7 @@ export default function TripsIndex({
                 size="small"
                 sx={{ minWidth: 160 }}
               >
-                <MenuItem value="">Tous les bus</MenuItem>
+                <MenuItem value="">Tous les avions</MenuItem>
                 {buses.map((bus) => (
                   <MenuItem key={bus.id} value={bus.id}>
                     {bus.model || `Bus #${bus.id}`}
@@ -172,7 +172,7 @@ export default function TripsIndex({
               <Table>
                 <TableHead sx={{ bgcolor: "#1565c0" }}>
                   <TableRow>
-                    {["ID", "Route", "Bus", "Départ", "Arrivée", "Prix", "Places dispo", "Actions"].map((col) => (
+                    {["ID", "Route", "Avion", "Départ", "Arrivée", "Prix", "Places dispo", "Actions"].map((col) => (
                       <TableCell key={col} sx={{ color: "white", fontWeight: "bold" }}>
                         {col}
                       </TableCell>

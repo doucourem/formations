@@ -114,7 +114,7 @@ export default function EditTrip({ trip, routes, buses }) {
 
               {/* Sélection du bus */}
               <FormControl fullWidth required>
-                <InputLabel id="bus-label">Bus</InputLabel>
+                <InputLabel id="bus-label">Avion</InputLabel>
                 <Select
                   labelId="bus-label"
                   name="bus_id"
@@ -130,7 +130,7 @@ export default function EditTrip({ trip, routes, buses }) {
                       </MenuItem>
                     ))
                   ) : (
-                    <MenuItem disabled>Aucun bus disponible</MenuItem>
+                    <MenuItem disabled>Aucun avion disponible</MenuItem>
                   )}
                 </Select>
                 {errors.bus_id && (

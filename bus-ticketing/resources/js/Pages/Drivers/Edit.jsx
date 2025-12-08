@@ -101,12 +101,14 @@ export default function Edit({ driver }) {
         />
         <CardContent>
           <Box
-            component="form"
-            onSubmit={handleSubmit}
-            display="flex"
-            flexDirection="column"
-            gap={2}
-          >
+  component="form"
+  encType="multipart/form-data"   // <-- AJOUT IMPORTANT
+  onSubmit={handleSubmit}
+  display="flex"
+  flexDirection="column"
+  gap={2}
+>
+
             {/* PHOTO + PREVIEW */}
             <Box textAlign="center">
               <Avatar

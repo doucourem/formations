@@ -44,7 +44,14 @@ export default function Create() {
         />
 
         <CardContent>
-          <Box component="form" onSubmit={handleSubmit} display="flex" flexDirection="column" gap={2}>
+          <Box
+  component="form"
+  encType="multipart/form-data"   // <-- AJOUT IMPORTANT
+  onSubmit={handleSubmit}
+  display="flex"
+  flexDirection="column"
+  gap={2}
+>
 
             <TextField
               label="Prénom"

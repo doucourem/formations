@@ -38,7 +38,7 @@ export default function TopRoutes({ routes }) {
 
                             <div className="text-sm text-gray-600 flex items-center">
                                 <Ticket className="w-4 h-4 text-gray-500 mr-1" />
-                                {r.parcels_count} tickets vendus
+                                {r.parcels_count} colis 
                             </div>
                         </div>
                     </div>

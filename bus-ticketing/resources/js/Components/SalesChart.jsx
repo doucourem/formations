@@ -21,7 +21,11 @@ ChartJS.register(
 );
 
 export default function SalesChart({ sales }) {
-    const labels = sales.map(s => s.date);
+    // 🔹 Formater les dates en français
+    const labels = sales.map(s =>
+        new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(new Date(s.date))
+    );
+    
     const data = sales.map(s => s.revenue);
 
     return (

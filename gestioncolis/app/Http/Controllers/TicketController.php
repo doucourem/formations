@@ -91,7 +91,7 @@ public function dailySummary(Request $request)
 
         $tickets = $ticketsQuery
             ->select('id', 'created_at', 'price')
-            ->orderBy('created_at', 'asc')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         return Inertia::render('Tickets/DailyTicketsSummary', [
