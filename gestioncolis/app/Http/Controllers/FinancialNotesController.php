@@ -7,41 +7,52 @@ use App\Models\FinancialNote;
 
 class FinancialNotesController extends Controller
 {
-    public function index(Request $request)
-    {
-        $user = $request->user();
-        if (!$user) abort(403, 'Utilisateur non authentifié');
+  public function index(Request $request)
+{
+    $user = $request->user();
+    if (!$user) {
+        abort(403, 'Utilisateur non authentifié');
+    }
 
-        $date = $request->query('date', now()->toDateString());
-        $startOfDay = $date . ' 00:00:00';
-        $endOfDay = $date . ' 23:59:59';
+    // Date sélectionnée, par défaut aujourd'hui
+    $date = $request->query('date', now()->toDateString());
 
-        $note = FinancialNote::where('created_by', $user->id)
-            ->whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->latest()
-            ->first();
+    // Définir début et fin de la journée
+    $startOfDay = $date . ' 00:00:00';
+    $endOfDay = $date . ' 23:59:59';
 
-        if (!$note) {
-            $note = FinancialNote::create([
-                'created_by' => $user->id,
-                'updated_by' => $user->id,
-                'global_cash_balance' => 0,
-                'yawi_ash_balance' => 0,
-                'lpv_balance' => 0,
-                'airtel_money_balance' => 0,
-                'available_cash' => 0,
-                'balde_alpha_debt' => 0,
-                'md_owes_us' => 0,
-                'we_owe_md' => 0,
-                'notes' => '',
-            ]);
-        }
+    // Chercher la note existante pour cet utilisateur et cette date
+    $note = FinancialNote::where('created_by', $user->id)
+        ->whereBetween('created_at', [$startOfDay, $endOfDay])
+        ->latest()
+        ->first();
 
-        return Inertia::render('Transfers/FinancialNotesPage', [
-            'notes' => $note->toArray(),
-            'selectedDate' => $date,
+    // Créer une note vide si aucune n'existe
+    if (!$note) {
+        $note = FinancialNote::create([
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+            'global_cash_balance' => 0,
+            'yawi_ash_balance' => 0,
+            'lpv_balance' => 0,
+            'airtel_money_balance' => 0,
+            'available_cash' => 0,
+            'balde_alpha_debt' => 0,
+            'md_owes_us' => 0,
+            'we_owe_md' => 0,
+            'notes' => '',
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
+
+    return Inertia::render('Transfers/FinancialNotesPage', [
+        // Convertir l'objet en tableau pour Inertia
+        'notes' => $note->toArray(),
+        'selectedDate' => $date,
+    ]);
+}
+
 
     public function update(Request $request, $id)
     {
