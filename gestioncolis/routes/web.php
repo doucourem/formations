@@ -20,7 +20,8 @@ use App\Http\Controllers\{
     PaymentController,
     BaggageController,
     TripAssignmentController,
-    FinancialNotesController
+    FinancialNotesController,
+    ThirdPartyController
 };
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -74,7 +75,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'users' => UserController::class,
         'parcels' => ParcelController::class,
         'drivers' => DriverController::class,
-        'transfers' => TransferController::class
+        'transfers' => TransferController::class,
+        'third-parties'=>  ThirdPartyController::class
     ]);
 
     // Buses -> Trips
@@ -96,6 +98,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Sender & Receiver
     Route::post('/senders', [SenderController::class, 'store'])->name('senders.store');
     Route::post('/receivers', [ReceiverController::class, 'store'])->name('receivers.store');
+    Route::post('/third-parties', [ThirdPartyController::class, 'store'])->name('third_parties.store');
+
 
     // Driver documents
     Route::prefix('drivers/{driver}')->name('driver_documents.')->group(function () {

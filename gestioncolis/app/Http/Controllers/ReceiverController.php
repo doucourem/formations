@@ -8,10 +8,11 @@ use Inertia\Inertia;
 
 class ReceiverController extends Controller
 {
-    // Optionnel : liste tous les destinataires (si besoin)
+    // Liste tous les destinataires de l'utilisateur connecté
     public function index()
     {
-        $receivers = Receiver::all();
+        $receivers = Receiver::where('user_id', auth()->id())->get();
+
         return Inertia::render('Receivers/Index', [
             'receivers' => $receivers
         ]);
@@ -20,19 +21,18 @@ class ReceiverController extends Controller
     // Création depuis le formulaire Inertia
     public function store(Request $request)
     {
-        // Validation
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20|unique:receivers,phone',
         ]);
 
-        // Création du destinataire
         $receiver = Receiver::create([
             'name' => $request->name,
             'phone' => $request->phone,
+            'user_id' => auth()->id(), // lie le destinataire à l'utilisateur connecté
         ]);
 
-        // Réponse Inertia pour le frontend
+        // Renvoie le receiver créé pour mise à jour dynamique côté frontend
         return back()->with(['receiver' => $receiver]);
     }
 }

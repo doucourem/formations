@@ -18,6 +18,7 @@ public function index(Request $request)
 {
     $user = Auth::user();
 
+    // 🔹 Base query avec relations
     $ticketsQuery = Ticket::with([
         'trip.route.departureCity',
         'trip.route.arrivalCity',
@@ -26,24 +27,34 @@ public function index(Request $request)
         'endStop.city',
         'endStop.toCity',
         'user.agency',
+        'baggages', // Si tu veux envoyer les bagages directement
     ]);
 
     // 🔹 Restriction selon rôle
     if ($user->role === 'agent') {
         $ticketsQuery->where('user_id', $user->id);
     } elseif ($user->role === 'manageragence') {
-        $ticketsQuery->whereHas('user', fn($q) =>
-            $q->where('agence_id', $user->agence_id)
-        );
+        $ticketsQuery->whereHas('user', function ($q) use ($user) {
+            $q->where('agence_id', $user->agence_id);
+        });
     }
 
-    // 🔹 Tous les tickets (pas de pagination)
-    $tickets = $ticketsQuery
-        ->orderByDesc('created_at')
-        ->get();
+    // 🔹 Filtrage par statut
+    if ($request->filled('status')) {
+        $ticketsQuery->where('status', $request->status);
+    }
 
-    // 🔹 Mapping propre pour Inertia
-    $ticketsData = $tickets->map(fn($ticket) => [
+    // 🔹 Filtrage par recherche client
+    if ($request->filled('search')) {
+        $ticketsQuery->where('client_name', 'like', '%' . $request->search . '%');
+    }
+
+    // 🔹 Pagination
+    $perPage = $request->input('per_page', 10);
+    $tickets = $ticketsQuery->orderByDesc('created_at')->paginate($perPage)->appends($request->all());
+
+    // 🔹 Mapping pour Inertia
+    $ticketsData = $tickets->through(fn($ticket) => [
         'id' => $ticket->id,
         'trip' => $ticket->trip ? [
             'id' => $ticket->trip->id,
@@ -70,13 +81,31 @@ public function index(Request $request)
         'seat_number' => $ticket->seat_number,
         'status' => $ticket->status,
         'price' => $ticket->price,
+        'baggages' => $ticket->baggages->map(fn($bag) => [
+            'id' => $bag->id,
+            'weight' => $bag->weight,
+            'price' => $bag->price,
+        ]),
         'created_at' => $ticket->created_at,
     ]);
-
+    // 🔹 Retour Inertia
     return inertia('Tickets/Index', [
-        'tickets' => $ticketsData,
+        'tickets' => [
+            'data' => $ticketsData,
+            'current_page' => $tickets->currentPage(),
+            'last_page' => $tickets->lastPage(),
+            'per_page' => $tickets->perPage(),
+            'total' => $tickets->total(),
+        ],
+        'filters' => [
+            'status' => $request->status ?? '',
+            'search' => $request->search ?? '',
+            'per_page' => $perPage,
+        ],
     ]);
 }
+
+
 
 public function dailySummary(Request $request)
     {

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
-
 import {
   Box,
   Card,
@@ -28,26 +27,23 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 
-export default function CitiesIndex({ cities, filters }) {
-  const [sortField, setSortField] = useState(filters?.sort_field || "id");
-  const [sortDirection, setSortDirection] = useState(filters?.sort_direction || "asc");
-  const [search, setSearch] = useState(filters?.search || "");
+export default function CitiesIndex({ cities, filters = {} }) {
+  // Valeurs par défaut si filters n'existe pas
+  const perPage = filters.per_page || 10;
+  const [sortField, setSortField] = useState(filters.sort_field || "id");
+  const [sortDirection, setSortDirection] = useState(filters.sort_direction || "asc");
+  const [search, setSearch] = useState(filters.search || "");
 
   const handleSort = (field) => {
-    let direction = "asc";
-
-    if (sortField === field) {
-      direction = sortDirection === "asc" ? "desc" : "asc";
-    }
-
+    const direction = sortField === field && sortDirection === "asc" ? "desc" : "asc";
     setSortField(field);
     setSortDirection(direction);
 
     Inertia.get(
       route("cities.index"),
       {
-        page: cities.current_page,
-        per_page: filters.per_page,
+        page: cities.current_page || 1,
+        per_page: perPage,
         sort_field: field,
         sort_direction: direction,
         search,
@@ -69,7 +65,7 @@ export default function CitiesIndex({ cities, filters }) {
       route("cities.index"),
       {
         page: 1,
-        per_page: filters.per_page,
+        per_page: perPage,
         sort_field: sortField,
         sort_direction: sortDirection,
         search: e.target.value,
@@ -80,11 +76,7 @@ export default function CitiesIndex({ cities, filters }) {
 
   const renderSortIcon = (field) => {
     if (sortField !== field) return null;
-    return sortDirection === "asc" ? (
-      <ArrowUpwardIcon fontSize="small" />
-    ) : (
-      <ArrowDownwardIcon fontSize="small" />
-    );
+    return sortDirection === "asc" ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />;
   };
 
   return (
@@ -99,7 +91,6 @@ export default function CitiesIndex({ cities, filters }) {
               </Button>
             }
           />
-
           <CardContent>
             {/* Recherche */}
             <Box sx={{ mb: 2 }}>
@@ -117,33 +108,20 @@ export default function CitiesIndex({ cities, filters }) {
               <Table>
                 <TableHead sx={{ bgcolor: "#1976d2" }}>
                   <TableRow>
-                    <TableCell
-                      sx={{ cursor: "pointer", color: "#fff" }}
-                      onClick={() => handleSort("id")}
-                    >
+                    <TableCell sx={{ cursor: "pointer", color: "#fff" }} onClick={() => handleSort("id")}>
                       ID {renderSortIcon("id")}
                     </TableCell>
-
-                    <TableCell
-                      sx={{ cursor: "pointer", color: "#fff" }}
-                      onClick={() => handleSort("name")}
-                    >
+                    <TableCell sx={{ cursor: "pointer", color: "#fff" }} onClick={() => handleSort("name")}>
                       Nom {renderSortIcon("name")}
                     </TableCell>
-
-                    <TableCell
-                      sx={{ cursor: "pointer", color: "#fff" }}
-                      onClick={() => handleSort("code")}
-                    >
+                    <TableCell sx={{ cursor: "pointer", color: "#fff" }} onClick={() => handleSort("code")}>
                       Code {renderSortIcon("code")}
                     </TableCell>
-
                     <TableCell align="center" sx={{ color: "#fff" }}>
                       Actions
                     </TableCell>
                   </TableRow>
                 </TableHead>
-
                 <TableBody>
                   {cities.data?.length > 0 ? (
                     cities.data.map((city) => (
@@ -154,21 +132,12 @@ export default function CitiesIndex({ cities, filters }) {
                         <TableCell align="center">
                           <Stack direction="row" spacing={1} justifyContent="center">
                             <Tooltip title="Éditer">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => Inertia.visit(route("cities.edit", city.id))}
-                              >
+                              <IconButton size="small" color="primary" onClick={() => Inertia.visit(route("cities.edit", city.id))}>
                                 <EditIcon />
                               </IconButton>
                             </Tooltip>
-
                             <Tooltip title="Supprimer">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleDelete(city.id)}
-                              >
+                              <IconButton size="small" color="error" onClick={() => handleDelete(city.id)}>
                                 <DeleteIcon />
                               </IconButton>
                             </Tooltip>
@@ -187,7 +156,7 @@ export default function CitiesIndex({ cities, filters }) {
               </Table>
             </TableContainer>
 
-            {/* Pagination MUI */}
+            {/* Pagination */}
             <Box mt={3} display="flex" justifyContent="center">
               <Pagination
                 count={cities.last_page || 1}
@@ -197,7 +166,7 @@ export default function CitiesIndex({ cities, filters }) {
                     route("cities.index"),
                     {
                       page,
-                      per_page: filters.per_page,
+                      per_page: perPage,
                       sort_field: sortField,
                       sort_direction: sortDirection,
                       search,

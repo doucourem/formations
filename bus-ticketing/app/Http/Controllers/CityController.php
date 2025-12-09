@@ -11,14 +11,23 @@ class CityController extends Controller
     /**
      * Affiche la liste des villes avec pagination.
      */
-    public function index()
-    {
-        $cities = City::orderBy('name')->paginate(10);
+   
+public function index()
+{
+    $cities = City::orderBy('name')->paginate(
+        request('per_page', 10)
+    );
 
-        return Inertia::render('Cities/Index', [
-            'cities' => $cities, // directement accessible en props côté React
-        ]);
-    }
+    return Inertia::render('Cities/Index', [
+        'cities' => $cities,
+        'filters' => [
+            'search' => request('search', ''),
+            'sort_field' => request('sort_field', 'id'),
+            'sort_direction' => request('sort_direction', 'asc'),
+            'per_page' => request('per_page', 10),
+        ],
+    ]);
+}
 
     /**
      * Affiche le formulaire de création d'une ville.

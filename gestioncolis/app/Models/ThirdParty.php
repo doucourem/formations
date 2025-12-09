@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Sender extends Model
+class ThirdParty extends Model
 {
     use HasFactory;
 
@@ -13,16 +13,25 @@ class Sender extends Model
     protected $fillable = [
         'name',
         'phone',
-        'id_type',
-        'id_number',
         'user_id', // Ajout du champ user_id
     ];
 
     /**
-     * Relation avec l'utilisateur qui a créé le sender
+     * Relation avec l'utilisateur qui a créé le tiers
      */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+
+    public function transfersAsThirdParty()
+{
+    return $this->hasMany(Transfer::class, 'third_party_id');
+}
+public function transfers()
+{
+    return $this->hasMany(Transfer::class, 'third_party_id');
+}
+
+
 }

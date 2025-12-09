@@ -25,13 +25,18 @@ const menus = {
         children: [{ text: "Avion", route: route("buses.index") },
              { text: "Routes", route: route("busroutes.index") }, { text: "Vol", route: route("trips.index") }] }] },
     { title: "Gestion commerciale", items: [
- { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") }, { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") }] },
+ { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") }, { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") }
+,
+          { text: "Clients", icon: <SyncAltIcon />, route: route("third-parties.index") }] },
     { title: "Utilisateurs", items: [{ text: "Utilisateurs", icon: <GroupIcon />, route: route("users.index") }] },
   ],
   agent: [
     { title: "Général", items: [{ text: "Tableau de bord", icon: <DashboardIcon />, route: route("dashboard") }] },
     { title: "Gestion commerciale", items: [
-         { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") }, { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") }] },
+         { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
+          { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") }
+        ,
+          { text: "Clients", icon: <SyncAltIcon />, route: route("third-parties.index") }] },
   ]
 };
 
