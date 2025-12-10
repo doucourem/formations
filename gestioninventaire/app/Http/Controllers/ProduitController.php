@@ -26,32 +26,35 @@ class ProduitController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'sale_price' => 'required|numeric|min:0',
-            'photo' => 'nullable|image|max:2048',
-            'boutiques' => 'required|array',         // 👈 ajouté
-            'boutiques.*' => 'exists:boutiques,id', // 👈 ajouté
-        ]);
+   public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'sale_price' => 'required|numeric|min:0',
+        'photo' => 'nullable|image|max:2048',
+        'boutiques' => 'nullable|array',        // 👈 plus obligatoire
+        'boutiques.*' => 'exists:boutiques,id',
+    ]);
 
-        $produit = Produit::create([
-            'name' => $request->name,
-            'sale_price' => $request->sale_price,
-        ]);
+    $produit = Produit::create([
+        'name' => $request->name,
+        'sale_price' => $request->sale_price,
+    ]);
 
-        // Association avec boutiques
+    // Associer seulement si boutiques envoyées
+    if (!empty($request->boutiques)) {
         $produit->boutiques()->sync($request->boutiques);
-
-        // Upload de la photo
-        if ($request->hasFile('photo')) {
-            $path = $request->photo->store('produits', 'public');
-            $produit->update(['photo' => $path]);
-        }
-
-        return redirect()->route('produits.index');
     }
+
+    // Upload de la photo
+    if ($request->hasFile('photo')) {
+        $path = $request->photo->store('produits', 'public');
+        $produit->update(['photo' => $path]);
+    }
+
+    return redirect()->route('produits.index');
+}
+
 
     public function edit(Produit $produit)
     {
@@ -67,7 +70,7 @@ class ProduitController extends Controller
             'name' => 'required|string|max:255',
             'sale_price' => 'required|numeric|min:0',
             'photo' => 'nullable|image|max:2048',
-            'boutiques' => 'required|array',          // 👈 ajouté
+            'boutiques' => 'nullable|array',            // 👈 ajouté
             'boutiques.*' => 'exists:boutiques,id',  // 👈 ajouté
         ]);
 

@@ -16,94 +16,68 @@ class TicketController extends Controller
      */
 public function index(Request $request)
 {
-    $user = Auth::user();
+    // 🔍 Récupération des filtres envoyés par Inertia
+    $search = $request->input('search');
+    $status = $request->input('status');
 
-    // 🔹 Base query avec relations
-    $ticketsQuery = Ticket::with([
-        'trip.route.departureCity',
-        'trip.route.arrivalCity',
-        'startStop.city',
-        'startStop.toCity',
-        'endStop.city',
-        'endStop.toCity',
-        'user.agency',
-        'baggages', // Si tu veux envoyer les bagages directement
-    ]);
+    // 🔧 Query de base avec relations
+    $query = Ticket::with(['trip.route.departureCity', 'trip.route.arrivalCity', 'baggages'])
+        ->orderBy('id', 'desc');
 
-    // 🔹 Restriction selon rôle
-    if ($user->role === 'agent') {
-        $ticketsQuery->where('user_id', $user->id);
-    } elseif ($user->role === 'manageragence') {
-        $ticketsQuery->whereHas('user', function ($q) use ($user) {
-            $q->where('agence_id', $user->agence_id);
-        });
+    // 🔍 Filtre recherche
+    if (!empty($search)) {
+        $query->where('client_name', 'LIKE', '%' . $search . '%');
     }
 
-    // 🔹 Filtrage par statut
-    if ($request->filled('status')) {
-        $ticketsQuery->where('status', $request->status);
+    // 🎯 Filtre statut
+    if (!empty($status)) {
+        $query->where('status', $status);
     }
 
-    // 🔹 Filtrage par recherche client
-    if ($request->filled('search')) {
-        $ticketsQuery->where('client_name', 'like', '%' . $request->search . '%');
-    }
+    // 📄 Pagination dynamique (10 par page)
+    $tickets = $query->paginate(10)->withQueryString();
 
-    // 🔹 Pagination
-    $perPage = $request->input('per_page', 10);
-    $tickets = $ticketsQuery->orderByDesc('created_at')->paginate($perPage)->appends($request->all());
+    // 🔄 Transformer les tickets pour simplifier React
+    $tickets->getCollection()->transform(function ($ticket) {
+        $route = $ticket->trip?->route;
 
-    // 🔹 Mapping pour Inertia
-    $ticketsData = $tickets->through(fn($ticket) => [
-        'id' => $ticket->id,
-        'trip' => $ticket->trip ? [
-            'id' => $ticket->trip->id,
-            'route' => $ticket->trip->route ? [
-                'departure_city' => $ticket->trip->route->departureCity->name ?? '-',
-                'arrival_city' => $ticket->trip->route->arrivalCity->name ?? '-',
-                'departure_at' => $ticket->trip->departure_at,
-                'arrival_at' => $ticket->trip->arrival_at,
-            ] : null,
-        ] : null,
-        'start_stop' => $ticket->startStop ? [
-            'id' => $ticket->startStop->id,
-            'city_name' => $ticket->startStop->city?->name ?? '-',
-            'to_city_name' => $ticket->startStop->toCity?->name ?? '-',
-            'distance_from_start' => $ticket->startStop->distance_from_start,
-        ] : null,
-        'end_stop' => $ticket->endStop ? [
-            'id' => $ticket->endStop->id,
-            'city_name' => $ticket->endStop->city?->name ?? '-',
-            'to_city_name' => $ticket->endStop->toCity?->name ?? '-',
-            'distance_from_start' => $ticket->endStop->distance_from_start,
-        ] : null,
-        'client_name' => $ticket->client_name,
-        'seat_number' => $ticket->seat_number,
-        'status' => $ticket->status,
-        'price' => $ticket->price,
-        'baggages' => $ticket->baggages->map(fn($bag) => [
-            'id' => $bag->id,
-            'weight' => $bag->weight,
-            'price' => $bag->price,
-        ]),
-        'created_at' => $ticket->created_at,
-    ]);
-    // 🔹 Retour Inertia
-    return inertia('Tickets/Index', [
-        'tickets' => [
-            'data' => $ticketsData,
-            'current_page' => $tickets->currentPage(),
-            'last_page' => $tickets->lastPage(),
-            'per_page' => $tickets->perPage(),
-            'total' => $tickets->total(),
-        ],
-        'filters' => [
-            'status' => $request->status ?? '',
-            'search' => $request->search ?? '',
-            'per_page' => $perPage,
-        ],
+        return [
+            'id' => $ticket->id,
+            'client_name' => $ticket->client_name,
+            'status' => $ticket->status,
+            'seat_number' => $ticket->seat_number,
+            'price' => $ticket->price,
+
+            // Texte de l'itinéraire pré-calculé
+            'route_text' => $route && $route->departureCity && $route->arrivalCity
+                ? $route->departureCity->name . ' → ' . $route->arrivalCity->name
+                : null,
+
+            // Séparer les villes si besoin
+            'departureCity' => $route?->departureCity
+                ? ['name' => $route->departureCity->name]
+                : null,
+            'arrivalCity' => $route?->arrivalCity
+                ? ['name' => $route->arrivalCity->name]
+                : null,
+
+            // Bagages
+            'baggages' => $ticket->baggages->map(fn($b) => [
+                'id' => $b->id,
+                'description' => $b->description ?? null,
+                'weight' => $b->weight ?? null,
+                'price' => $b->price ?? null,
+            ]),
+        ];
+    });
+
+    // Retour vers Inertia
+    return Inertia::render('Tickets/Index', [
+        'tickets' => $tickets,
     ]);
 }
+
+
 
 
 

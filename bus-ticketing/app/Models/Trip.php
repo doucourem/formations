@@ -62,4 +62,10 @@ class Trip extends Model
             ? $this->arrival_at->format('d/m/Y H:i')
             : null;
     }
+
+    public function expenses()
+{
+    return $this->hasMany(TripExpense::class);
+}
+
 }

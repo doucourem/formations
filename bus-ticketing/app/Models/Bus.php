@@ -29,4 +29,8 @@ class Bus extends Model
     return $this->hasMany(Trip::class);
 }
 
+    public function maintenances()
+{
+    return $this->hasMany(BusMaintenance::class);
+}
 }

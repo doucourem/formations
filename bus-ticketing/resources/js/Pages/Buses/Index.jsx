@@ -25,6 +25,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
  import TravelExploreIcon from "@mui/icons-material/TravelExplore";
+  import BuildIcon from "@mui/icons-material/Build";
 
 export default function BusesIndex({ buses, filters }) {
   const [sortField, setSortField] = useState(filters?.sort_field || "id");
@@ -109,8 +110,8 @@ export default function BusesIndex({ buses, filters }) {
                         <TableCell>{bus.capacity}</TableCell>
                         <TableCell>{bus.registration_number || "-"}</TableCell>
                         <TableCell align="center">
-
 <Stack direction="row" spacing={1} justifyContent="center">
+
   {/* Voir les voyages */}
   <IconButton
     color="secondary"
@@ -121,16 +122,38 @@ export default function BusesIndex({ buses, filters }) {
     <TravelExploreIcon />
   </IconButton>
 
+  {/* Historique de maintenance */}
+  <IconButton
+    color="warning"
+    size="small"
+    onClick={() => Inertia.visit(route("bus.maintenance.index", bus.id))}
+    title="Historique d’entretien"
+  >
+    <BuildIcon />
+  </IconButton>
+
   {/* Éditer le bus */}
-  <IconButton color="primary" size="small" onClick={() => Inertia.visit(route("buses.edit", bus.id))}>
+  <IconButton
+    color="primary"
+    size="small"
+    onClick={() => Inertia.visit(route("buses.edit", bus.id))}
+    title="Modifier"
+  >
     <EditIcon />
   </IconButton>
 
   {/* Supprimer le bus */}
-  <IconButton color="error" size="small" onClick={() => handleDelete(bus.id)}>
+  <IconButton
+    color="error"
+    size="small"
+    onClick={() => handleDelete(bus.id)}
+    title="Supprimer"
+  >
     <DeleteIcon />
   </IconButton>
+
 </Stack>
+
 
 </TableCell>
 

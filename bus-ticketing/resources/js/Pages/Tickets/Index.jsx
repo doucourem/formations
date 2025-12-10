@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { Inertia } from "@inertiajs/inertia";
-import { usePage } from "@inertiajs/react";
+import React, { useState, useMemo } from 'react';
+import { Inertia } from '@inertiajs/inertia';
+import { usePage } from '@inertiajs/react';
+
 import {
   Box,
   Button,
+  Chip,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -11,11 +14,9 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Stack,
   TextField,
   MenuItem,
   IconButton,
-  Chip,
   Typography,
   Card,
   CardHeader,
@@ -24,97 +25,27 @@ import {
   DialogContent,
   DialogActions,
   Pagination,
-} from "@mui/material";
-import { Visibility, Edit, Delete, Add } from "@mui/icons-material";
+  PaginationItem,
+  Tooltip
+} from '@mui/material';
+
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+
 import GuestLayout from "@/Layouts/GuestLayout";
 import BaggageForm from "./BaggageForm";
 
-// 🔹 Utilitaire pour formater le prix
-const formatPrice = (value) => (value ? value.toLocaleString("fr-FR") + " FCFA" : "—");
-
-// 🔹 Composant pour chaque ligne de ticket
-function TicketRow({ ticket, onOpenBaggage, onDelete }) {
-  return (
-    <TableRow>
-      <TableCell>{ticket.id}</TableCell>
-      <TableCell>{ticket.client_name || "—"}</TableCell>
-      <TableCell>
-        {ticket.trip?.route
-          ? `${ticket.trip.route.departure_city || "—"} → ${ticket.trip.route.arrival_city || "—"}`
-          : "—"}
-      </TableCell>
-      <TableCell>{formatPrice(ticket.price)}</TableCell>
-      <TableCell>
-        <Chip
-          label={
-            ticket.status === "paid"
-              ? "Payé"
-              : ticket.status === "pending"
-              ? "En attente"
-              : "Annulé"
-          }
-          color={
-            ticket.status === "paid"
-              ? "success"
-              : ticket.status === "pending"
-              ? "warning"
-              : "error"
-          }
-        />
-      </TableCell>
-      <TableCell>
-        <Stack direction="row" spacing={1}>
-          {Array.isArray(ticket.baggages) && ticket.baggages.length > 0 ? (
-            ticket.baggages.map((bag, idx) => (
-              <Chip
-                key={idx}
-                label={`${bag.weight || 0}kg - ${bag.price?.toLocaleString("fr-FR") || 0} FCFA`}
-                color="primary"
-                size="small"
-              />
-            ))
-          ) : (
-            <Chip label="—" size="small" />
-          )}
-          <IconButton size="small" color="primary" onClick={() => onOpenBaggage(ticket)}>
-            <Add />
-          </IconButton>
-        </Stack>
-      </TableCell>
-      <TableCell>
-        <IconButton color="primary" onClick={() => Inertia.get(route("ticket.show", ticket.id))}>
-          <Visibility />
-        </IconButton>
-        <IconButton color="warning" onClick={() => Inertia.get(route("ticket.edit", ticket.id))}>
-          <Edit />
-        </IconButton>
-        <IconButton color="error" onClick={() => onDelete(ticket.id)}>
-          <Delete />
-        </IconButton>
-      </TableCell>
-    </TableRow>
-  );
-}
-
-export default function TicketsIndex({ tickets, filters = {} }) {
+export default function TicketsIndex({ tickets }) {
   const { auth } = usePage().props;
   const user = auth?.user || {};
 
-  const [filterStatus, setFilterStatus] = useState(filters.status || "");
-  const [searchQuery, setSearchQuery] = useState(filters.search || "");
+  const [filterStatus, setFilterStatus] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [openBaggageModal, setOpenBaggageModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
-
-  const perPage = filters.per_page || 10;
-
-  // 🔹 Charger les tickets à chaque changement de filtre ou recherche
-  useEffect(() => {
-    Inertia.get(
-      route("ticket.index"),
-      { page: 1, per_page: perPage, search: searchQuery, status: filterStatus },
-      { preserveState: true }
-    );
-  }, [searchQuery, filterStatus]);
 
   const handleOpenBaggage = (ticket) => {
     setSelectedTicket(ticket);
@@ -127,21 +58,21 @@ export default function TicketsIndex({ tickets, filters = {} }) {
   };
 
   const handleDelete = (id) => {
-    if (confirm("Voulez-vous vraiment supprimer ce ticket ?")) {
-      Inertia.delete(route("ticket.destroy", id));
+    if (confirm('Voulez-vous vraiment supprimer ce ticket ?')) {
+      Inertia.delete(route('ticket.destroy', id));
     }
   };
 
-  const handleStatusChange = (e) => setFilterStatus(e.target.value);
-  const handleSearchChange = (e) => setSearchQuery(e.target.value);
-
-  const handlePageChange = (e, page) => {
-    Inertia.get(
-      route("ticket.index"),
-      { page, per_page: perPage, search: searchQuery, status: filterStatus },
-      { preserveState: true }
-    );
-  };
+  // 🔍 Filtrage sur tickets.data (pagination Laravel)
+  const filteredTickets = useMemo(() => {
+    return tickets.data.filter(ticket => {
+      const matchesStatus = filterStatus ? ticket.status === filterStatus : true;
+      const matchesSearch = searchQuery
+        ? ticket.client_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      return matchesStatus && matchesSearch;
+    });
+  }, [tickets, filterStatus, searchQuery]);
 
   return (
     <GuestLayout>
@@ -153,15 +84,16 @@ export default function TicketsIndex({ tickets, filters = {} }) {
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={<Add />}
-                onClick={() => Inertia.get(route("ticket.create"))}
+                startIcon={<AddIcon />}
+                onClick={() => Inertia.get(route('ticket.create'))}
               >
                 Créer un ticket
               </Button>
+
               <Button
                 variant="outlined"
                 color="secondary"
-                onClick={() => Inertia.get(route("tickets.daily-summary"))}
+                onClick={() => Inertia.get(route('tickets.daily-summary'))}
               >
                 Résumé par jour
               </Button>
@@ -170,19 +102,20 @@ export default function TicketsIndex({ tickets, filters = {} }) {
         />
 
         <Box mt={2}>
-          {/* Filtres */}
+          {/* 🔍 Filtres */}
           <Stack direction="row" spacing={2} mb={3}>
             <TextField
               label="Recherche client"
               fullWidth
               value={searchQuery}
-              onChange={handleSearchChange}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
+
             <TextField
               label="Statut"
               select
               value={filterStatus}
-              onChange={handleStatusChange}
+              onChange={(e) => setFilterStatus(e.target.value)}
               sx={{ width: 200 }}
             >
               <MenuItem value="">Tous</MenuItem>
@@ -192,7 +125,7 @@ export default function TicketsIndex({ tickets, filters = {} }) {
             </TextField>
           </Stack>
 
-          {/* Tableau */}
+          {/* 🧾 Tableau */}
           <TableContainer component={Paper}>
             <Table>
               <TableHead sx={{ bgcolor: "#1565c0" }}>
@@ -206,36 +139,108 @@ export default function TicketsIndex({ tickets, filters = {} }) {
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
+
               <TableBody>
-                {tickets.data?.length > 0 ? (
-                  tickets.data.map((ticket) => (
-                    <TicketRow
-                      key={ticket.id}
-                      ticket={ticket}
-                      onOpenBaggage={handleOpenBaggage}
-                      onDelete={handleDelete}
-                    />
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center">
-                      Aucun ticket trouvé.
+                {filteredTickets.map(ticket => (
+                  <TableRow key={ticket.id}>
+                    <TableCell>{ticket.id}</TableCell>
+                    <TableCell>{ticket.client_name}</TableCell>
+
+                    <TableCell>
+                      {ticket.route_text
+                        ? `${ticket.route_text}`
+                        : "—"}
+                    </TableCell>
+
+                    <TableCell>
+                      {ticket.price?.toLocaleString() || "—"} FCFA
+                    </TableCell>
+
+                    <TableCell>
+                      <Chip
+                        label={
+                          ticket.status === "paid"
+                            ? "Payé"
+                            : ticket.status === "pending"
+                            ? "En attente"
+                            : "Annulé"
+                        }
+                        color={
+                          ticket.status === "paid"
+                            ? "success"
+                            : ticket.status === "pending"
+                            ? "warning"
+                            : "error"
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+  <Stack direction="row" spacing={1} flexWrap="wrap">
+    {ticket.baggages?.length > 0 ? (
+      ticket.baggages.map((bag, idx) => (
+        <Chip
+          key={idx}
+          label={`📦 ${bag.weight} kg | ${bag.price?.toLocaleString("fr-FR")} FCFA`}
+          color="primary"
+          size="small"
+        />
+      ))
+    ) : (
+      <Typography variant="body2" color="text.secondary">Aucun bagage</Typography>
+    )}
+
+    {/* Bouton d'ajout */}
+    <Tooltip title="Ajouter un bagage">
+      <IconButton
+        size="small"
+        color="primary"
+        onClick={() => handleOpenBaggage(ticket)}
+      >
+        <AddIcon />
+      </IconButton>
+    </Tooltip>
+  </Stack>
+</TableCell>
+
+
+                    <TableCell>
+                      <IconButton color="primary" onClick={() => Inertia.get(route("ticket.show", ticket.id))}>
+                        <VisibilityIcon />
+                      </IconButton>
+                      <IconButton color="warning" onClick={() => Inertia.get(route("ticket.edit", ticket.id))}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton color="error" onClick={() => handleDelete(ticket.id)}>
+                        <DeleteIcon />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
-                )}
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
 
-          {/* Pagination */}
-          <Box mt={3} display="flex" justifyContent="center">
+          {/* 📌 PAGINATION */}
+          <Box display="flex" justifyContent="center" mt={3}>
             <Pagination
-              count={tickets.last_page || 1}
-              page={tickets.current_page || 1}
-              onChange={handlePageChange}
+              count={tickets.last_page}
+              page={tickets.current_page}
               color="primary"
-              showFirstButton
-              showLastButton
+              renderItem={(item) => (
+                <PaginationItem
+                  {...item}
+                  onClick={() => {
+                    if (item.page !== tickets.current_page) {
+                      Inertia.get(route('ticket.index'), {
+                        page: item.page,
+                        search: searchQuery,
+                        status: filterStatus
+                      });
+                    }
+                  }}
+                />
+              )}
             />
           </Box>
         </Box>
@@ -248,9 +253,7 @@ export default function TicketsIndex({ tickets, filters = {} }) {
           {selectedTicket && <BaggageForm ticket={selectedTicket} onSuccess={handleCloseBaggage} />}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseBaggage} color="secondary">
-            Annuler
-          </Button>
+          <Button onClick={handleCloseBaggage} color="secondary">Annuler</Button>
         </DialogActions>
       </Dialog>
     </GuestLayout>

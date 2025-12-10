@@ -47,22 +47,34 @@ class DriverController extends Controller
         return inertia('Drivers/Edit', ['driver'=>$driver]);
     }
 
-    public function update(Request $request, Driver $driver) {
-        $data = $request->validate([
-            'first_name'=>'required',
-            'last_name'=>'required',
-            'birth_date'=>'nullable|date',
-            'phone'=>'nullable',
-            'email'=>'nullable|email',
-            'address'=>'nullable',
-            'photo'=>'nullable|image|max:2048',
-        ]);
-        if($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('drivers', 'public');
+  public function update(Request $request, Driver $driver)
+{
+    $data = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name'  => 'required|string|max:255',
+        'birth_date' => 'nullable|date',
+        'phone'      => 'nullable|string|max:20',
+        'email'      => 'nullable|email|max:255',
+        'address'    => 'nullable|string|max:500',
+        'photo'      => 'nullable|image|max:2048',
+    ]);
+
+    if ($request->hasFile('photo')) {
+        // Supprimer l'ancienne photo si elle existe
+        if ($driver->photo) {
+            \Storage::disk('public')->delete($driver->photo);
         }
-        $driver->update($data);
-        return redirect()->route('drivers.index');
+        $data['photo'] = $request->file('photo')->store('drivers', 'public');
     }
+
+    $driver->update($data);
+
+    return response()->json([
+        'message' => 'Chauffeur mis à jour avec succès !',
+        'driver'  => $driver->fresh(),
+    ]);
+}
+
 
     public function destroy(Driver $driver) {
         $driver->delete();

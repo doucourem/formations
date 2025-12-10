@@ -19,7 +19,9 @@ use App\Http\Controllers\{
     ReceiverController,
     PaymentController,
     BaggageController,
-    TripAssignmentController
+    TripAssignmentController,
+    TripExpenseController,
+    BusMaintenanceController
 };
 
 use Illuminate\Support\Facades\Route;
@@ -62,8 +64,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'users' => UserController::class,
         'parcels' => ParcelController::class,
         'drivers' => DriverController::class,
-        'transfers' => TransferController::class
+        'transfers' => TransferController::class,
+        'trip-expenses' => TripExpenseController::class,
     ]);
+
+    Route::get('buses/{bus}/maintenance', [BusMaintenanceController::class, 'index'])->name('bus.maintenance.index');
+    Route::post('maintenance/store', [BusMaintenanceController::class, 'store'])->name('bus.maintenance.store');
 
     // Buses -> Trips
     Route::get('/buses/{bus}/trips', [BusController::class, 'byBus'])->name('trips.byBus');

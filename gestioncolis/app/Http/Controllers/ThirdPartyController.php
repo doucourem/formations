@@ -18,7 +18,10 @@ class ThirdPartyController extends Controller
     // Transformer les données pour le frontend
     $thirdParties = $thirdParties->map(function($tp){
         $totalAmount = $tp->transfersAsThirdParty->sum('amount');
-        $totalPaid = $tp->transfersAsThirdParty->sum('paid');
+        $totalPaid = $tp->transfersAsThirdParty
+                ->where('paid', 1)
+                ->sum('amount'); // 'amount' = montant du transfert
+
 
         return [
             'id' => $tp->id,

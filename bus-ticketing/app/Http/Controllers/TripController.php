@@ -22,6 +22,7 @@ public function index(Request $request)
     // Chargement des trajets avec relations
     $trips = Trip::with([
         'bus',
+        'expenses',
         'route.departureCity',
         'route.arrivalCity',
     ])
