@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { useForm } from "@inertiajs/react";
 import {
@@ -10,7 +10,8 @@ import {
   Box,
   Typography,
   Snackbar,
-  Alert
+  Alert,
+  Avatar
 } from "@mui/material";
 
 export default function Create() {
@@ -19,7 +20,7 @@ export default function Create() {
     setData,
     post,
     processing,
-    errors,
+    errors: serverErrors,
     recentlySuccessful
   } = useForm({
     first_name: "",
@@ -31,62 +32,183 @@ export default function Create() {
     photo: null,
   });
 
+  const [preview, setPreview] = useState(null); // Prévisualisation photo
+  const [localErrors, setLocalErrors] = useState({});
+
+  // --------------------------
+  //   VALIDATION EN TEMPS RÉEL
+  // --------------------------
+  const validateField = (name, value) => {
+    let err = "";
+
+    switch (name) {
+      case "first_name":
+        if (!value.trim()) err = "Le prénom est obligatoire";
+        break;
+
+      case "last_name":
+        if (!value.trim()) err = "Le nom est obligatoire";
+        break;
+
+      case "phone":
+        if (!/^\d{8}$/.test(value)) err = "Téléphone invalide (8 chiffres)";
+        break;
+
+      case "email":
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+          err = "Email invalide";
+        break;
+
+      case "photo":
+        if (value) {
+          if (!["image/jpeg", "image/png"].includes(value.type)) {
+            err = "Formats autorisés : JPG, PNG";
+          }
+          if (value.size > 2 * 1024 * 1024) {
+            err = "La photo doit faire moins de 2 Mo";
+          }
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    setLocalErrors((prev) => ({ ...prev, [name]: err }));
+  };
+
+  // Masque téléphone : seulement 8 chiffres
+  const handlePhoneChange = (e) => {
+    let val = e.target.value.replace(/\D/g, ""); // Supprime tout sauf chiffres
+    if (val.length > 8) val = val.slice(0, 8);
+    setData("phone", val);
+    validateField("phone", val);
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    setData("photo", file);
+    validateField("photo", file);
+
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Validation finale
+  const validateAll = () => {
+    const fields = ["first_name", "last_name", "phone", "email", "photo"];
+    fields.forEach((f) => validateField(f, data[f]));
+
+    return Object.values(localErrors).every((err) => !err);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validateAll()) return;
+
     post("/drivers");
   };
 
+  const allErrors = { ...serverErrors, ...localErrors };
+
   return (
     <GuestLayout>
-      <Card sx={{ maxWidth: 600, mx: "auto", mt: 4, borderRadius: 3, p: 2 }}>
+      <Card sx={{ maxWidth: 650, mx: "auto", mt: 4, borderRadius: 4, p: 2 }}>
         <CardHeader
-          title={<Typography variant="h5">Ajouter un Chauffeur</Typography>}
+          title={
+            <Typography variant="h5" fontWeight="bold">
+              Ajouter un Chauffeur
+            </Typography>
+          }
         />
 
         <CardContent>
           <Box
-  component="form"
-  encType="multipart/form-data"   // <-- AJOUT IMPORTANT
-  onSubmit={handleSubmit}
-  display="flex"
-  flexDirection="column"
-  gap={2}
->
+            component="form"
+            encType="multipart/form-data"
+            onSubmit={handleSubmit}
+            display="flex"
+            flexDirection="column"
+            gap={3}
+          >
+
+            {/* Preview Photo */}
+            <Box textAlign="center">
+              <Box
+                sx={{
+                  width: 130,
+                  height: 130,
+                  mx: "auto",
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  border: "2px solid #ddd",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Avatar
+                  src={preview || "/default-avatar.png"}
+                  sx={{ width: "100%", height: "100%" }}
+                  variant="square"
+                />
+              </Box>
+
+              <Button variant="contained" component="label" sx={{ mt: 1 }}>
+                Choisir une photo
+                <input type="file" hidden accept="image/*" onChange={handlePhotoChange} />
+              </Button>
+
+              {allErrors.photo && (
+                <Typography color="error" variant="body2">
+                  {allErrors.photo}
+                </Typography>
+              )}
+            </Box>
 
             <TextField
               label="Prénom"
               value={data.first_name}
-              onChange={(e) => setData("first_name", e.target.value)}
-              error={!!errors.first_name}
-              helperText={errors.first_name}
+              onChange={(e) => {
+                setData("first_name", e.target.value);
+                validateField("first_name", e.target.value);
+              }}
+              error={!!allErrors.first_name}
+              helperText={allErrors.first_name}
               fullWidth
             />
 
             <TextField
               label="Nom"
               value={data.last_name}
-              onChange={(e) => setData("last_name", e.target.value)}
-              error={!!errors.last_name}
-              helperText={errors.last_name}
+              onChange={(e) => {
+                setData("last_name", e.target.value);
+                validateField("last_name", e.target.value);
+              }}
+              error={!!allErrors.last_name}
+              helperText={allErrors.last_name}
               fullWidth
             />
 
             <TextField
-              label="Téléphone"
+              label="Téléphone (8 chiffres)"
               value={data.phone}
-              onChange={(e) => setData("phone", e.target.value)}
-              error={!!errors.phone}
-              helperText={errors.phone}
+              onChange={handlePhoneChange}
+              error={!!allErrors.phone}
+              helperText={allErrors.phone}
               fullWidth
             />
 
             <TextField
               label="Email"
-              type="email"
               value={data.email}
-              onChange={(e) => setData("email", e.target.value)}
-              error={!!errors.email}
-              helperText={errors.email}
+              onChange={(e) => {
+                setData("email", e.target.value);
+                validateField("email", e.target.value);
+              }}
+              error={!!allErrors.email}
+              helperText={allErrors.email}
               fullWidth
             />
 
@@ -103,31 +225,24 @@ export default function Create() {
               label="Adresse"
               value={data.address}
               onChange={(e) => setData("address", e.target.value)}
-              fullWidth
               multiline
               rows={2}
+              fullWidth
             />
 
-            <Button variant="contained" component="label">
-              Photo du chauffeur
-              <input
-                type="file"
-                hidden
-                onChange={(e) => setData("photo", e.target.files[0])}
-              />
-            </Button>
-            {errors.photo && (
-              <Typography color="error" variant="body2">{errors.photo}</Typography>
-            )}
-
-            <Button type="submit" variant="contained" color="primary" disabled={processing}>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={processing}
+              sx={{ py: 1.2, borderRadius: 2, fontSize: "1rem" }}
+            >
               Enregistrer
             </Button>
           </Box>
         </CardContent>
       </Card>
 
-      {/* Snackbar validation */}
       <Snackbar
         open={recentlySuccessful}
         autoHideDuration={2000}

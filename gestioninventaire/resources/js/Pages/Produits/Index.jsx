@@ -17,7 +17,6 @@ import {
   Dialog,
   DialogActions,
   DialogTitle,
-  Avatar,
   Tooltip,
 } from "@mui/material";
 
@@ -33,12 +32,15 @@ export default function Index({ produits }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProduit, setSelectedProduit] = useState(null);
 
+  // ⚠️ S'assure que produits est un tableau
+  const produitsList = produits || [];
+
   // Filtre
   const filteredProduits = useMemo(() => {
-    return produits.filter((p) =>
+    return produitsList.filter((p) =>
       p.name.toLowerCase().includes(search.toLowerCase())
     );
-  }, [produits, search]);
+  }, [produitsList, search]);
 
   // Pagination
   const pageCount = Math.ceil(filteredProduits.length / rowsPerPage);
@@ -47,7 +49,7 @@ export default function Index({ produits }) {
     page * rowsPerPage
   );
 
-  // Click delete
+  // Supprimer
   const handleDeleteClick = (p) => {
     setSelectedProduit(p);
     setDeleteDialogOpen(true);
@@ -61,28 +63,25 @@ export default function Index({ produits }) {
   return (
     <GuestLayout>
       <Box sx={{ p: 2 }}>
-        {/* HEADER */}
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{ mb: 2 }}
-        >
-          <Typography variant="h6" fontWeight={600}>
-            Produits
-          </Typography>
+        {/* CardHeader avec titre et bouton "Nouveau" */}
+        <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+          <CardHeader
+            title="Liste des produits"
+            titleTypographyProps={{ fontWeight: 600, variant: "h6" }}
+            action={
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => router.visit(route("produits.create"))}
+              >
+                Nouveau produit
+              </Button>
+            }
+          />
+        </Card>
 
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={() => router.visit(route("produits.create"))}
-          >
-            Nouveau
-          </Button>
-        </Stack>
-
-        {/* SEARCH */}
+        {/* Recherche */}
         <TextField
           size="small"
           fullWidth
@@ -92,7 +91,7 @@ export default function Index({ produits }) {
           sx={{ mb: 2 }}
         />
 
-        {/* LISTE CARDS */}
+        {/* Liste des produits */}
         {paginatedProduits.length === 0 ? (
           <Typography align="center" sx={{ mt: 3 }}>
             Aucun produit trouvé.
@@ -100,22 +99,41 @@ export default function Index({ produits }) {
         ) : (
           <Stack spacing={2}>
             {paginatedProduits.map((p) => (
-              <Card key={p.id} sx={{ borderRadius: 2, p: 1 }}>
-                <Stack direction="row" spacing={2} alignItems="center">
-
+              <Card
+                key={p.id}
+                sx={{
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  "&:hover": {
+                    transform: "translateY(-3px)",
+                    boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+                  },
+                }}
+              >
+                <Stack direction="row" spacing={2} alignItems="center" p={1}>
                   {/* Photo */}
-                  <Avatar
-                    variant="rounded"
-                    src={`/storage/${p.photo}`}
-                    sx={{ width: 70, height: 70 }}
-                  />
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 2,
+                      overflow: "hidden",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img
+                      src={p.photo ? `/storage/${p.photo}` : "/placeholder.png"}
+                      alt={p.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </Box>
 
                   {/* Infos */}
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography fontWeight={600}>{p.name}</Typography>
-                    <Typography color="text.secondary">
-                      {p.sale_price} CFA
-                    </Typography>
+                    <Typography color="text.secondary">{p.sale_price} CFA</Typography>
                   </Box>
 
                   {/* Actions */}
@@ -123,19 +141,13 @@ export default function Index({ produits }) {
                     <Tooltip title="Modifier">
                       <IconButton
                         color="primary"
-                        onClick={() =>
-                          Inertia.visit(route("produits.edit", p.id))
-                        }
+                        onClick={() => Inertia.visit(route("produits.edit", p.id))}
                       >
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
-
                     <Tooltip title="Supprimer">
-                      <IconButton
-                        color="error"
-                        onClick={() => handleDeleteClick(p)}
-                      >
+                      <IconButton color="error" onClick={() => handleDeleteClick(p)}>
                         <DeleteIcon />
                       </IconButton>
                     </Tooltip>

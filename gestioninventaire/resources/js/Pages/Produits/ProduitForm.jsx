@@ -13,6 +13,9 @@ import {
   FormControl,
   Checkbox,
   ListItemText,
+  Card,
+  CardContent,
+  CardHeader,
 } from "@mui/material";
 
 export default function ProduitForm({ produit, boutiques }) {
@@ -52,142 +55,153 @@ export default function ProduitForm({ produit, boutiques }) {
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 3, maxWidth: 500, mx: "auto" }}>
-        <Typography variant="h4" mb={3}>
-          {isEdit ? "Modifier le produit" : "Créer un produit"}
-        </Typography>
+      <Box sx={{ p: 3, maxWidth: 600, mx: "auto" }}>
+        <Card elevation={3} sx={{ borderRadius: 3 }}>
+          <CardHeader
+            title={isEdit ? "Modifier le produit" : "Créer un produit"}
+            sx={{ bgcolor: "#f5f5f5", textAlign: "center" }}
+          />
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                {/* Nom */}
+                <TextField
+                  label="Nom du produit"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  fullWidth
+                />
 
-        <form onSubmit={handleSubmit}>
-          <Stack spacing={2}>
+                {/* Prix */}
+                <TextField
+                  label="Prix de vente"
+                  type="number"
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(e.target.value)}
+                  required
+                  fullWidth
+                />
 
-            {/* Nom */}
-            <TextField
-              label="Nom du produit"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              fullWidth
-            />
+                {/* Sélection boutiques */}
+                <FormControl fullWidth>
+                  <InputLabel>Boutiques</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedBoutiques}
+                    onChange={(e) => setSelectedBoutiques(e.target.value)}
+                    renderValue={(selected) =>
+                      boutiques
+                        .filter((b) => selected.includes(b.id))
+                        .map((b) => b.name)
+                        .join(", ")
+                    }
+                  >
+                    {boutiques.map((b) => (
+                      <MenuItem key={b.id} value={b.id}>
+                        <Checkbox checked={selectedBoutiques.includes(b.id)} />
+                        <ListItemText primary={b.name} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-            {/* Prix */}
-            <TextField
-              label="Prix de vente"
-              type="number"
-              value={salePrice}
-              onChange={(e) => setSalePrice(e.target.value)}
-              required
-              fullWidth
-            />
+                {/* Upload photo */}
+                <Box>
+                  <Typography variant="subtitle1" mb={1}>
+                    Photo du produit
+                  </Typography>
 
-            {/* Sélection boutiques */}
-            <FormControl fullWidth>
-              <InputLabel>Boutiques</InputLabel>
-              <Select
-                multiple
-                value={selectedBoutiques}
-                onChange={(e) => setSelectedBoutiques(e.target.value)}
-                renderValue={(selected) =>
-                  boutiques
-                    .filter((b) => selected.includes(b.id))
-                    .map((b) => b.name)
-                    .join(", ")
-                }
-              >
-                {boutiques.map((b) => (
-                  <MenuItem key={b.id} value={b.id}>
-                    <Checkbox checked={selectedBoutiques.includes(b.id)} />
-                    <ListItemText primary={b.name} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-{/* Upload photo amélioré */}
-<Box>
-  <Typography variant="subtitle1" mb={1}>
-    Photo du produit
-  </Typography>
+                  <Box
+                    sx={{
+                      width: "100%",
+                      maxWidth: 300,
+                      borderRadius: 3,
+                      overflow: "hidden",
+                      boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+                      border: "2px dashed #90caf9",
+                      cursor: "pointer",
+                      textAlign: "center",
+                      position: "relative",
+                      "&:hover": { backgroundColor: "#e3f2fd" },
+                    }}
+                    onClick={() => document.getElementById("photoInput").click()}
+                  >
+                    <input
+                      id="photoInput"
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (!e.target.files[0]) return;
+                        const file = e.target.files[0];
+                        setPhoto(file);
+                        setPreview(URL.createObjectURL(file));
+                      }}
+                    />
 
-  <Box
-    sx={{
-      border: "2px dashed #ccc",
-      borderRadius: 2,
-      p: 2,
-      textAlign: "center",
-      cursor: "pointer",
-      "&:hover": { backgroundColor: "#f9f9f9" },
-    }}
-    onClick={() => document.getElementById("photoInput").click()}
-  >
-    <Typography color="textSecondary">
-      Cliquer pour choisir une image
-    </Typography>
-    <Typography variant="caption">(JPEG, PNG, max 2MB)</Typography>
+                    {preview ? (
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        style={{
+                          width: "100%",
+                          height: 220,
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      <Box sx={{ p: 4 }}>
+                        <Typography color="textSecondary">
+                          Cliquer pour choisir une image
+                        </Typography>
+                        <Typography variant="caption">(JPEG, PNG, max 2MB)</Typography>
+                      </Box>
+                    )}
 
-    <input
-      id="photoInput"
-      type="file"
-      hidden
-      accept="image/*"
-      onChange={(e) => {
-        if (!e.target.files[0]) return;
+                    {preview && (
+                      <Button
+                        variant="contained"
+                        color="error"
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPhoto(null);
+                          setPreview(null);
+                        }}
+                        sx={{
+                          position: "absolute",
+                          top: 5,
+                          right: 5,
+                          minWidth: "unset",
+                          padding: "4px 8px",
+                          fontSize: "0.7rem",
+                        }}
+                      >
+                        ✕
+                      </Button>
+                    )}
+                  </Box>
+                </Box>
 
-        const file = e.target.files[0];
-        setPhoto(file);
-        setPreview(URL.createObjectURL(file));
-      }}
-    />
-  </Box>
+                {/* Boutons */}
+                <Box display="flex" justifyContent="space-between" mt={2}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => Inertia.visit(route("produits.index"))}
+                  >
+                    Annuler
+                  </Button>
 
-  {preview && (
-    <Box
-      mt={2}
-      sx={{
-        position: "relative",
-        width: 180,
-      }}
-    >
-      <img
-        src={preview}
-        alt="preview"
-        style={{
-          width: "100%",
-          borderRadius: 10,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-        }}
-      />
-
-      <Button
-        variant="outlined"
-        size="small"
-        color="error"
-        onClick={() => {
-          setPhoto(null);
-          setPreview(null);
-        }}
-        sx={{ mt: 1, width: "100%" }}
-      >
-        Retirer la photo
-      </Button>
-    </Box>
-  )}
-</Box>
-
-
-            {/* Boutons */}
-            <Box display="flex" justifyContent="space-between" mt={2}>
-              <Button
-                variant="outlined"
-                onClick={() => Inertia.visit(route("produits.index"))}
-              >
-                Annuler
-              </Button>
-
-              <Button type="submit" variant="contained" color="primary">
-                {isEdit ? "Mettre à jour" : "Créer"}
-              </Button>
-            </Box>
-          </Stack>
-        </form>
+                  <Button type="submit" variant="contained" color="primary">
+                    {isEdit ? "Mettre à jour" : "Créer"}
+                  </Button>
+                </Box>
+              </Stack>
+            </form>
+          </CardContent>
+        </Card>
       </Box>
     </GuestLayout>
   );

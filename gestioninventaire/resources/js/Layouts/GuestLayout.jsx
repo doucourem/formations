@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { usePage, useForm, Link } from "@inertiajs/react";
+import { usePage, Link, useForm } from "@inertiajs/react";
 import {
+  Box,
   AppBar,
   Toolbar,
   IconButton,
@@ -11,26 +12,19 @@ import {
   ListItemIcon,
   ListItemText,
   CssBaseline,
-  Box,
+  Avatar,
+  Tooltip,
   Menu,
   MenuItem,
-  Avatar,
   Divider,
-  Tooltip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
-import LocationCityIcon from "@mui/icons-material/LocationCity";
-import PeopleIcon from "@mui/icons-material/People";
-import StoreIcon from "@mui/icons-material/Store";
-import RouteIcon from "@mui/icons-material/AltRoute";
-import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
-import TripOriginIcon from "@mui/icons-material/TripOrigin";
-import LogoutIcon from "@mui/icons-material/Logout";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import ApplicationLogo from "@/Components/ApplicationLogo";
 import StorefrontIcon from "@mui/icons-material/Storefront";
-
+import StoreIcon from "@mui/icons-material/Store";
+import PeopleIcon from "@mui/icons-material/People";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import LogoutIcon from "@mui/icons-material/Logout";
+import ApplicationLogo from "@/Components/ApplicationLogo";
 
 const drawerWidth = 240;
 
@@ -39,26 +33,18 @@ export default function AuthenticatedLayout({ children }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const { auth, url } = usePage().props;
   const user = auth?.user || {};
-
   const { post } = useForm();
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
+  const handleLogout = () => post(route("logout"));
 
-  const handleLogout = () => {
-    post(route("logout"));
-  };
-
-  // Construction dynamique des menus selon le rôle
-  let menuItems = [];
-
-
- menuItems = [
-  { text: "Produits", icon: <StorefrontIcon />, route: route("produits.index") },
-  { text: "Boutique", icon: <StoreIcon />, route: route("boutiques.index") },
-  { text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") },
-];
+  const menuItems = [
+    { text: "Produits", icon: <StorefrontIcon />, route: route("produits.index") },
+    { text: "Boutiques", icon: <StoreIcon />, route: route("boutiques.index") },
+    { text: "Utilisateurs", icon: <PeopleIcon />, route: route("users.index") },
+  ];
 
   const drawerContent = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -84,7 +70,7 @@ export default function AuthenticatedLayout({ children }) {
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <CssBaseline />
 
-      {/* Barre supérieure */}
+      {/* Header */}
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <IconButton
@@ -96,7 +82,7 @@ export default function AuthenticatedLayout({ children }) {
             <MenuIcon />
           </IconButton>
 
-          <Link href="/boutiques" style={{ display: "flex", alignItems: "center", marginRight: 10 }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", marginRight: 10 }}>
             <ApplicationLogo className="h-10 w-10 mr-2" />
           </Link>
 
@@ -104,7 +90,6 @@ export default function AuthenticatedLayout({ children }) {
             Gestion d'Inventaire
           </Typography>
 
-          {/* Menu utilisateur */}
           <Tooltip title="Compte utilisateur">
             <IconButton color="inherit" onClick={handleMenuOpen}>
               <Avatar sx={{ bgcolor: "#1976d2" }}>
@@ -121,9 +106,7 @@ export default function AuthenticatedLayout({ children }) {
             transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
             <MenuItem disabled>
-              <Typography variant="subtitle1">
-                {user.prenom} {user.name}
-              </Typography>
+              <Typography variant="subtitle1">{user.prenom} {user.name}</Typography>
             </MenuItem>
             <Divider />
             <MenuItem component={Link} href={route("profile.edit")}>
@@ -136,7 +119,7 @@ export default function AuthenticatedLayout({ children }) {
         </Toolbar>
       </AppBar>
 
-      {/* Drawer permanent (desktop) */}
+      {/* Drawer desktop */}
       <Drawer
         variant="permanent"
         sx={{
@@ -162,7 +145,7 @@ export default function AuthenticatedLayout({ children }) {
         {drawerContent}
       </Drawer>
 
-      {/* Contenu principal */}
+      {/* Main content */}
       <Box
         component="main"
         sx={{
