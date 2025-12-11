@@ -101,23 +101,77 @@ export default function ProduitForm({ produit, boutiques }) {
                 ))}
               </Select>
             </FormControl>
+{/* Upload photo amélioré */}
+<Box>
+  <Typography variant="subtitle1" mb={1}>
+    Photo du produit
+  </Typography>
 
-            {/* Upload photo */}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                setPhoto(e.target.files[0]);
-                setPreview(URL.createObjectURL(e.target.files[0]));
-              }}
-            />
+  <Box
+    sx={{
+      border: "2px dashed #ccc",
+      borderRadius: 2,
+      p: 2,
+      textAlign: "center",
+      cursor: "pointer",
+      "&:hover": { backgroundColor: "#f9f9f9" },
+    }}
+    onClick={() => document.getElementById("photoInput").click()}
+  >
+    <Typography color="textSecondary">
+      Cliquer pour choisir une image
+    </Typography>
+    <Typography variant="caption">(JPEG, PNG, max 2MB)</Typography>
 
-            {preview && (
-              <img
-                src={preview}
-                style={{ width: 150, borderRadius: 10, marginTop: 10 }}
-              />
-            )}
+    <input
+      id="photoInput"
+      type="file"
+      hidden
+      accept="image/*"
+      onChange={(e) => {
+        if (!e.target.files[0]) return;
+
+        const file = e.target.files[0];
+        setPhoto(file);
+        setPreview(URL.createObjectURL(file));
+      }}
+    />
+  </Box>
+
+  {preview && (
+    <Box
+      mt={2}
+      sx={{
+        position: "relative",
+        width: 180,
+      }}
+    >
+      <img
+        src={preview}
+        alt="preview"
+        style={{
+          width: "100%",
+          borderRadius: 10,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+        }}
+      />
+
+      <Button
+        variant="outlined"
+        size="small"
+        color="error"
+        onClick={() => {
+          setPhoto(null);
+          setPreview(null);
+        }}
+        sx={{ mt: 1, width: "100%" }}
+      >
+        Retirer la photo
+      </Button>
+    </Box>
+  )}
+</Box>
+
 
             {/* Boutons */}
             <Box display="flex" justifyContent="space-between" mt={2}>

@@ -1,38 +1,39 @@
 import React, { useState, useMemo } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
-import { router } from "@inertiajs/react"; 
+import { router } from "@inertiajs/react";
+
 import {
   Box,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableContainer,
-  Paper,
+  Card,
+  CardContent,
+  CardHeader,
+  Typography,
   TextField,
+  IconButton,
+  Button,
+  Stack,
   Pagination,
   Dialog,
   DialogActions,
   DialogTitle,
-  IconButton,
-  Button,
+  Avatar,
   Tooltip,
 } from "@mui/material";
+
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import AddIcon from '@mui/icons-material/Add';
-import { Card, CardHeader } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 
 export default function Index({ produits }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(6);
+  const rowsPerPage = 6;
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProduit, setSelectedProduit] = useState(null);
 
-  // Filtrage par nom
+  // Filtre
   const filteredProduits = useMemo(() => {
     return produits.filter((p) =>
       p.name.toLowerCase().includes(search.toLowerCase())
@@ -46,85 +47,79 @@ export default function Index({ produits }) {
     page * rowsPerPage
   );
 
-  // Ouvrir popup suppression
-  const handleDeleteClick = (produit) => {
-    setSelectedProduit(produit);
+  // Click delete
+  const handleDeleteClick = (p) => {
+    setSelectedProduit(p);
     setDeleteDialogOpen(true);
   };
 
-  // Confirmer suppression
   const handleConfirmDelete = () => {
     Inertia.delete(route("produits.destroy", selectedProduit.id));
     setDeleteDialogOpen(false);
   };
 
   return (
-  <GuestLayout>
-  <Box sx={{ p: 3 }}>
-    <Card elevation={3} sx={{ borderRadius: 3 }}>
-      <CardHeader title="Liste des produits" 
-        action={
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<AddIcon />}
-                    onClick={() =>
-                      router.visit(route("produits.create"))
-                    }
-                  >
-                    Nouveau produit
-                  </Button>
-                }/>
+    <GuestLayout>
+      <Box sx={{ p: 2 }}>
+        {/* HEADER */}
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ mb: 2 }}
+        >
+          <Typography variant="h6" fontWeight={600}>
+            Produits
+          </Typography>
 
-      <Box sx={{ p: 3 }}>
-        {/* Barre de recherche et bouton ajouter */}
-        <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
-          <TextField
-            label="Rechercher par nom"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ width: 300 }}
-          />
-        </Box>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => router.visit(route("produits.create"))}
+          >
+            Nouveau
+          </Button>
+        </Stack>
 
-        {/* Tableau */}
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead sx={{ bgcolor: "#1976d2" }}>
-              <TableRow >
-                <TableCell  sx={{ cursor: "pointer", color: "#fff" }}>Photo</TableCell>
-                <TableCell sx={{ cursor: "pointer", color: "#fff" }}>Nom</TableCell>
-                <TableCell sx={{ cursor: "pointer", color: "#fff" }}>Prix</TableCell>
-                <TableCell  sx={{ cursor: "pointer", color: "#fff" }}align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedProduits.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    Aucun produit trouvé.
-                  </TableCell>
-                </TableRow>
-              )}
+        {/* SEARCH */}
+        <TextField
+          size="small"
+          fullWidth
+          placeholder="Rechercher un produit..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ mb: 2 }}
+        />
 
-              {paginatedProduits.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    {p.photo && (
-                      <img
-                        src={`/storage/${p.photo}`}
-                        style={{
-                          width: 60,
-                          height: 60,
-                          objectFit: "cover",
-                          borderRadius: 8,
-                        }}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell>{p.name}</TableCell>
-                  <TableCell>{p.sale_price} CFA</TableCell>
-                  <TableCell align="center">
+        {/* LISTE CARDS */}
+        {paginatedProduits.length === 0 ? (
+          <Typography align="center" sx={{ mt: 3 }}>
+            Aucun produit trouvé.
+          </Typography>
+        ) : (
+          <Stack spacing={2}>
+            {paginatedProduits.map((p) => (
+              <Card key={p.id} sx={{ borderRadius: 2, p: 1 }}>
+                <Stack direction="row" spacing={2} alignItems="center">
+
+                  {/* Photo */}
+                  <Avatar
+                    variant="rounded"
+                    src={`/storage/${p.photo}`}
+                    sx={{ width: 70, height: 70 }}
+                  />
+
+                  {/* Infos */}
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography fontWeight={600}>{p.name}</Typography>
+                    <Typography color="text.secondary">
+                      {p.sale_price} CFA
+                    </Typography>
+                  </Box>
+
+                  {/* Actions */}
+                  <Stack direction="row" spacing={1}>
                     <Tooltip title="Modifier">
                       <IconButton
                         color="primary"
@@ -144,16 +139,16 @@ export default function Index({ produits }) {
                         <DeleteIcon />
                       </IconButton>
                     </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                  </Stack>
+                </Stack>
+              </Card>
+            ))}
+          </Stack>
+        )}
 
         {/* Pagination */}
         {pageCount > 1 && (
-          <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+          <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
             <Pagination
               count={pageCount}
               page={page}
@@ -162,28 +157,23 @@ export default function Index({ produits }) {
             />
           </Box>
         )}
+
+        {/* Dialog suppression */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+        >
+          <DialogTitle>
+            Supprimer le produit "{selectedProduit?.name}" ?
+          </DialogTitle>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
+            <Button color="error" onClick={handleConfirmDelete}>
+              Supprimer
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
-    </Card>
-
-    {/* Dialog suppression */}
-    <Dialog
-      open={deleteDialogOpen}
-      onClose={() => setDeleteDialogOpen(false)}
-    >
-      <DialogTitle>
-        Voulez-vous vraiment supprimer le produit "{selectedProduit?.name}" ?
-      </DialogTitle>
-      <DialogActions>
-        <IconButton onClick={() => setDeleteDialogOpen(false)}>
-          Annuler
-        </IconButton>
-        <IconButton color="error" onClick={handleConfirmDelete}>
-          Supprimer
-        </IconButton>
-      </DialogActions>
-    </Dialog>
-  </Box>
-</GuestLayout>
-
+    </GuestLayout>
   );
 }
