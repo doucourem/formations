@@ -23,15 +23,16 @@ import {
   CircularProgress,
   Divider,
   Pagination,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import GuestLayout from "@/Layouts/GuestLayout";
 
 export default function TripsIndex({ initialTrips, initialFilters, buses = [], routes = [], userRole }) {
@@ -40,9 +41,10 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
   const [busId, setBusId] = useState(initialFilters?.bus_id || "");
   const [routeId, setRouteId] = useState(initialFilters?.route_id || "");
   const [loading, setLoading] = useState(false);
-  const [showExpenseForm, setShowExpenseForm] = useState(null); // trip.id du formulaire ouvert
+  const [openExpenseDialog, setOpenExpenseDialog] = useState(null); // trip.id du formulaire ouvert
   const [expensesForm, setExpensesForm] = useState({}); // { tripId: { type, amount, description } }
 
+  // Filtrage
   const filtrer = () => {
     setLoading(true);
     Inertia.get(
@@ -52,12 +54,7 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
     );
   };
 
-  const handleDelete = (id) => {
-    if (confirm("Voulez-vous vraiment supprimer ce trajet ?")) {
-      Inertia.delete(route("trips.destroy", id), { preserveState: true });
-    }
-  };
-
+  // Pagination
   const handlePage = (page) => {
     Inertia.get(route("trips.index"), { per_page: perPage, bus_id: busId, route_id: routeId, page }, {
       preserveState: true,
@@ -65,9 +62,7 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
     });
   };
 
-  const formatDateFR = (date) => date ? format(new Date(date), "dd MMM yyyy HH:mm", { locale: fr }) : "-";
-
-  // Gestion du formulaire de dépense
+  // Formulaire dépense
   const handleExpenseChange = (tripId, field, value) => {
     setExpensesForm((prev) => ({ ...prev, [tripId]: { ...prev[tripId], [field]: value } }));
   };
@@ -85,11 +80,13 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
             prev.data.map((t) => t.id === tripId ? { ...t, expenses: page.props.trip.expenses || t.expenses } : t)
           );
           setExpensesForm((prev) => ({ ...prev, [tripId]: {} }));
-          setShowExpenseForm(null);
+          setOpenExpenseDialog(null);
         },
       }
     );
   };
+
+  const formatDateFR = (date) => date ? format(new Date(date), "dd MMM yyyy HH:mm", { locale: fr }) : "-";
 
   return (
     <GuestLayout>
@@ -115,9 +112,7 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
               )
             }
           />
-
           <Divider />
-
           <CardContent>
             {/* FILTRAGE */}
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }} alignItems="center" flexWrap="wrap">
@@ -125,14 +120,11 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                 <MenuItem value="">Tous les bus</MenuItem>
                 {buses.map((bus) => <MenuItem key={bus.id} value={bus.id}>{bus.model || `Bus #${bus.id}`}</MenuItem>)}
               </TextField>
-
               <TextField select label="Route" value={routeId} onChange={(e) => setRouteId(e.target.value)} size="small" sx={{ minWidth: 180 }}>
                 <MenuItem value="">Toutes les routes</MenuItem>
                 {routes.map((route) => <MenuItem key={route.id} value={route.id}>{route.departureCity || "-"} → {route.arrivalCity || "-"}</MenuItem>)}
               </TextField>
-
               <TextField label="Résultats par page" type="number" value={perPage} onChange={(e) => setPerPage(e.target.value)} size="small" sx={{ width: 140 }} inputProps={{ min: 1 }} />
-
               <Button variant="contained" color="secondary" onClick={filtrer} disabled={loading}>
                 {loading ? <CircularProgress size={20} color="inherit" /> : "Filtrer"}
               </Button>
@@ -168,82 +160,104 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                               <Tooltip title="Voir les colis">
                                 <IconButton color="warning" size="small" component={Link} href={route("parcels.byTrip", trip.id)}><LocalShippingIcon /></IconButton>
                               </Tooltip>
-
-                               <Tooltip title="Ajouter dépense">
-                                  <IconButton color="primary" size="small" onClick={() => setShowExpenseForm(showExpenseForm === trip.id ? null : trip.id)}>
-                                    <AddCircleOutlineIcon />
-                                  </IconButton>
-                                </Tooltip>
-                         
+                              <Tooltip title="Ajouter dépense">
+                                <IconButton color="primary" size="small" onClick={() => setOpenExpenseDialog(trip.id)}>
+                                  <AddCircleOutlineIcon />
+                                </IconButton>
+                              </Tooltip>
                             </Stack>
                           </TableCell>
                         </TableRow>
 
                         {/* LISTE DES DÉPENSES EXISTANTES */}
-                      {showExpenseForm === trip.id && trip.expenses?.length > 0 && (
-  <TableRow>
-    <TableCell colSpan={8}>
-      <Typography variant="subtitle2" gutterBottom>💰 Liste des dépenses :</Typography>
-
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Type de dépense</TableCell>
-            <TableCell>Montant (FCFA)</TableCell>
-            <TableCell>Description</TableCell>
-          </TableRow>
-        </TableHead>
-
-        <TableBody>
-          {trip.expenses.map((exp) => (
-            <TableRow key={exp.id}>
-              <TableCell>
-                {{
-                  chauffeur: "Chauffeur",
-                  fuel: "Carburant",
-                  toll: "Péage",
-                  meal: "Restauration",
-                  maintenance: "Entretien",
-                  other: "Autre",
-                }[exp.type] || exp.type}
-              </TableCell>
-
-              <TableCell>{exp.amount.toLocaleString("fr-FR")}</TableCell>
-
-              <TableCell>{exp.description || "Aucune description"}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableCell>
-  </TableRow>
-)}
-
-                        {/* FORMULAIRE DE DEPENSES */}
-                        {showExpenseForm === trip.id && (
+                        {trip.expenses?.length > 0 && (
                           <TableRow>
                             <TableCell colSpan={8}>
-                              <Box component="form">
-                                <Stack spacing={2} sx={{ p: 2 }}>
-                                  <TextField select label="Type de dépense" fullWidth value={expensesForm[trip.id]?.type || "chauffeur"} onChange={(e) => handleExpenseChange(trip.id, "type", e.target.value)}>
-                                    <MenuItem value="chauffeur">Chauffeur</MenuItem>
-                                    <MenuItem value="fuel">Carburant</MenuItem>
-                                    <MenuItem value="toll">Péages</MenuItem>
-                                    <MenuItem value="meal">Restauration</MenuItem>
-                                    <MenuItem value="maintenance">Entretien</MenuItem>
-                                    <MenuItem value="other">Autres</MenuItem>
-                                  </TextField>
-
-                                  <TextField label="Montant (FCFA)" type="number" fullWidth value={expensesForm[trip.id]?.amount || 0} onChange={(e) => handleExpenseChange(trip.id, "amount", e.target.value)} />
-
-                                  <TextField label="Description (optionnel)" fullWidth multiline rows={2} value={expensesForm[trip.id]?.description || ""} onChange={(e) => handleExpenseChange(trip.id, "description", e.target.value)} />
-
-                                  <Button variant="contained" color="primary" onClick={() => submitExpense(trip.id)}>Ajouter la dépense</Button>
-                                </Stack>
-                              </Box>
+                              <Typography variant="subtitle2" gutterBottom>💰 Dépenses :</Typography>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Type</TableCell>
+                                    <TableCell>Montant (FCFA)</TableCell>
+                                    <TableCell>Description</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {trip.expenses.map((exp) => (
+                                    <TableRow key={exp.id}>
+                                      <TableCell>{{
+                                        chauffeur: "Chauffeur",
+                                        fuel: "Carburant",
+                                        toll: "Péage",
+                                        meal: "Restauration",
+                                        maintenance: "Entretien",
+                                        other: "Autre",
+                                      }[exp.type] || exp.type}</TableCell>
+                                      <TableCell>{exp.amount.toLocaleString("fr-FR")}</TableCell>
+                                      <TableCell>{exp.description || "-"}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
                             </TableCell>
                           </TableRow>
                         )}
+
+                        {/* FORMULAIRE DÉPENSES DANS DIALOG */}
+                        <Dialog
+                          open={openExpenseDialog === trip.id}
+                          onClose={() => setOpenExpenseDialog(null)}
+                          maxWidth="sm"
+                          fullWidth
+                        >
+                          <DialogTitle>➕ Ajouter une dépense</DialogTitle>
+                          <DialogContent>
+                            <Box component="form" sx={{ mt: 1 }}>
+                              <Stack spacing={2}>
+                                <TextField
+                                  select
+                                  label="Type de dépense"
+                                  fullWidth
+                                  value={expensesForm[trip.id]?.type || "chauffeur"}
+                                  onChange={(e) => handleExpenseChange(trip.id, "type", e.target.value)}
+                                >
+                                  <MenuItem value="chauffeur">Chauffeur</MenuItem>
+                                  <MenuItem value="fuel">Carburant</MenuItem>
+                                  <MenuItem value="toll">Péages</MenuItem>
+                                  <MenuItem value="meal">Restauration</MenuItem>
+                                  <MenuItem value="maintenance">Entretien</MenuItem>
+                                  <MenuItem value="other">Autres</MenuItem>
+                                </TextField>
+
+                                <TextField
+                                  label="Montant (FCFA)"
+                                  type="number"
+                                  fullWidth
+                                  value={expensesForm[trip.id]?.amount || 0}
+                                  onChange={(e) => handleExpenseChange(trip.id, "amount", e.target.value)}
+                                />
+
+                                <TextField
+                                  label="Description (optionnel)"
+                                  fullWidth
+                                  multiline
+                                  rows={2}
+                                  value={expensesForm[trip.id]?.description || ""}
+                                  onChange={(e) => handleExpenseChange(trip.id, "description", e.target.value)}
+                                />
+
+                                <Button
+                                  variant="contained"
+                                  color="primary"
+                                  onClick={() => submitExpense(trip.id)}
+                                >
+                                  Ajouter la dépense
+                                </Button>
+                              </Stack>
+                            </Box>
+                          </DialogContent>
+                        </Dialog>
+
                       </React.Fragment>
                     ))
                   ) : (

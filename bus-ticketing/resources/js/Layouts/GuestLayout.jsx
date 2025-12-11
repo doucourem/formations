@@ -47,6 +47,7 @@ const menus = {
           children: [
             { text: "Bus", route: route("buses.index") },
             { text: "Chauffeurs", route: route("drivers.index") },
+            { text: "Garage", route: route("garages.index") },
             { text: "Routes", route: route("busroutes.index") },
             { text: "Voyages", route: route("trips.index") }
           ]

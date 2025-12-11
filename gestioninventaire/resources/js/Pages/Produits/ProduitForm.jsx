@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Inertia } from "@inertiajs/inertia";
+import React, { useState, useEffect } from "react";
+import { useForm, router } from "@inertiajs/react";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
   Box,
@@ -19,37 +19,42 @@ import {
 } from "@mui/material";
 
 export default function ProduitForm({ produit, boutiques }) {
-  const [name, setName] = useState(produit?.name || "");
-  const [salePrice, setSalePrice] = useState(produit?.sale_price || "");
-  const [photo, setPhoto] = useState(null);
+  const isEdit = Boolean(produit?.id);
+
+  const form = useForm({
+    name: produit?.name || "",
+    sale_price: produit?.sale_price || "",
+    photo: null,
+    boutiques: produit?.boutiques?.map((b) => b.id) || [],
+  });
+
   const [preview, setPreview] = useState(
     produit?.photo ? `/storage/${produit.photo}` : null
   );
 
-  const [selectedBoutiques, setSelectedBoutiques] = useState(
-    produit?.boutiques?.map((b) => b.id) || []
-  );
+  // Mettre à jour le preview si l'utilisateur choisit une nouvelle photo
+  useEffect(() => {
+    if (form.data.photo) {
+      const objectUrl = URL.createObjectURL(form.data.photo);
+      setPreview(objectUrl);
 
-  const isEdit = Boolean(produit?.id);
+      // Cleanup
+      return () => URL.revokeObjectURL(objectUrl);
+    }
+  }, [form.data.photo]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("sale_price", salePrice);
-
-    if (photo) formData.append("photo", photo);
-
-    selectedBoutiques.forEach((id) => {
-      formData.append("boutiques[]", id);
-    });
-
     if (isEdit) {
-      formData.append("_method", "PUT");
-      Inertia.post(route("produits.update", produit.id), formData);
+      // PUT avec FormData pour le multipart
+      form.put(route("produits.update", produit.id), {
+        forceFormData: true,
+      });
     } else {
-      Inertia.post(route("produits.store"), formData);
+      form.post(route("produits.store"), {
+        forceFormData: true,
+      });
     }
   };
 
@@ -67,29 +72,33 @@ export default function ProduitForm({ produit, boutiques }) {
                 {/* Nom */}
                 <TextField
                   label="Nom du produit"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={form.data.name}
+                  onChange={(e) => form.setData("name", e.target.value)}
                   required
                   fullWidth
+                  error={!!form.errors.name}
+                  helperText={form.errors.name}
                 />
 
                 {/* Prix */}
                 <TextField
                   label="Prix de vente"
                   type="number"
-                  value={salePrice}
-                  onChange={(e) => setSalePrice(e.target.value)}
+                  value={form.data.sale_price}
+                  onChange={(e) => form.setData("sale_price", e.target.value)}
                   required
                   fullWidth
+                  error={!!form.errors.sale_price}
+                  helperText={form.errors.sale_price}
                 />
 
-                {/* Sélection boutiques */}
+                {/* Boutiques */}
                 <FormControl fullWidth>
                   <InputLabel>Boutiques</InputLabel>
                   <Select
                     multiple
-                    value={selectedBoutiques}
-                    onChange={(e) => setSelectedBoutiques(e.target.value)}
+                    value={form.data.boutiques}
+                    onChange={(e) => form.setData("boutiques", e.target.value)}
                     renderValue={(selected) =>
                       boutiques
                         .filter((b) => selected.includes(b.id))
@@ -99,19 +108,18 @@ export default function ProduitForm({ produit, boutiques }) {
                   >
                     {boutiques.map((b) => (
                       <MenuItem key={b.id} value={b.id}>
-                        <Checkbox checked={selectedBoutiques.includes(b.id)} />
+                        <Checkbox checked={form.data.boutiques.includes(b.id)} />
                         <ListItemText primary={b.name} />
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
 
-                {/* Upload photo */}
+                {/* Photo */}
                 <Box>
                   <Typography variant="subtitle1" mb={1}>
                     Photo du produit
                   </Typography>
-
                   <Box
                     sx={{
                       width: "100%",
@@ -134,9 +142,7 @@ export default function ProduitForm({ produit, boutiques }) {
                       accept="image/*"
                       onChange={(e) => {
                         if (!e.target.files[0]) return;
-                        const file = e.target.files[0];
-                        setPhoto(file);
-                        setPreview(URL.createObjectURL(file));
+                        form.setData("photo", e.target.files[0]);
                       }}
                     />
 
@@ -156,7 +162,9 @@ export default function ProduitForm({ produit, boutiques }) {
                         <Typography color="textSecondary">
                           Cliquer pour choisir une image
                         </Typography>
-                        <Typography variant="caption">(JPEG, PNG, max 2MB)</Typography>
+                        <Typography variant="caption">
+                          (JPEG, PNG, max 2MB)
+                        </Typography>
                       </Box>
                     )}
 
@@ -167,7 +175,7 @@ export default function ProduitForm({ produit, boutiques }) {
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setPhoto(null);
+                          form.setData("photo", null);
                           setPreview(null);
                         }}
                         sx={{
@@ -189,12 +197,16 @@ export default function ProduitForm({ produit, boutiques }) {
                 <Box display="flex" justifyContent="space-between" mt={2}>
                   <Button
                     variant="outlined"
-                    onClick={() => Inertia.visit(route("produits.index"))}
+                    onClick={() => router.visit(route("produits.index"))}
                   >
                     Annuler
                   </Button>
-
-                  <Button type="submit" variant="contained" color="primary">
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    disabled={form.processing}
+                  >
                     {isEdit ? "Mettre à jour" : "Créer"}
                   </Button>
                 </Box>

@@ -18,15 +18,17 @@ export default function MaintenanceForm({ bus, garages = [] }) {
     notes: "",
   });
 
-  const submit = (e) => {
-    e.preventDefault();
-    // Préparer FormData pour l'upload des fichiers
-    const formData = new FormData();
-    for (const key in form) {
-      formData.append(key, form[key]);
-    }
-    Inertia.post(route("bus.maintenance.store"), formData);
-  };
+const submit = (e) => {
+  e.preventDefault();
+  const formData = new FormData();
+  for (const key in form) {
+    formData.append(key, form[key]);
+  }
+  Inertia.post(route("bus.maintenance.store"), formData, {
+    onSuccess: () => closeDialog && closeDialog(),
+  });
+};
+
 
   return (
     <Box component="form" onSubmit={submit}>

@@ -1,12 +1,18 @@
-import React from "react";
-import { Box, Card, CardHeader, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Divider } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Card, CardHeader, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Divider, Button, Dialog, DialogTitle, DialogContent } from "@mui/material";
 import GuestLayout from "@/Layouts/GuestLayout";
 import MaintenanceForm from "./MaintenanceForm";
 
-export default function MaintenanceIndex({ bus, maintenances }) {
+
+export default function MaintenanceIndex({ bus, maintenances, garages }) {
+  const [open, setOpen] = useState(false);
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
   return (
     <GuestLayout>
-
+      {/* Card Informations bus */}
       <Card elevation={3} sx={{ p: 3, borderRadius: 3, mb: 4 }}>
         <CardHeader
           title={
@@ -15,16 +21,13 @@ export default function MaintenanceIndex({ bus, maintenances }) {
             </Typography>
           }
         />
-
         <Box mt={2}>
           <Typography variant="body1">
             <strong>Modèle :</strong> {bus.model || "—"}
           </Typography>
-
           <Typography variant="body1">
             <strong>Kilométrage actuel :</strong> {bus.current_km?.toLocaleString()} km
           </Typography>
-
           <Typography variant="body1" color="error">
             <strong>Prochaine maintenance prévue à :</strong>{" "}
             {bus.next_maintenance_km?.toLocaleString()} km
@@ -32,25 +35,26 @@ export default function MaintenanceIndex({ bus, maintenances }) {
         </Box>
       </Card>
 
-      {/* ========= FORMULAIRE =========== */}
-      <Card elevation={3} sx={{ p: 3, borderRadius: 3, mb: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          ➕ Ajouter une maintenance
-        </Typography>
+      {/* Bouton pour ouvrir le formulaire en pop-up */}
+      <Button variant="contained" color="primary" onClick={handleOpen} sx={{ mb: 3 }}>
+        ➕ Ajouter une maintenance
+      </Button>
 
-        <Divider sx={{ mb: 2 }} />
-
-        <MaintenanceForm bus={bus} />
-      </Card>
+      {/* Dialog / Pop-up */}
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+        <DialogTitle>➕ Ajouter une maintenance</DialogTitle>
+        <DialogContent>
+          <Divider sx={{ mb: 2 }} />
+          <MaintenanceForm bus={bus} garages={garages} closeDialog={handleClose} />
+        </DialogContent>
+      </Dialog>
 
       {/* ========= LISTE DES ENTRETIENS =========== */}
       <Card elevation={3} sx={{ p: 3, borderRadius: 3 }}>
         <Typography variant="h6" gutterBottom>
           📋 Liste des entretiens effectués
         </Typography>
-
         <Divider sx={{ mb: 2 }} />
-
         {maintenances.length === 0 ? (
           <Typography>Aucune maintenance enregistrée pour ce bus.</Typography>
         ) : (
@@ -65,7 +69,6 @@ export default function MaintenanceIndex({ bus, maintenances }) {
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Notes</TableCell>
                 </TableRow>
               </TableHead>
-
               <TableBody>
                 {maintenances.map((m) => (
                   <TableRow key={m.id}>
@@ -81,7 +84,7 @@ export default function MaintenanceIndex({ bus, maintenances }) {
           </TableContainer>
         )}
       </Card>
-
     </GuestLayout>
   );
 }
+

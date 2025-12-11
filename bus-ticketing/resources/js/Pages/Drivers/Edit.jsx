@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Inertia } from "@inertiajs/inertia";
+import React, { useState } from "react";
 import GuestLayout from "@/Layouts/GuestLayout";
+import { Inertia } from "@inertiajs/inertia";
 import {
   Card,
   CardContent,
@@ -12,15 +12,12 @@ import {
   Snackbar,
   Alert,
   Avatar,
+  IconButton,
+  Tooltip
 } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 export default function Edit({ driver }) {
-  // Protection si driver n'est pas encore chargé
-  if (!driver) {
-    return <GuestLayout><div>Chargement...</div></GuestLayout>;
-  }
-
-  // Formulaire
   const [form, setForm] = useState({
     first_name: driver.first_name || "",
     last_name: driver.last_name || "",
@@ -29,150 +26,136 @@ export default function Edit({ driver }) {
     birth_date: driver.birth_date || "",
     address: driver.address || "",
     photo: null,
+    remove_photo: false,
   });
 
-  // Preview photo
-  const [preview, setPreview] = useState(driver.photo || null);
+  const [preview, setPreview] = useState(
+    driver.photo ? `/storage/${driver.photo}` : null
+  );
 
-  // Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [localErrors, setLocalErrors] = useState({});
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  // Mise à jour des champs
+  const validateField = (name, value) => {
+    let err = "";
+
+    switch (name) {
+      case "first_name":
+        if (!value.trim()) err = "Le prénom est obligatoire";
+        break;
+      case "last_name":
+        if (!value.trim()) err = "Le nom est obligatoire";
+        break;
+      case "phone":
+        if (!/^\d{8}$/.test(value)) err = "Téléphone invalide (8 chiffres)";
+        break;
+      case "email":
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) err = "Email invalide";
+        break;
+      case "photo":
+        if (value) {
+          if (!["image/jpeg", "image/png"].includes(value.type)) err = "Formats autorisés : JPG, PNG";
+          if (value.size > 2 * 1024 * 1024) err = "La photo doit faire moins de 2 Mo";
+        }
+        break;
+      default: break;
+    }
+
+    setLocalErrors(prev => ({ ...prev, [name]: err }));
+  };
+
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    if (field === "phone") {
+      value = value.replace(/\D/g, "").slice(0, 8); // 8 chiffres
+    }
+    setForm(prev => ({ ...prev, [field]: value }));
+    validateField(field, value);
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setForm((prev) => ({ ...prev, photo: file }));
+      setForm(prev => ({ ...prev, photo: file, remove_photo: false }));
       setPreview(URL.createObjectURL(file));
+      validateField("photo", file);
     }
   };
 
-  // Soumission du formulaire
+  const handleRemovePhoto = () => {
+    setForm(prev => ({ ...prev, photo: null, remove_photo: true }));
+    setPreview(null);
+  };
+
+  const validateAll = () => {
+    ["first_name", "last_name", "phone", "email", "photo"].forEach(f => validateField(f, form[f]));
+    return Object.values(localErrors).every(err => !err);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validateAll()) return;
 
     const payload = new FormData();
-    Object.entries(form).forEach(([key, value]) => {
-      if (value !== null && value !== "") {
-        payload.append(key, value);
-      }
-    });
+    payload.append("first_name", form.first_name);
+    payload.append("last_name", form.last_name);
+    payload.append("phone", form.phone);
+    payload.append("email", form.email || "");
+    payload.append("birth_date", form.birth_date || "");
+    payload.append("address", form.address || "");
+    payload.append("remove_photo", form.remove_photo ? 1 : 0);
+
+    if (form.photo) payload.append("photo", form.photo);
 
     Inertia.put(route("drivers.update", driver.id), payload, {
       forceFormData: true,
-      onSuccess: () => {
-        setSnackbar({
-          open: true,
-          message: "Chauffeur mis à jour avec succès !",
-          severity: "success",
-        });
-      },
-      onError: (errors) => {
-        const message = errors ? Object.values(errors).join(", ") : "Erreur lors de la mise à jour.";
-        setSnackbar({
-          open: true,
-          message,
-          severity: "error",
-        });
-      },
+      onSuccess: () => setSnackbar({ open: true, message: "Chauffeur mis à jour avec succès !", severity: "success" }),
+      onError: (errors) => setSnackbar({
+        open: true,
+        message: errors && Object.values(errors).length ? Object.values(errors).join(", ") : "Erreur lors de la mise à jour.",
+        severity: "error"
+      }),
     });
   };
 
+  const allErrors = localErrors;
+
   return (
     <GuestLayout>
-      <Card sx={{ maxWidth: 600, mx: "auto", mt: 4, borderRadius: 3, p: 2 }}>
-        <CardHeader
-          title={<Typography variant="h5">Modifier Chauffeur</Typography>}
-        />
+      <Card sx={{ maxWidth: 650, mx: "auto", mt: 4, borderRadius: 4, p: 2 }}>
+        <CardHeader title={<Typography variant="h5" fontWeight="bold">Modifier Chauffeur</Typography>} sx={{ textAlign: "center" }} />
+
         <CardContent>
-          <Box
-            component="form"
-            encType="multipart/form-data"
-            onSubmit={handleSubmit}
-            display="flex"
-            flexDirection="column"
-            gap={2}
-          >
-            {/* Photo + Preview */}
+          <Box component="form" encType="multipart/form-data" onSubmit={handleSubmit} display="flex" flexDirection="column" gap={3}>
+            
+            {/* PHOTO */}
             <Box textAlign="center">
-              <Avatar
-                src={preview}
-                sx={{ width: 120, height: 120, mx: "auto", mb: 1 }}
-              />
-              <Button variant="contained" component="label">
-                Changer la photo
-                <input type="file" hidden accept="image/*" onChange={handleFileChange} />
-              </Button>
+              <Box sx={{ width: 130, height: 130, mx: "auto", borderRadius: 3, overflow: "hidden", border: "2px solid #ddd", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Avatar src={preview || "/default-avatar.png"} sx={{ width: "100%", height: "100%" }} variant="square" />
+              </Box>
+
+              <Box display="flex" justifyContent="center" gap={1} mt={1}>
+                <Button variant="contained" component="label">Changer photo
+                  <input type="file" hidden accept="image/*" onChange={handleFileChange} />
+                </Button>
+                {preview && <Tooltip title="Supprimer photo"><IconButton onClick={handleRemovePhoto} color="error"><DeleteIcon /></IconButton></Tooltip>}
+              </Box>
+              {allErrors.photo && <Typography color="error">{allErrors.photo}</Typography>}
             </Box>
 
-            <TextField
-              label="Prénom"
-              value={form.first_name}
-              onChange={(e) => handleChange("first_name", e.target.value)}
-              required
-              fullWidth
-            />
-            <TextField
-              label="Nom"
-              value={form.last_name}
-              onChange={(e) => handleChange("last_name", e.target.value)}
-              required
-              fullWidth
-            />
-            <TextField
-              label="Téléphone"
-              value={form.phone}
-              onChange={(e) => handleChange("phone", e.target.value)}
-              required
-              fullWidth
-            />
-            <TextField
-              label="Email"
-              type="email"
-              value={form.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Date de naissance"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={form.birth_date}
-              onChange={(e) => handleChange("birth_date", e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Adresse"
-              value={form.address}
-              onChange={(e) => handleChange("address", e.target.value)}
-              multiline
-              rows={2}
-              fullWidth
-            />
+            <TextField label="Prénom" value={form.first_name} onChange={e => handleChange("first_name", e.target.value)} error={!!allErrors.first_name} helperText={allErrors.first_name} fullWidth />
+            <TextField label="Nom" value={form.last_name} onChange={e => handleChange("last_name", e.target.value)} error={!!allErrors.last_name} helperText={allErrors.last_name} fullWidth />
+            <TextField label="Téléphone (8 chiffres)" value={form.phone} onChange={e => handleChange("phone", e.target.value)} error={!!allErrors.phone} helperText={allErrors.phone} fullWidth />
+            <TextField label="Email" type="email" value={form.email} onChange={e => handleChange("email", e.target.value)} error={!!allErrors.email} helperText={allErrors.email} fullWidth />
+            <TextField label="Date de naissance" type="date" value={form.birth_date} onChange={e => handleChange("birth_date", e.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
+            <TextField label="Adresse" value={form.address} onChange={e => handleChange("address", e.target.value)} multiline rows={2} fullWidth />
 
-            <Button type="submit" variant="contained" color="primary" size="large">
-              Enregistrer les modifications
-            </Button>
+            <Button type="submit" variant="contained" color="primary" sx={{ py: 1.2, borderRadius: 2, fontSize: "1rem" }}>Enregistrer</Button>
           </Box>
         </CardContent>
       </Card>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
+      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}>
+        <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
     </GuestLayout>
   );

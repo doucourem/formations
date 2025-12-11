@@ -21,15 +21,14 @@ use App\Http\Controllers\{
     BaggageController,
     TripAssignmentController,
     TripExpenseController,
-    BusMaintenanceController
+    BusMaintenanceController,
+    GarageController
 };
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('HomePage');
-})->name('home');
+Route::get('/', fn() => Inertia::render('HomePage'))->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -49,7 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 
-    // Daily Transfers Inertia
+    // Daily Transfers
     Route::get('/transfers/daily', fn() => Inertia::render('Transfers/DailyTransfers'))->name('transfers.daily');
     Route::get('/transfers/daily/data', [TransferController::class, 'daily'])->name('transfers.daily.data');
 
@@ -63,11 +62,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'ticket' => TicketController::class,
         'users' => UserController::class,
         'parcels' => ParcelController::class,
-        'drivers' => DriverController::class,
+        'drivers' => DriverController::class, // <-- Garde cette ligne avant les préfixes driver/{driver}
         'transfers' => TransferController::class,
         'trip-expenses' => TripExpenseController::class,
     ]);
+    Route::resource('garages', GarageController::class);
 
+    // Bus Maintenance
     Route::get('buses/{bus}/maintenance', [BusMaintenanceController::class, 'index'])->name('bus.maintenance.index');
     Route::post('maintenance/store', [BusMaintenanceController::class, 'store'])->name('bus.maintenance.store');
 
