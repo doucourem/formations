@@ -21,7 +21,9 @@ use App\Http\Controllers\{
     BaggageController,
     TripAssignmentController,
     FinancialNotesController,
-    ThirdPartyController
+    ThirdPartyController,
+    AccountingController,
+    HistoryController
 };
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -78,7 +80,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'transfers' => TransferController::class,
         'third-parties'=>  ThirdPartyController::class
     ]);
+Route::middleware(['auth'])->group(function () {
+    Route::get('/accounting', [AccountingController::class, 'index'])->name('accounting.index');
+    Route::post('/accounting/rate', [AccountingController::class, 'saveRate']);
+});
 
+
+
+Route::get('/history', [HistoryController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('history');
     // Buses -> Trips
     Route::get('/buses/{bus}/trips', [BusController::class, 'byBus'])->name('trips.byBus');
 

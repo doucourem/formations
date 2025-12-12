@@ -9,7 +9,10 @@ use App\Models\Bus;
 use App\Models\Driver;
 use App\Models\Parcel;
 use App\Models\Route as RouteModel;
-  use Illuminate\Support\Facades\DB;
+use App\Models\ThirdParty;
+use App\Models\Transaction;
+use App\Models\Payment;
+
 
 class DashboardController extends Controller
 {
@@ -19,7 +22,41 @@ class DashboardController extends Controller
     }
 
 
+  public function index2()
+    {
+        $clients = ThirdParty::all();
+        $transactions = Transaction::latest()->get();
+        $payments = Transaction::latest()->get();
 
+        // Calculs
+        $today = now()->startOfDay();
+        $todaysTransactions = $transactions->where('created_at', '>=', $today);
+        $todaysPayments = $payments->where('created_at', '>=', $today);
+
+        $totalPaidToday = $todaysPayments->sum('amount');
+        $totalToPayToday = $todaysTransactions->sum('amount_to_pay');
+
+        $totalAdvances = $clients->sum(function ($c) {
+            return $c->current_debt < 0 ? abs($c->current_debt) : 0;
+        });
+
+        $totalDebt = $clients->sum(function ($c) {
+            return $c->current_debt > 0 ? $c->current_debt : 0;
+        });
+
+        return Inertia::render('Dashboard', [
+            'clients' => $clients,
+            'transactions' => $transactions,
+            'payments' => $payments,
+            'todaysTransactionsCount' => $todaysTransactions->count(),
+            'todaysPaymentsCount' => $todaysPayments->count(),
+            'totalPaidToday' => $totalPaidToday,
+            'totalToPayToday' => $totalToPayToday,
+            'totalAdvances' => $totalAdvances,
+            'totalDebt' => $totalDebt,
+            'currentUser' => auth()->user(),
+        ]);
+    }
 private function parcelByRoute()
 {
     return Parcel::join('trips', 'parcels.trip_id', '=', 'trips.id')
@@ -143,3 +180,6 @@ $routes = RouteModel::with('trips.parcels')->get()->map(function($r) {
 
 
 }
+
+
+

@@ -7,9 +7,53 @@ use App\Models\Transfer;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
+use App\Models\ThirdParty;
+use App\Models\Payment;
+
 
 class PaymentController extends Controller
 {
+
+
+    public function index()
+{
+    $today = now()->startOfDay();
+    $tomorrow = now()->addDay()->startOfDay();
+
+    return Inertia::render('Payments/PaymentsPage', [
+        'clients' => ThirdParty::orderBy('name')->get(),
+        'payments' => Transaction::whereBetween('created_at', [$today, $tomorrow])
+            ->orderBy('created_at', 'desc')
+            ->with('client:id,name')
+            ->get(),
+        'today' => now()->translatedFormat('l d F Y'),
+    ]);
+}
+
+public function store(Request $request)
+{
+    $data = $request->validate([
+        'client_id' => 'required|exists:clients,id',
+        'amount' => 'required|numeric|min:0',
+        'notes' => 'nullable|string',
+    ]);
+
+    $client = ThirdParty::find($data['client_id']);
+
+    // Create payment
+    $payment = Transaction::create($data);
+
+    // Update client (totals)
+    $client->update([
+        'total_paid' => $client->total_paid + $data['amount'],
+        'previous_debt' => $client->current_debt,
+        'current_debt' => $client->current_debt - $data['amount'],
+    ]);
+
+    return back()->with('success', 'Paiement enregistré avec succès.');
+}
+
     /**
      * Process payment for a transfer
      */
