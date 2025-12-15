@@ -16,6 +16,10 @@ class Transfer extends Model
         'amount',
         'fees',
         'withdraw_code',
+        'amount_sent',
+        'amount_to_pay',
+          'code',
+        'notes',
         'status',
         'user_id',
     ];

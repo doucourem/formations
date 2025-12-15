@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { Inertia } from "@inertiajs/inertia";
 import {
@@ -16,6 +16,7 @@ import {
   Tooltip
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { router } from "@inertiajs/react";
 
 export default function Edit({ driver }) {
   const [form, setForm] = useState({
@@ -29,101 +30,110 @@ export default function Edit({ driver }) {
     remove_photo: false,
   });
 
-  const [preview, setPreview] = useState(
-    driver.photo ? `/storage/${driver.photo}` : null
-  );
-
+  const [preview, setPreview] = useState(driver.photo ? `/storage/${driver.photo}` : null);
   const [localErrors, setLocalErrors] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  const validateField = (name, value) => {
-    let err = "";
+  // Validation synchronisée
+  const validateAll = () => {
+    const errors = {};
 
-    switch (name) {
-      case "first_name":
-        if (!value.trim()) err = "Le prénom est obligatoire";
-        break;
-      case "last_name":
-        if (!value.trim()) err = "Le nom est obligatoire";
-        break;
-      case "phone":
-        if (!/^\d{8}$/.test(value)) err = "Téléphone invalide (8 chiffres)";
-        break;
-      case "email":
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) err = "Email invalide";
-        break;
-      case "photo":
-        if (value) {
-          if (!["image/jpeg", "image/png"].includes(value.type)) err = "Formats autorisés : JPG, PNG";
-          if (value.size > 2 * 1024 * 1024) err = "La photo doit faire moins de 2 Mo";
-        }
-        break;
-      default: break;
-    }
+    ["first_name", "last_name", "phone", "email", "photo"].forEach((field) => {
+      const value = form[field];
+      switch (field) {
+        case "first_name":
+          if (!value.trim()) errors.first_name = "Le prénom est obligatoire";
+          break;
+        case "last_name":
+          if (!value.trim()) errors.last_name = "Le nom est obligatoire";
+          break;
+        case "phone":
+          if (!/^\d{8}$/.test(value)) errors.phone = "Téléphone invalide (8 chiffres)";
+          break;
+        case "email":
+          if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) errors.email = "Email invalide";
+          break;
+        case "photo":
+          if (value) {
+            if (!["image/jpeg", "image/png"].includes(value.type)) errors.photo = "Formats autorisés : JPG, PNG";
+            if (value.size > 2 * 1024 * 1024) errors.photo = "La photo doit faire moins de 2 Mo";
+          }
+          break;
+        default:
+          break;
+      }
+    });
 
-    setLocalErrors(prev => ({ ...prev, [name]: err }));
+    setLocalErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleChange = (field, value) => {
-    if (field === "phone") {
-      value = value.replace(/\D/g, "").slice(0, 8); // 8 chiffres
-    }
+    if (field === "phone") value = value.replace(/\D/g, "").slice(0, 8);
     setForm(prev => ({ ...prev, [field]: value }));
-    validateField(field, value);
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setForm(prev => ({ ...prev, photo: file, remove_photo: false }));
-      setPreview(URL.createObjectURL(file));
-      validateField("photo", file);
-    }
+    if (!file) return;
+
+    setForm(prev => ({ ...prev, photo: file, remove_photo: false }));
+    setPreview(URL.createObjectURL(file));
   };
 
   const handleRemovePhoto = () => {
     setForm(prev => ({ ...prev, photo: null, remove_photo: true }));
     setPreview(null);
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const validateAll = () => {
-    ["first_name", "last_name", "phone", "email", "photo"].forEach(f => validateField(f, form[f]));
-    return Object.values(localErrors).every(err => !err);
-  };
+  if (!validateAll()) return;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!validateAll()) return;
+  const payload = new FormData();
+  payload.append("first_name", form.first_name);
+  payload.append("last_name", form.last_name);
+  payload.append("phone", form.phone);
+  payload.append("email", form.email || "");
+  payload.append("birth_date", form.birth_date || "");
+  payload.append("address", form.address || "");
+  payload.append("remove_photo", form.remove_photo ? 1 : 0);
+  if (form.photo) payload.append("photo", form.photo);
 
-    const payload = new FormData();
-    payload.append("first_name", form.first_name);
-    payload.append("last_name", form.last_name);
-    payload.append("phone", form.phone);
-    payload.append("email", form.email || "");
-    payload.append("birth_date", form.birth_date || "");
-    payload.append("address", form.address || "");
-    payload.append("remove_photo", form.remove_photo ? 1 : 0);
+  const isEdit = !!driver?.id; // true si édition, false si création
 
-    if (form.photo) payload.append("photo", form.photo);
-
-    Inertia.put(route("drivers.update", driver.id), payload, {
+  await router.post(
+   route("drivers.update", driver.id),
+    payload,
+    {
       forceFormData: true,
-      onSuccess: () => setSnackbar({ open: true, message: "Chauffeur mis à jour avec succès !", severity: "success" }),
-      onError: (errors) => setSnackbar({
-        open: true,
-        message: errors && Object.values(errors).length ? Object.values(errors).join(", ") : "Erreur lors de la mise à jour.",
-        severity: "error"
-      }),
-    });
-  };
+      onSuccess: () => {
+        setSnackbar({
+          open: true,
+          message: isEdit
+            ? "Chauffeur mis à jour avec succès !"
+            : "Chauffeur ajouté avec succès !",
+          severity: "success",
+        });
+      },
+      onError: (errors) => {
+        setSnackbar({
+          open: true,
+          message: errors
+            ? Object.values(errors).join(", ")
+            : "Erreur lors de l'enregistrement.",
+          severity: "error",
+        });
+      },
+    }
+  );
+};
 
-  const allErrors = localErrors;
 
   return (
     <GuestLayout>
       <Card sx={{ maxWidth: 650, mx: "auto", mt: 4, borderRadius: 4, p: 2 }}>
         <CardHeader title={<Typography variant="h5" fontWeight="bold">Modifier Chauffeur</Typography>} sx={{ textAlign: "center" }} />
-
         <CardContent>
           <Box component="form" encType="multipart/form-data" onSubmit={handleSubmit} display="flex" flexDirection="column" gap={3}>
             
@@ -139,13 +149,13 @@ export default function Edit({ driver }) {
                 </Button>
                 {preview && <Tooltip title="Supprimer photo"><IconButton onClick={handleRemovePhoto} color="error"><DeleteIcon /></IconButton></Tooltip>}
               </Box>
-              {allErrors.photo && <Typography color="error">{allErrors.photo}</Typography>}
+              {localErrors.photo && <Typography color="error">{localErrors.photo}</Typography>}
             </Box>
 
-            <TextField label="Prénom" value={form.first_name} onChange={e => handleChange("first_name", e.target.value)} error={!!allErrors.first_name} helperText={allErrors.first_name} fullWidth />
-            <TextField label="Nom" value={form.last_name} onChange={e => handleChange("last_name", e.target.value)} error={!!allErrors.last_name} helperText={allErrors.last_name} fullWidth />
-            <TextField label="Téléphone (8 chiffres)" value={form.phone} onChange={e => handleChange("phone", e.target.value)} error={!!allErrors.phone} helperText={allErrors.phone} fullWidth />
-            <TextField label="Email" type="email" value={form.email} onChange={e => handleChange("email", e.target.value)} error={!!allErrors.email} helperText={allErrors.email} fullWidth />
+            <TextField label="Prénom" value={form.first_name} onChange={e => handleChange("first_name", e.target.value)} error={!!localErrors.first_name} helperText={localErrors.first_name} fullWidth />
+            <TextField label="Nom" value={form.last_name} onChange={e => handleChange("last_name", e.target.value)} error={!!localErrors.last_name} helperText={localErrors.last_name} fullWidth />
+            <TextField label="Téléphone (8 chiffres)" value={form.phone} onChange={e => handleChange("phone", e.target.value)} error={!!localErrors.phone} helperText={localErrors.phone} fullWidth />
+            <TextField label="Email" type="email" value={form.email} onChange={e => handleChange("email", e.target.value)} error={!!localErrors.email} helperText={localErrors.email} fullWidth />
             <TextField label="Date de naissance" type="date" value={form.birth_date} onChange={e => handleChange("birth_date", e.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
             <TextField label="Adresse" value={form.address} onChange={e => handleChange("address", e.target.value)} multiline rows={2} fullWidth />
 

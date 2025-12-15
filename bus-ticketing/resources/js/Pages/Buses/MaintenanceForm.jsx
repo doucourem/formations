@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
-import { Box, TextField, Button, Stack, MenuItem, Typography } from "@mui/material";
+import { Box, TextField, Button, Stack, MenuItem, Typography, Divider } from "@mui/material";
 
 export default function MaintenanceForm({ bus, garages = [] }) {
   const [form, setForm] = useState({
@@ -18,101 +18,116 @@ export default function MaintenanceForm({ bus, garages = [] }) {
     notes: "",
   });
 
-const submit = (e) => {
-  e.preventDefault();
-  const formData = new FormData();
-  for (const key in form) {
-    formData.append(key, form[key]);
-  }
-  Inertia.post(route("bus.maintenance.store"), formData, {
-    onSuccess: () => closeDialog && closeDialog(),
-  });
-};
+  // Gestion unique des champs
+  const handleChange = (field) => (e) => {
+    const value = e.target.type === "file" ? e.target.files[0] : e.target.value;
+    setForm({ ...form, [field]: value });
+  };
 
+  const submit = (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    Object.entries(form).forEach(([key, value]) => {
+      if (value !== null && value !== "") {
+        formData.append(key, value);
+      }
+    });
+    Inertia.post(route("bus.maintenance.store"), formData, {
+      onSuccess: () => closeDialog && closeDialog(),
+    });
+  };
 
   return (
     <Box component="form" onSubmit={submit}>
-      <Typography variant="h6">Ajouter une maintenance</Typography>
+      <Typography variant="h6" mb={2}>
+        Ajouter une maintenance
+      </Typography>
 
-      <Stack spacing={2} sx={{ mt: 2 }}>
-        {/* Date */}
-        <TextField
-          fullWidth
-          type="date"
-          label="Date"
-          InputLabelProps={{ shrink: true }}
-          value={form.maintenance_date}
-          onChange={(e) => setForm({ ...form, maintenance_date: e.target.value })}
-        />
+      <Stack spacing={3}>
+        {/* Section Informations principales */}
+        <Stack spacing={2}>
+          <TextField
+            fullWidth
+            type="date"
+            label="Date"
+            InputLabelProps={{ shrink: true }}
+            value={form.maintenance_date}
+            onChange={handleChange("maintenance_date")}
+          />
 
-        {/* Type */}
-        <TextField
-          select
-          fullWidth
-          label="Type de maintenance"
-          value={form.type}
-          onChange={(e) => setForm({ ...form, type: e.target.value })}
-        >
-          <MenuItem value="vidange">Vidange</MenuItem>
-          <MenuItem value="pneus">Changement pneus</MenuItem>
-          <MenuItem value="freins">Freins</MenuItem>
-          <MenuItem value="moteur">Moteur</MenuItem>
-          <MenuItem value="autre">Autre</MenuItem>
-        </TextField>
+          <TextField
+            select
+            fullWidth
+            label="Type de maintenance"
+            value={form.type}
+            onChange={handleChange("type")}
+          >
+            {["vidange", "pneus", "freins", "moteur", "autre"].map((t) => (
+              <MenuItem key={t} value={t}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </MenuItem>
+            ))}
+          </TextField>
 
-        {/* Kilométrage */}
-        <TextField
-          type="number"
-          fullWidth
-          label="Kilométrage"
-          value={form.mileage}
-          onChange={(e) => setForm({ ...form, mileage: e.target.value })}
-        />
+          <TextField
+            type="number"
+            fullWidth
+            label="Kilométrage"
+            value={form.mileage}
+            onChange={handleChange("mileage")}
+          />
+        </Stack>
 
-        {/* Coût total */}
-        <TextField
-          type="number"
-          fullWidth
-          label="Coût total (FCFA)"
-          value={form.cost}
-          onChange={(e) => setForm({ ...form, cost: e.target.value })}
-        />
+        <Divider />
 
-        {/* Main d’œuvre */}
-        <TextField
-          type="number"
-          fullWidth
-          label="Coût main d’œuvre (FCFA)"
-          value={form.labour_cost}
-          onChange={(e) => setForm({ ...form, labour_cost: e.target.value })}
-        />
+        {/* Section Coûts */}
+        <Stack spacing={2}>
+          <TextField
+            type="number"
+            fullWidth
+            label="Coût total (FCFA)"
+            value={form.cost}
+            onChange={handleChange("cost")}
+          />
+          <TextField
+            type="number"
+            fullWidth
+            label="Coût main d’œuvre (FCFA)"
+            value={form.labour_cost}
+            onChange={handleChange("labour_cost")}
+          />
+        </Stack>
 
-        {/* Pièces changées */}
-        <TextField
-          fullWidth
-          multiline
-          rows={2}
-          label="Pièces changées"
-          value={form.parts}
-          onChange={(e) => setForm({ ...form, parts: e.target.value })}
-        />
+        <Divider />
 
-        {/* Durée en heures */}
-        <TextField
-          type="number"
-          fullWidth
-          label="Durée maintenance (heures)"
-          value={form.duration_hours}
-          onChange={(e) => setForm({ ...form, duration_hours: e.target.value })}
-        />
+        {/* Pièces et durée */}
+        <Stack spacing={2}>
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            label="Pièces changées"
+            value={form.parts}
+            onChange={handleChange("parts")}
+          />
+          <TextField
+            type="number"
+            fullWidth
+            label="Durée maintenance (heures)"
+            value={form.duration_hours}
+            onChange={handleChange("duration_hours")}
+          />
+        </Stack>
+
+        <Divider />
 
         {/* Garage */}
         <TextField
           select
-          label="Garage"
           fullWidth
+          label="Garage"
           value={form.garage_id}
-          onChange={(e) => setForm({ ...form, garage_id: e.target.value })}
+          onChange={handleChange("garage_id")}
         >
           {garages.map((garage) => (
             <MenuItem key={garage.id} value={garage.id}>
@@ -121,21 +136,25 @@ const submit = (e) => {
           ))}
         </TextField>
 
+        <Divider />
+
         {/* Photos */}
-        <TextField
-          type="file"
-          fullWidth
-          label="Photo avant"
-          InputLabelProps={{ shrink: true }}
-          onChange={(e) => setForm({ ...form, photo_before: e.target.files[0] })}
-        />
-        <TextField
-          type="file"
-          fullWidth
-          label="Photo après"
-          InputLabelProps={{ shrink: true }}
-          onChange={(e) => setForm({ ...form, photo_after: e.target.files[0] })}
-        />
+        <Stack spacing={2}>
+          <TextField
+            type="file"
+            fullWidth
+            label="Photo avant"
+            InputLabelProps={{ shrink: true }}
+            onChange={handleChange("photo_before")}
+          />
+          <TextField
+            type="file"
+            fullWidth
+            label="Photo après"
+            InputLabelProps={{ shrink: true }}
+            onChange={handleChange("photo_after")}
+          />
+        </Stack>
 
         {/* Notes */}
         <TextField
@@ -144,7 +163,7 @@ const submit = (e) => {
           rows={3}
           label="Notes"
           value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          onChange={handleChange("notes")}
         />
 
         <Button variant="contained" type="submit">

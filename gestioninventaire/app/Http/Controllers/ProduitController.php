@@ -6,106 +6,113 @@ use App\Models\Produit;
 use App\Models\Boutique;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class ProduitController extends Controller
 {
+    // Liste des produits
     public function index()
     {
         $produits = Produit::with('boutiques')->latest()->get();
 
-        return inertia('Produits/Index', [
-            'produits' => $produits
-        ]);
+        return Inertia::render('Produits/Index', compact('produits'));
     }
 
+    // Formulaire création
     public function create()
     {
-        return inertia('Produits/ProduitForm', [
+        $boutiques = Boutique::all();
+
+        return Inertia::render('Produits/ProduitForm', [
             'produit' => null,
-            'boutiques' => Boutique::all(), // 👈 important
+            'boutiques' => $boutiques,
         ]);
     }
 
-   public function store(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'sale_price' => 'required|numeric|min:0',
-        'photo' => 'nullable|image|max:10240',
-        'boutiques' => 'nullable|array',        // 👈 plus obligatoire
-        'boutiques.*' => 'exists:boutiques,id',
-    ]);
+    // Enregistrement nouveau produit
+    public function store(Request $request)
+    {
+        $data = $this->validateData($request);
 
-    $produit = Produit::create([
-        'name' => $request->name,
-        'sale_price' => $request->sale_price,
-    ]);
+        $produit = Produit::create($data);
 
-    // Associer seulement si boutiques envoyées
-    if (!empty($request->boutiques)) {
-        $produit->boutiques()->sync($request->boutiques);
+        // Sync boutiques si présentes
+        if (!empty($data['boutiques'])) {
+            $produit->boutiques()->sync($data['boutiques']);
+        }
+
+        // Gestion photo
+        $this->handlePhotoUpload($request, $produit);
+
+        return redirect()->route('produits.index')
+            ->with('success', 'Produit créé !');
     }
 
-    // Upload de la photo
-    if ($request->hasFile('photo')) {
-        $path = $request->photo->store('produits', 'public');
-        $produit->update(['photo' => $path]);
-    }
-
-    return redirect()->route('produits.index');
-}
-
-
+    // Formulaire édition
     public function edit(Produit $produit)
     {
-        return inertia('Produits/ProduitForm', [
-            'produit' => $produit->load('boutiques'), // 👈 charger relations existantes
-            'boutiques' => Boutique::all(),           // 👈 pour afficher le multi-select
+        $boutiques = Boutique::all();
+
+        return Inertia::render('Produits/ProduitForm', [
+            'produit' => $produit->load('boutiques'),
+            'boutiques' => $boutiques,
         ]);
     }
-public function update(Request $request, Produit $produit)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'sale_price' => 'required|numeric|min:0',
-        'photo' => 'nullable|image|max:10240',
-        'boutiques' => 'nullable|array',
-        'boutiques.*' => 'integer|exists:boutiques,id',
-    ]);
 
-    $produit->update([
-        'name' => $request->name,
-        'sale_price' => $request->sale_price,
-    ]);
+    // Mise à jour produit
+    public function update(Request $request, Produit $produit)
+    {
+        $data = $this->validateData($request);
 
-    dd($request->all());
-exit;
+        $produit->update($data);
 
-    // Sync sécurisé
-    $produit->boutiques()->sync($request->boutiques ?? []);
+        $produit->boutiques()->sync($data['boutiques'] ?? []);
 
-    if ($request->hasFile('photo')) {
-        if ($produit->photo) {
-            Storage::disk('public')->delete($produit->photo);
-        }
+        $this->handlePhotoUpload($request, $produit);
 
-        $path = $request->file('photo')->store('produits', 'public');
-        $produit->update(['photo' => $path]);
+        return redirect()->route('produits.index')
+            ->with('success', 'Produit mis à jour !');
     }
 
-    return redirect()->route('produits.index')->with('success', 'Produit mis à jour');
-}
-
-
+    // Suppression produit
     public function destroy(Produit $produit)
     {
+        // Supprime l'image si existe
         if ($produit->photo) {
             Storage::disk('public')->delete($produit->photo);
         }
 
-        $produit->boutiques()->detach(); // 👈 important : nettoyer relation pivot
+        $produit->boutiques()->detach();
         $produit->delete();
 
-        return redirect()->route('produits.index');
+        return redirect()->route('produits.index')
+            ->with('success', 'Produit supprimé !');
+    }
+
+    // Validation commune store/update
+    protected function validateData(Request $request): array
+    {
+        return $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'sale_price' => 'required|numeric|min:0',
+            'photo' => 'nullable|image|max:10240',
+            'boutiques' => 'nullable|array',
+            'boutiques.*' => 'exists:boutiques,id',
+        ]);
+    }
+
+    // Gestion de l'upload photo
+    protected function handlePhotoUpload(Request $request, Produit $produit): void
+    {
+        if ($request->hasFile('photo')) {
+            // Supprime ancienne photo si existante
+            if ($produit->photo) {
+                Storage::disk('public')->delete($produit->photo);
+            }
+
+            $path = $request->photo->store('produits', 'public');
+            $produit->update(['photo' => $path]);
+        }
     }
 }
