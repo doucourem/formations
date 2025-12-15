@@ -78,6 +78,9 @@ public function update(Request $request, Produit $produit)
         'sale_price' => $request->sale_price,
     ]);
 
+    dd($request->all());
+exit;
+
     // Sync sécurisé
     $produit->boutiques()->sync($request->boutiques ?? []);
 

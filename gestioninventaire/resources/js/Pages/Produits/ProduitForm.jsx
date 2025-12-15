@@ -19,14 +19,14 @@ import {
 } from "@mui/material";
 
 export default function ProduitForm({ produit, boutiques }) {
-  const isEdit = Boolean(produit?.id);
+  const isEdit = Boolean(produit?.id); // Détermine si c’est une édition
 
   const form = useForm({
-    name: produit?.name || "",
-    description: produit?.description || "",
-    sale_price: produit?.sale_price || 0,
+    name: produit?.name ?? "",
+    description: produit?.description ?? "",
+    sale_price: produit?.sale_price ?? 0,
     photo: null,
-    boutiques: produit?.boutiques?.map((b) => b.id) || [],
+    boutiques: produit?.boutiques?.map((b) => b.id) ?? [],
   });
 
   const [preview, setPreview] = useState(
@@ -36,8 +36,9 @@ export default function ProduitForm({ produit, boutiques }) {
   const [openZoom, setOpenZoom] = useState(false);
   const [scale, setScale] = useState(1);
 
-  const handleImageResize = (file, maxWidth = 800, maxHeight = 800) => {
-    return new Promise((resolve, reject) => {
+  // Redimensionnement image avant upload
+  const handleImageResize = (file, maxWidth = 800, maxHeight = 800) =>
+    new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
       reader.onload = (e) => (img.src = e.target.result);
@@ -50,12 +51,11 @@ export default function ProduitForm({ produit, boutiques }) {
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
 
         canvas.toBlob(
           (blob) => {
-            if (!blob) return reject();
+            if (!blob) return reject("Erreur lors du traitement de l'image");
             resolve(new File([blob], file.name, { type: file.type }));
           },
           file.type,
@@ -66,8 +66,8 @@ export default function ProduitForm({ produit, boutiques }) {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  };
 
+  // Preview image
   useEffect(() => {
     if (form.data.photo) {
       const objectUrl = URL.createObjectURL(form.data.photo);
@@ -85,20 +85,21 @@ export default function ProduitForm({ produit, boutiques }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Validation côté client
     let hasError = false;
-
     if (!form.data.name.trim()) {
       form.setError("name", "Le nom du produit est obligatoire");
       hasError = true;
     } else form.setError("name", "");
 
     if (!form.data.sale_price || Number(form.data.sale_price) <= 0) {
-      form.setError("sale_price", "Le prix de vente doit être supérieur à 0");
+      form.setError("sale_price", "Le prix doit être supérieur à 0");
       hasError = true;
     } else form.setError("sale_price", "");
 
     if (hasError) return;
 
+    // Soumission Inertia
     if (isEdit) {
       form.put(route("produits.update", produit.id), { forceFormData: true });
     } else {
@@ -117,38 +118,38 @@ export default function ProduitForm({ produit, boutiques }) {
           <CardContent>
             <form onSubmit={handleSubmit}>
               <Stack spacing={3}>
+                {/* Nom */}
                 <TextField
                   label="Nom du produit"
                   value={form.data.name}
                   onChange={(e) => form.setData("name", e.target.value)}
-                  placeholder="Entrez le nom du produit"
-                  required
                   fullWidth
                   error={!!form.errors.name}
                   helperText={form.errors.name}
                 />
 
+                {/* Prix */}
                 <TextField
                   label="Prix de vente"
                   type="number"
                   value={form.data.sale_price}
                   onChange={(e) => form.setData("sale_price", e.target.value)}
-                  required
                   fullWidth
                   error={!!form.errors.sale_price}
                   helperText={form.errors.sale_price}
                 />
 
+                {/* Description */}
                 <TextField
-                  label="Description du produit"
+                  label="Description"
                   value={form.data.description}
                   onChange={(e) => form.setData("description", e.target.value)}
                   fullWidth
                   multiline
                   rows={4}
-                  placeholder="Décrivez le produit..."
                 />
 
+                {/* Boutiques multi-select */}
                 <FormControl fullWidth>
                   <InputLabel>Boutiques</InputLabel>
                   <Select
@@ -171,12 +172,11 @@ export default function ProduitForm({ produit, boutiques }) {
                   </Select>
                 </FormControl>
 
-                {/* Upload photo */}
+                {/* Photo */}
                 <Box>
                   <Typography variant="subtitle1" mb={1}>
                     Photo du produit
                   </Typography>
-
                   <Box
                     sx={{
                       width: "100%",
@@ -186,7 +186,6 @@ export default function ProduitForm({ produit, boutiques }) {
                       border: "2px dashed #90caf9",
                       cursor: "pointer",
                       textAlign: "center",
-                      position: "relative",
                     }}
                     onClick={() => document.getElementById("photoInput").click()}
                   >
@@ -199,12 +198,10 @@ export default function ProduitForm({ produit, boutiques }) {
                         setError("");
                         if (!e.target.files[0]) return;
                         const file = e.target.files[0];
-
                         if (file.size > 10 * 1024 * 1024) {
-                          setError("La taille de l'image ne doit pas dépasser 10 MB");
+                          setError("Image max 10MB");
                           return;
                         }
-
                         try {
                           const resized = await handleImageResize(file);
                           form.setData("photo", resized);
@@ -213,7 +210,6 @@ export default function ProduitForm({ produit, boutiques }) {
                         }
                       }}
                     />
-
                     {preview ? (
                       <img
                         src={preview}
@@ -236,7 +232,6 @@ export default function ProduitForm({ produit, boutiques }) {
                       </Box>
                     )}
                   </Box>
-
                   {error && (
                     <Typography color="error" variant="caption">
                       {error}
@@ -244,6 +239,7 @@ export default function ProduitForm({ produit, boutiques }) {
                   )}
                 </Box>
 
+                {/* Actions */}
                 <Box display="flex" justifyContent="space-between">
                   <Button
                     variant="outlined"
@@ -261,7 +257,7 @@ export default function ProduitForm({ produit, boutiques }) {
         </Card>
       </Box>
 
-      {/* ZOOM MODAL */}
+      {/* Zoom Modal */}
       {openZoom && (
         <Box
           onClick={() => setOpenZoom(false)}
