@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 
 export default function ProduitForm({ produit, boutiques }) {
-  const isEdit = Boolean(produit?.id); // Détermine si c’est une édition
+  const isEdit = Boolean(produit?.id);
 
   const form = useForm({
     name: produit?.name ?? "",
@@ -36,7 +36,6 @@ export default function ProduitForm({ produit, boutiques }) {
   const [openZoom, setOpenZoom] = useState(false);
   const [scale, setScale] = useState(1);
 
-  // Redimensionnement image avant upload
   const handleImageResize = (file, maxWidth = 800, maxHeight = 800) =>
     new Promise((resolve, reject) => {
       const img = new Image();
@@ -51,11 +50,12 @@ export default function ProduitForm({ produit, boutiques }) {
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob(
           (blob) => {
-            if (!blob) return reject("Erreur lors du traitement de l'image");
+            if (!blob) return reject();
             resolve(new File([blob], file.name, { type: file.type }));
           },
           file.type,
@@ -67,7 +67,6 @@ export default function ProduitForm({ produit, boutiques }) {
       reader.readAsDataURL(file);
     });
 
-  // Preview image
   useEffect(() => {
     if (form.data.photo) {
       const objectUrl = URL.createObjectURL(form.data.photo);
@@ -85,23 +84,26 @@ export default function ProduitForm({ produit, boutiques }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Validation côté client
     let hasError = false;
+
     if (!form.data.name.trim()) {
       form.setError("name", "Le nom du produit est obligatoire");
       hasError = true;
     } else form.setError("name", "");
 
     if (!form.data.sale_price || Number(form.data.sale_price) <= 0) {
-      form.setError("sale_price", "Le prix doit être supérieur à 0");
+      form.setError("sale_price", "Le prix de vente doit être supérieur à 0");
       hasError = true;
     } else form.setError("sale_price", "");
 
     if (hasError) return;
 
-    // Soumission Inertia
     if (isEdit) {
-      form.put(route("produits.update", produit.id), { forceFormData: true });
+      // 🚀 Simulation PUT via POST pour supporter multipart/form-data
+      form.post(route("produits.update", produit.id), {
+        forceFormData: true,
+        data: { ...form.data, _method: "PUT" },
+      });
     } else {
       form.post(route("produits.store"), { forceFormData: true });
     }
@@ -118,44 +120,46 @@ export default function ProduitForm({ produit, boutiques }) {
           <CardContent>
             <form onSubmit={handleSubmit}>
               <Stack spacing={3}>
-                {/* Nom */}
                 <TextField
                   label="Nom du produit"
                   value={form.data.name}
                   onChange={(e) => form.setData("name", e.target.value)}
+                  placeholder="Entrez le nom du produit"
+                  required
                   fullWidth
                   error={!!form.errors.name}
                   helperText={form.errors.name}
                 />
 
-                {/* Prix */}
                 <TextField
                   label="Prix de vente"
                   type="number"
                   value={form.data.sale_price}
                   onChange={(e) => form.setData("sale_price", e.target.value)}
+                  required
                   fullWidth
                   error={!!form.errors.sale_price}
                   helperText={form.errors.sale_price}
                 />
 
-                {/* Description */}
                 <TextField
-                  label="Description"
+                  label="Description du produit"
                   value={form.data.description}
                   onChange={(e) => form.setData("description", e.target.value)}
                   fullWidth
                   multiline
                   rows={4}
+                  placeholder="Décrivez le produit..."
                 />
 
-                {/* Boutiques multi-select */}
                 <FormControl fullWidth>
                   <InputLabel>Boutiques</InputLabel>
                   <Select
                     multiple
                     value={form.data.boutiques}
-                    onChange={(e) => form.setData("boutiques", e.target.value)}
+                    onChange={(e) =>
+                      form.setData("boutiques", e.target.value)
+                    }
                     renderValue={(selected) =>
                       boutiques
                         .filter((b) => selected.includes(b.id))
@@ -165,14 +169,16 @@ export default function ProduitForm({ produit, boutiques }) {
                   >
                     {boutiques.map((b) => (
                       <MenuItem key={b.id} value={b.id}>
-                        <Checkbox checked={form.data.boutiques.includes(b.id)} />
+                        <Checkbox
+                          checked={form.data.boutiques.includes(b.id)}
+                        />
                         <ListItemText primary={b.name} />
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
 
-                {/* Photo */}
+                {/* Upload photo */}
                 <Box>
                   <Typography variant="subtitle1" mb={1}>
                     Photo du produit
@@ -186,8 +192,11 @@ export default function ProduitForm({ produit, boutiques }) {
                       border: "2px dashed #90caf9",
                       cursor: "pointer",
                       textAlign: "center",
+                      position: "relative",
                     }}
-                    onClick={() => document.getElementById("photoInput").click()}
+                    onClick={() =>
+                      document.getElementById("photoInput").click()
+                    }
                   >
                     <input
                       id="photoInput"
@@ -198,10 +207,14 @@ export default function ProduitForm({ produit, boutiques }) {
                         setError("");
                         if (!e.target.files[0]) return;
                         const file = e.target.files[0];
+
                         if (file.size > 10 * 1024 * 1024) {
-                          setError("Image max 10MB");
+                          setError(
+                            "La taille de l'image ne doit pas dépasser 10 MB"
+                          );
                           return;
                         }
+
                         try {
                           const resized = await handleImageResize(file);
                           form.setData("photo", resized);
@@ -239,7 +252,6 @@ export default function ProduitForm({ produit, boutiques }) {
                   )}
                 </Box>
 
-                {/* Actions */}
                 <Box display="flex" justifyContent="space-between">
                   <Button
                     variant="outlined"
@@ -247,7 +259,11 @@ export default function ProduitForm({ produit, boutiques }) {
                   >
                     Annuler
                   </Button>
-                  <Button type="submit" variant="contained" disabled={form.processing}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={form.processing}
+                  >
                     {isEdit ? "Mettre à jour" : "Créer"}
                   </Button>
                 </Box>
@@ -257,7 +273,7 @@ export default function ProduitForm({ produit, boutiques }) {
         </Card>
       </Box>
 
-      {/* Zoom Modal */}
+      {/* Zoom modal */}
       {openZoom && (
         <Box
           onClick={() => setOpenZoom(false)}
