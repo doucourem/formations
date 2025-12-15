@@ -23,7 +23,8 @@ export default function ProduitForm({ produit, boutiques }) {
 
   const form = useForm({
     name: produit?.name || "",
-    sale_price: produit?.sale_price || "",
+    description: produit?.description || "",
+    sale_price: produit?.sale_price || 0,
     photo: null,
     boutiques: produit?.boutiques?.map((b) => b.id) || [],
   });
@@ -31,22 +32,20 @@ export default function ProduitForm({ produit, boutiques }) {
   const [preview, setPreview] = useState(
     produit?.photo ? `/storage/${produit.photo}` : null
   );
+  const [error, setError] = useState("");
+  const [openZoom, setOpenZoom] = useState(false);
+  const [scale, setScale] = useState(1);
 
-  // Fonction pour redimensionner l'image
   const handleImageResize = (file, maxWidth = 800, maxHeight = 800) => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
-
-      reader.onload = (e) => {
-        img.src = e.target.result;
-      };
-
+      reader.onload = (e) => (img.src = e.target.result);
       img.onload = () => {
         let { width, height } = img;
         const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
-        width = width * ratio;
-        height = height * ratio;
+        width *= ratio;
+        height *= ratio;
 
         const canvas = document.createElement("canvas");
         canvas.width = width;
@@ -56,16 +55,15 @@ export default function ProduitForm({ produit, boutiques }) {
 
         canvas.toBlob(
           (blob) => {
-            if (!blob) return reject(new Error("Erreur de conversion de l'image"));
+            if (!blob) return reject();
             resolve(new File([blob], file.name, { type: file.type }));
           },
           file.type,
           0.8
         );
       };
-
-      img.onerror = () => reject(new Error("Impossible de charger l'image"));
-      reader.onerror = () => reject(new Error("Erreur de lecture du fichier"));
+      img.onerror = reject;
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   };
@@ -78,8 +76,29 @@ export default function ProduitForm({ produit, boutiques }) {
     }
   }, [form.data.photo]);
 
+  const handleWheelZoom = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    setScale((prev) => Math.min(Math.max(prev + delta, 0.5), 5));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    let hasError = false;
+
+    if (!form.data.name.trim()) {
+      form.setError("name", "Le nom du produit est obligatoire");
+      hasError = true;
+    } else form.setError("name", "");
+
+    if (!form.data.sale_price || Number(form.data.sale_price) <= 0) {
+      form.setError("sale_price", "Le prix de vente doit être supérieur à 0");
+      hasError = true;
+    } else form.setError("sale_price", "");
+
+    if (hasError) return;
+
     if (isEdit) {
       form.put(route("produits.update", produit.id), { forceFormData: true });
     } else {
@@ -102,6 +121,7 @@ export default function ProduitForm({ produit, boutiques }) {
                   label="Nom du produit"
                   value={form.data.name}
                   onChange={(e) => form.setData("name", e.target.value)}
+                  placeholder="Entrez le nom du produit"
                   required
                   fullWidth
                   error={!!form.errors.name}
@@ -117,6 +137,16 @@ export default function ProduitForm({ produit, boutiques }) {
                   fullWidth
                   error={!!form.errors.sale_price}
                   helperText={form.errors.sale_price}
+                />
+
+                <TextField
+                  label="Description du produit"
+                  value={form.data.description}
+                  onChange={(e) => form.setData("description", e.target.value)}
+                  fullWidth
+                  multiline
+                  rows={4}
+                  placeholder="Décrivez le produit..."
                 />
 
                 <FormControl fullWidth>
@@ -141,22 +171,22 @@ export default function ProduitForm({ produit, boutiques }) {
                   </Select>
                 </FormControl>
 
+                {/* Upload photo */}
                 <Box>
                   <Typography variant="subtitle1" mb={1}>
                     Photo du produit
                   </Typography>
+
                   <Box
                     sx={{
                       width: "100%",
                       maxWidth: 300,
                       borderRadius: 3,
                       overflow: "hidden",
-                      boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
                       border: "2px dashed #90caf9",
                       cursor: "pointer",
                       textAlign: "center",
                       position: "relative",
-                      "&:hover": { backgroundColor: "#e3f2fd" },
                     }}
                     onClick={() => document.getElementById("photoInput").click()}
                   >
@@ -166,20 +196,20 @@ export default function ProduitForm({ produit, boutiques }) {
                       hidden
                       accept="image/*"
                       onChange={async (e) => {
+                        setError("");
                         if (!e.target.files[0]) return;
                         const file = e.target.files[0];
 
-                        if (!file.type.startsWith("image/")) {
-                          alert("Veuillez choisir une image valide (JPEG, PNG)");
+                        if (file.size > 10 * 1024 * 1024) {
+                          setError("La taille de l'image ne doit pas dépasser 10 MB");
                           return;
                         }
 
                         try {
-                          const resizedFile = await handleImageResize(file, 800, 800);
-                          form.setData("photo", resizedFile);
-                        } catch (err) {
-                          console.error(err);
-                          alert("Erreur lors de la préparation de l'image");
+                          const resized = await handleImageResize(file);
+                          form.setData("photo", resized);
+                        } catch {
+                          setError("Erreur image");
                         }
                       }}
                     />
@@ -188,63 +218,40 @@ export default function ProduitForm({ produit, boutiques }) {
                       <img
                         src={preview}
                         alt="Preview"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setScale(1);
+                          setOpenZoom(true);
+                        }}
                         style={{
                           width: "100%",
                           maxHeight: 220,
                           objectFit: "cover",
-                          display: "block",
+                          cursor: "zoom-in",
                         }}
                       />
                     ) : (
                       <Box sx={{ p: 4 }}>
-                        <Typography color="textSecondary">
-                          Cliquer pour choisir une image
-                        </Typography>
-                        <Typography variant="caption">
-                          (JPEG, PNG, max 2MB)
-                        </Typography>
+                        <Typography>Cliquer pour choisir une image</Typography>
                       </Box>
                     )}
-
-                    {preview && (
-                      <Button
-                        variant="contained"
-                        color="error"
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          form.setData("photo", null);
-                          setPreview(null);
-                        }}
-                        sx={{
-                          position: "absolute",
-                          top: 5,
-                          right: 5,
-                          minWidth: "unset",
-                          padding: "4px 8px",
-                          fontSize: "0.7rem",
-                          pointerEvents: "auto",
-                        }}
-                      >
-                        ✕
-                      </Button>
-                    )}
                   </Box>
+
+                  {error && (
+                    <Typography color="error" variant="caption">
+                      {error}
+                    </Typography>
+                  )}
                 </Box>
 
-                <Box display="flex" justifyContent="space-between" mt={2}>
+                <Box display="flex" justifyContent="space-between">
                   <Button
                     variant="outlined"
                     onClick={() => router.visit(route("produits.index"))}
                   >
                     Annuler
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    disabled={form.processing}
-                  >
+                  <Button type="submit" variant="contained" disabled={form.processing}>
                     {isEdit ? "Mettre à jour" : "Créer"}
                   </Button>
                 </Box>
@@ -253,6 +260,37 @@ export default function ProduitForm({ produit, boutiques }) {
           </CardContent>
         </Card>
       </Box>
+
+      {/* ZOOM MODAL */}
+      {openZoom && (
+        <Box
+          onClick={() => setOpenZoom(false)}
+          sx={{
+            position: "fixed",
+            inset: 0,
+            bgcolor: "rgba(0,0,0,0.85)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 3000,
+          }}
+        >
+          <img
+            src={preview}
+            alt="Zoom"
+            onWheel={handleWheelZoom}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "90%",
+              maxHeight: "90%",
+              transform: `scale(${scale})`,
+              transition: "transform 0.1s",
+              borderRadius: 12,
+              cursor: "grab",
+            }}
+          />
+        </Box>
+      )}
     </GuestLayout>
   );
 }

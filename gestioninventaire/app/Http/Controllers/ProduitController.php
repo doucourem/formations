@@ -31,7 +31,7 @@ class ProduitController extends Controller
     $request->validate([
         'name' => 'required|string|max:255',
         'sale_price' => 'required|numeric|min:0',
-        'photo' => 'nullable|image|max:2048',
+        'photo' => 'nullable|image|max:10240',
         'boutiques' => 'nullable|array',        // 👈 plus obligatoire
         'boutiques.*' => 'exists:boutiques,id',
     ]);
@@ -63,38 +63,36 @@ class ProduitController extends Controller
             'boutiques' => Boutique::all(),           // 👈 pour afficher le multi-select
         ]);
     }
+public function update(Request $request, Produit $produit)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'sale_price' => 'required|numeric|min:0',
+        'photo' => 'nullable|image|max:10240',
+        'boutiques' => 'nullable|array',
+        'boutiques.*' => 'integer|exists:boutiques,id',
+    ]);
 
-    public function update(Request $request, Produit $produit)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'sale_price' => 'required|numeric|min:0',
-            'photo' => 'nullable|image|max:2048',
-            'boutiques' => 'nullable|array',            // 👈 ajouté
-            'boutiques.*' => 'exists:boutiques,id',  // 👈 ajouté
-        ]);
+    $produit->update([
+        'name' => $request->name,
+        'sale_price' => $request->sale_price,
+    ]);
 
-        $produit->update([
-            'name' => $request->name,
-            'sale_price' => $request->sale_price,
-        ]);
+    // Sync sécurisé
+    $produit->boutiques()->sync($request->boutiques ?? []);
 
-        // Synchronisation boutiques
-        $produit->boutiques()->sync($request->boutiques);
-
-        // Remplacement de l'image si nouvelle
-        if ($request->hasFile('photo')) {
-
-            if ($produit->photo) {
-                Storage::disk('public')->delete($produit->photo);
-            }
-
-            $path = $request->photo->store('produits', 'public');
-            $produit->update(['photo' => $path]);
+    if ($request->hasFile('photo')) {
+        if ($produit->photo) {
+            Storage::disk('public')->delete($produit->photo);
         }
 
-        return redirect()->route('produits.index');
+        $path = $request->file('photo')->store('produits', 'public');
+        $produit->update(['photo' => $path]);
     }
+
+    return redirect()->route('produits.index')->with('success', 'Produit mis à jour');
+}
+
 
     public function destroy(Produit $produit)
     {
