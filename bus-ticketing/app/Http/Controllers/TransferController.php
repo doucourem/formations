@@ -165,4 +165,63 @@ public function daily(Request $request)
         $transfer->delete();
         return back();
     }
+
+    public function exportTransfersSummary(Request $request)
+{
+    $query = Transfer::with(['sender', 'receiver']);
+
+    if ($request->sender) {
+        $query->whereHas('sender', fn($q) => $q->where('name', 'like', "%{$request->sender}%"));
+    }
+    if ($request->receiver) {
+        $query->whereHas('receiver', fn($q) => $q->where('name', 'like', "%{$request->receiver}%"));
+    }
+    if ($request->code) {
+        $query->where('withdraw_code', $request->code);
+    }
+    if ($request->status) {
+        $query->where('status', $request->status);
+    }
+
+    $transfers = $query->orderByDesc('created_at')->get();
+
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+
+    $sheet->fromArray([
+        ['ID', 'Expéditeur', 'Destinataire', 'Montant', 'Code retrait', 'Statut', 'Paiement reçu', 'Date']
+    ], null, 'A1');
+
+    $ligne = 2;
+    foreach ($transfers as $t) {
+        $sheet->setCellValue('A'.$ligne, $t->id)
+              ->setCellValue('B'.$ligne, $t->sender->name)
+              ->setCellValue('C'.$ligne, $t->receiver->name)
+              ->setCellValue('D'.$ligne, $t->amount)
+              ->setCellValue('E'.$ligne, $t->withdraw_code)
+              ->setCellValue('F'.$ligne, match($t->status) {
+                  'paid' => 'Payé',
+                  'pending' => 'En attente',
+                  'cancelled' => 'Annulé',
+                  default => 'Inconnu',
+              })
+              ->setCellValue('G'.$ligne, $t->paid ? 'Oui' : 'Non')
+              ->setCellValue('H'.$ligne, $t->created_at->format('d/m/Y H:i'));
+        $ligne++;
+    }
+
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $nomFichier = 'transfers_export_' . now()->format('Ymd_His') . '.xlsx';
+
+    ob_end_clean();
+
+    return response()->stream(function() use ($writer) {
+        $writer->save('php://output');
+    }, 200, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition' => 'attachment; filename="'. $nomFichier .'"',
+        'Cache-Control' => 'max-age=0',
+    ]);
+}
+
 }

@@ -9,7 +9,8 @@ use App\Models\Bus;
 use App\Models\Route as TripRoute;
 use Illuminate\Support\Facades\Redirect;
 use Carbon\Carbon;
-
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class TripController extends Controller
 {
 public function index(Request $request)
@@ -242,4 +243,247 @@ public function index(Request $request)
             'trip' => $tripData,
         ]);
     }
+
+
+
+public function exportExcel(Request $request)
+{
+    $busId = $request->input('bus_id');
+    $routeId = $request->input('route_id');
+
+    // 🔍 Récupération des trajets avec relations
+    $trips = Trip::with([
+        'bus',
+        'expenses',
+        'route.departureCity',
+        'route.arrivalCity',
+    ])
+    ->withCount('tickets')
+    ->when($busId, fn($q) => $q->where('bus_id', $busId))
+    ->when($routeId, fn($q) => $q->where('route_id', $routeId))
+    ->orderByDesc('departure_at')
+    ->get();
+
+    // 📊 Création du fichier Excel
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+
+    // 📝 En-têtes
+    $sheet->fromArray([
+        ['ID', 'Bus', 'Immatriculation', 'Capacité', 'Route', 'Prix de base', 'Nombre tickets', 'Places disponibles', 'Dépenses totales']
+    ], null, 'A1');
+
+    $ligne = 2;
+    foreach ($trips as $trip) {
+        $bus = $trip->bus;
+        $route = $trip->route;
+
+        $placesDispo = max(($bus->capacity ?? 0) - $trip->tickets_count, 0);
+        $depensesTotales = $trip->expenses->sum('amount');
+
+        $sheet->setCellValue('A'.$ligne, $trip->id)
+              ->setCellValue('B'.$ligne, $bus?->model ?? '-')
+              ->setCellValue('C'.$ligne, $bus?->registration_number ?? '-')
+              ->setCellValue('D'.$ligne, $bus?->capacity ?? 0)
+              ->setCellValue('E'.$ligne, ($route?->departureCity?->name ?? '-') . ' → ' . ($route?->arrivalCity?->name ?? '-'))
+              ->setCellValue('F'.$ligne, $route?->price ?? 0)
+              ->setCellValue('G'.$ligne, $trip->tickets_count)
+              ->setCellValue('H'.$ligne, $placesDispo)
+              ->setCellValue('I'.$ligne, $depensesTotales);
+
+        $ligne++;
+    }
+
+    $writer = new Xlsx($spreadsheet);
+    $nomFichier = 'trips_export_' . now()->format('Ymd_His') . '.xlsx';
+
+    // ⚡ Vider le buffer pour éviter la corruption
+    ob_end_clean();
+
+    // 📤 Retour du fichier Excel
+    return response()->stream(function() use ($writer) {
+        $writer->save('php://output');
+    }, 200, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition' => 'attachment; filename="'. $nomFichier .'"',
+        'Cache-Control' => 'max-age=0',
+    ]);
+}
+
+public function exportDetailedTrips(Request $request)
+{
+    $busId = $request->input('bus_id');
+    $routeId = $request->input('route_id');
+
+    // 🔍 Récupération des trajets avec tickets et relations
+    $trips = Trip::with([
+        'bus',
+        'route.departureCity',
+        'route.arrivalCity',
+        'tickets',
+        'expenses'
+    ])
+    ->when($busId, fn($q) => $q->where('bus_id', $busId))
+    ->when($routeId, fn($q) => $q->where('route_id', $routeId))
+    ->orderByDesc('departure_at')
+    ->get();
+
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+
+    // 📝 En-têtes
+    $sheet->fromArray([
+        [
+            'ID Trajet', 'Date départ', 'Date arrivée', 'Bus', 'Immatriculation', 'Route',
+            'Prix du trajet', 'Nom client', 'Siège', 'Statut ticket', 'Prix ticket', 'Dépenses totales'
+        ]
+    ], null, 'A1');
+
+    $ligne = 2;
+
+    foreach ($trips as $trip) {
+        $bus = $trip->bus;
+        $route = $trip->route;
+        $depensesTotales = $trip->expenses->sum('amount');
+
+        // Si aucun ticket, créer une ligne vide pour le trajet
+        if ($trip->tickets->isEmpty()) {
+            $sheet->setCellValue('A'.$ligne, $trip->id)
+                  ->setCellValue('B'.$ligne, optional($trip->departure_at)->format('d/m/Y H:i'))
+                  ->setCellValue('C'.$ligne, optional($trip->arrival_at)->format('d/m/Y H:i'))
+                  ->setCellValue('D'.$ligne, $bus?->model ?? '-')
+                  ->setCellValue('E'.$ligne, $bus?->registration_number ?? '-')
+                  ->setCellValue('F'.$ligne, ($route?->departureCity?->name ?? '-') . ' → ' . ($route?->arrivalCity?->name ?? '-'))
+                  ->setCellValue('G'.$ligne, $route?->price ?? 0)
+                  ->setCellValue('H'.$ligne, '-')
+                  ->setCellValue('I'.$ligne, '-')
+                  ->setCellValue('J'.$ligne, '-')
+                  ->setCellValue('K'.$ligne, '-')
+                  ->setCellValue('L'.$ligne, $depensesTotales);
+            $ligne++;
+            continue;
+        }
+
+        foreach ($trip->tickets as $ticket) {
+            // Traduction du statut
+            $statutFr = match($ticket->status) {
+                'paid' => 'Payé',
+                'reserved' => 'Réservé',
+                'cancelled' => 'Annulé',
+                default => 'Inconnu',
+            };
+
+            $sheet->setCellValue('A'.$ligne, $trip->id)
+                  ->setCellValue('B'.$ligne, optional($trip->departure_at)->format('d/m/Y H:i'))
+                  ->setCellValue('C'.$ligne, optional($trip->arrival_at)->format('d/m/Y H:i'))
+                  ->setCellValue('D'.$ligne, $bus?->model ?? '-')
+                  ->setCellValue('E'.$ligne, $bus?->registration_number ?? '-')
+                  ->setCellValue('F'.$ligne, ($route?->departureCity?->name ?? '-') . ' → ' . ($route?->arrivalCity?->name ?? '-'))
+                  ->setCellValue('G'.$ligne, $route?->price ?? 0)
+                  ->setCellValue('H'.$ligne, $ticket->client_name)
+                  ->setCellValue('I'.$ligne, $ticket->seat_number)
+                  ->setCellValue('J'.$ligne, $statutFr)
+                  ->setCellValue('K'.$ligne, $ticket->price)
+                  ->setCellValue('L'.$ligne, $depensesTotales);
+
+            $ligne++;
+        }
+    }
+
+    $writer = new Xlsx($spreadsheet);
+    $nomFichier = 'trips_detailed_export_' . now()->format('Ymd_His') . '.xlsx';
+
+    ob_end_clean();
+
+    return response()->stream(function() use ($writer) {
+        $writer->save('php://output');
+    }, 200, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition' => 'attachment; filename="'. $nomFichier .'"',
+        'Cache-Control' => 'max-age=0',
+    ]);
+}
+
+public function exportTripsSummary(Request $request)
+{
+    $busId = $request->input('bus_id');
+    $routeId = $request->input('route_id');
+
+    // 🔍 Récupération des trajets avec relations
+    $trips = Trip::with([
+        'bus',
+        'route.departureCity',
+        'route.arrivalCity',
+        'tickets',
+        'expenses',
+    ])
+    ->when($busId, fn($q) => $q->where('bus_id', $busId))
+    ->when($routeId, fn($q) => $q->where('route_id', $routeId))
+    ->orderByDesc('departure_at')
+    ->get();
+
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+
+    // 📝 En-têtes
+    $sheet->fromArray([
+        [
+            'ID Trajet', 'Date départ', 'Date arrivée', 'Bus', 'Immatriculation', 'Route',
+            'Prix de base', 'Tickets vendus', 'Places disponibles', 'Statuts tickets', 'Total tickets', 'Dépenses totales'
+        ]
+    ], null, 'A1');
+
+    $ligne = 2;
+
+    foreach ($trips as $trip) {
+        $bus = $trip->bus;
+        $route = $trip->route;
+        $tickets = $trip->tickets;
+        $depensesTotales = $trip->expenses->sum('amount');
+
+        $placesDispo = max(($bus->capacity ?? 0) - $tickets->count(), 0);
+
+        // Résumé des statuts des tickets
+        $statutsSummary = [
+            'Payé' => $tickets->where('status', 'paid')->count(),
+            'Réservé' => $tickets->where('status', 'reserved')->count(),
+            'Annulé' => $tickets->where('status', 'cancelled')->count(),
+        ];
+
+        $statutsText = implode(', ', array_map(fn($k,$v) => "$k: $v", array_keys($statutsSummary), $statutsSummary));
+
+        $totalTicketPrice = $tickets->sum('price');
+
+        $sheet->setCellValue('A'.$ligne, $trip->id)
+              ->setCellValue('B'.$ligne, optional($trip->departure_at)->format('d/m/Y H:i'))
+              ->setCellValue('C'.$ligne, optional($trip->arrival_at)->format('d/m/Y H:i'))
+              ->setCellValue('D'.$ligne, $bus?->model ?? '-')
+              ->setCellValue('E'.$ligne, $bus?->registration_number ?? '-')
+              ->setCellValue('F'.$ligne, ($route?->departureCity?->name ?? '-') . ' → ' . ($route?->arrivalCity?->name ?? '-'))
+              ->setCellValue('G'.$ligne, $route?->price ?? 0)
+              ->setCellValue('H'.$ligne, $tickets->count())
+              ->setCellValue('I'.$ligne, $placesDispo)
+              ->setCellValue('J'.$ligne, $statutsText)
+              ->setCellValue('K'.$ligne, $totalTicketPrice)
+              ->setCellValue('L'.$ligne, $depensesTotales);
+
+        $ligne++;
+    }
+
+    $writer = new Xlsx($spreadsheet);
+    $nomFichier = 'trips_summary_export_' . now()->format('Ymd_His') . '.xlsx';
+
+    ob_end_clean();
+
+    return response()->stream(function() use ($writer) {
+        $writer->save('php://output');
+    }, 200, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition' => 'attachment; filename="'. $nomFichier .'"',
+        'Cache-Control' => 'max-age=0',
+    ]);
+}
+
+
+
 }

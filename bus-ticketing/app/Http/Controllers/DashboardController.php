@@ -8,8 +8,13 @@ use App\Models\Trip;
 use App\Models\Bus;
 use App\Models\Driver;
 use App\Models\Parcel;
+use App\Models\BusMaintenance as Maintenance;
+use App\Models\baggages as Baggage;
 use App\Models\Route as RouteModel;
-  use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -125,6 +130,166 @@ private function parcelByRoute()
 
         return Inertia::render('Dashboard/Abonnements', compact('abonnements'));
     }
+
+
+
+
+
+
+public function exportConsolidated()
+{
+    $spreadsheet = new Spreadsheet();
+
+    // ---------------------------
+    // Onglet Ventes
+    // ---------------------------
+    $spreadsheet->setActiveSheetIndex(0);
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Ventes');
+    $sheet->fromArray(
+        array_merge([['Date', 'Revenue', 'Tickets']], $this->getSalesData())
+    );
+
+    // ---------------------------
+    // Onglet Trajets
+    // ---------------------------
+    $tripsSheet = $spreadsheet->createSheet();
+    $tripsSheet->setTitle('Trajets');
+    $tripsSheet->fromArray(
+        array_merge(
+            [['ID','Route','Bus','Départ','Arrivée','Prix','Places dispo']],
+            $this->getTripsData()
+        )
+    );
+
+    // ---------------------------
+    // Onglet Bagages
+    // ---------------------------
+    $baggagesSheet = $spreadsheet->createSheet();
+    $baggagesSheet->setTitle('Bagages');
+    $baggagesSheet->fromArray(
+        array_merge(
+            [['Ticket','Poids (kg)','Prix FCFA']],
+            $this->getBaggagesData()
+        )
+    );
+
+    // ---------------------------
+    // Onglet Colis
+    // ---------------------------
+    $parcelsSheet = $spreadsheet->createSheet();
+    $parcelsSheet->setTitle('Colis');
+    $parcelsSheet->fromArray(
+        array_merge(
+            [['Route','Nombre de colis','Revenus']],
+            $this->getParcelData()
+        )
+    );
+
+    // ---------------------------
+    // Onglet Maintenance
+    // ---------------------------
+    $maintenanceSheet = $spreadsheet->createSheet();
+    $maintenanceSheet->setTitle('Maintenance');
+    $maintenanceSheet->fromArray(
+        array_merge(
+            [['Bus','Date maintenance','Type','Coût']],
+            $this->getMaintenanceData()
+        )
+    );
+
+    // Assurer que le premier onglet s'affiche par défaut
+    $spreadsheet->setActiveSheetIndex(0);
+
+    // ---------------------------
+    // Export Excel
+    // ---------------------------
+    $writer = new Xlsx($spreadsheet);
+    $fileName = 'rapport_transport.xlsx';
+
+    return response()->stream(function() use ($writer) {
+        $writer->save('php://output');
+    }, 200, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+    ]);
+}
+
+// ---------------------------
+// Fonctions pour récupérer les données
+// ---------------------------
+
+// Ventes
+protected function getSalesData()
+{
+    $sales = Ticket::selectRaw('DATE(created_at) as date, SUM(price) as revenue, COUNT(*) as tickets')
+        ->where('created_at', '>=', now()->subMonth())
+        ->groupBy('date')
+        ->orderBy('date')
+        ->get();
+
+    return $sales->map(fn($s) => [
+        $s->date,
+        $s->revenue,
+        $s->tickets,
+    ])->toArray() ?: [];
+}
+
+// Trajets
+protected function getTripsData()
+{
+    $trips = Trip::with('route.departureCity', 'route.arrivalCity', 'bus')->get();
+
+    return $trips->map(fn($t) => [
+        $t->id,
+        ($t->route ? ($t->route->departureCity->name ?? '-') . ' → ' . ($t->route->arrivalCity->name ?? '-') : '-'),
+        $t->bus->model ?? '-',
+        $t->departure_at ? Carbon::parse($t->departure_at)->format('Y-m-d H:i') : '-',
+        $t->arrival_at ? Carbon::parse($t->arrival_at)->format('Y-m-d H:i') : '-',
+        $t->route->price ?? 0,
+        $t->places_dispo ?? 0,
+    ])->toArray() ?: [];
+}
+
+// Bagages
+protected function getBaggagesData()
+{
+    $baggages = Baggage::with('ticket')->get();
+
+    return $baggages->map(fn($b) => [
+        $b->ticket->id ?? '-',
+        $b->weight ?? 0,
+        $b->price ?? 0,
+    ])->toArray() ?: [];
+}
+
+// Colis
+protected function getParcelData()
+{
+    $parcels = Parcel::with('trip.route.departureCity', 'trip.route.arrivalCity')->get();
+
+    return $parcels->map(fn($p) => [
+        ($p->trip && $p->trip->route)
+            ? ($p->trip->route->departureCity->name ?? '-') . ' → ' . ($p->trip->route->arrivalCity->name ?? '-')
+            : '-',
+        $p->quantity ?? 0,
+        $p->revenue ?? 0,
+    ])->toArray() ?: [];
+}
+
+// Maintenance
+protected function getMaintenanceData()
+{
+    $maintenances = Maintenance::with('bus')->get();
+
+    return $maintenances->map(fn($m) => [
+        $m->bus->registration_number ?? '-',
+        $m->date ? Carbon::parse($m->date)->format('Y-m-d') : '-',
+        $m->type ?? '-',
+        $m->cost ?? 0,
+    ])->toArray() ?: [];
+}
+
 
 
 }

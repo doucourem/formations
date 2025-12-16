@@ -25,6 +25,8 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { Stack } from '@mui/material';
+
 
 
 export default function Index({ parcels, filters }) {
@@ -66,14 +68,31 @@ export default function Index({ parcels, filters }) {
         <CardHeader
           title={<Typography variant="h5">📦 Liste des Colis</Typography>}
           action={
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={() => Inertia.get(route('parcels.create'))}
-            >
-              Ajouter un colis
-            </Button>
+           <Stack spacing={2} direction="row">
+  <Button
+    variant="contained"
+    color="primary"
+    startIcon={<AddIcon />}
+    onClick={() => Inertia.get(route('parcels.create'))}
+  >
+    Ajouter un colis
+  </Button>
+
+  <Button
+    variant="outlined"
+    onClick={() => window.location.href = route('parcels.export')}
+  >
+    Export Résumé Excel
+  </Button>
+
+  <Button
+    variant="outlined"
+    onClick={() => window.location.href = route('parcels.export-detailed')}
+  >
+    Export Détail Excel
+  </Button>
+</Stack>
+
           }
         />
 

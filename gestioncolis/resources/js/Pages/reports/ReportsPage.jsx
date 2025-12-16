@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { usePage, router } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
-
+import GuestLayout from '@/Layouts/GuestLayout';
 export default function ReportsPage() {
   const { reports } = usePage().props; // Laravel doit passer les données dans 'reports'
   const [startDate, setStartDate] = useState("");
@@ -52,6 +52,7 @@ export default function ReportsPage() {
   };
 
   return (
+    <GuestLayout>
     <div className="p-6">
       <h1 className="text-xl font-bold">Rapports</h1>
 
@@ -115,5 +116,6 @@ export default function ReportsPage() {
         </tbody>
       </table>
     </div>
+    </GuestLayout>
   );
 }

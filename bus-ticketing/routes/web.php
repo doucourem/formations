@@ -36,6 +36,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [DashboardController::class, 'data']);
     Route::get('/abonnements', [DashboardController::class, 'abonnements']);
+    Route::get('/export-consolidated', [DashboardController::class, 'exportConsolidated'])
+    ->name('export.consolidated');
 
     // Notifications
     Route::get('/send-sms', [NotificationController::class, 'sendSms']);
@@ -51,6 +53,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Daily Transfers
     Route::get('/transfers/daily', fn() => Inertia::render('Transfers/DailyTransfers'))->name('transfers.daily');
     Route::get('/transfers/daily/data', [TransferController::class, 'daily'])->name('transfers.daily.data');
+
+     Route::get('/trips/export', [TripController::class, 'exportTripsSummary'])->name('trips.export');
+Route::get('/trips/export-detailed', [TripController::class, 'exportDetailedTrips'])->name('trips.export-detailed');
+
+
+Route::get('/parcels/export', [ParcelController::class, 'exportSummary'])->name('parcels.export');
+Route::get('/parcels/export-detailed', [ParcelController::class, 'exportDetailed'])->name('parcels.export-detailed');
 
     // CRUD standard
     Route::resources([
@@ -71,6 +80,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Bus Maintenance
     Route::get('buses/{bus}/maintenance', [BusMaintenanceController::class, 'index'])->name('bus.maintenance.index');
     Route::post('maintenance/store', [BusMaintenanceController::class, 'store'])->name('bus.maintenance.store');
+// routes/web.php
+Route::put('maintenance/{maintenance}', [BusMaintenanceController::class, 'update'])
+    ->name('bus.maintenance.update');
 
     // Buses -> Trips
     Route::get('/buses/{bus}/trips', [BusController::class, 'byBus'])->name('trips.byBus');
@@ -82,9 +94,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
     Route::get('/tickets/daily-summary', [TicketController::class, 'dailySummary'])->name('tickets.daily-summary');
 
+    Route::get('/tickets/export', [TicketController::class, 'export'])
+    ->name('ticket.export');
     // Parcels by Trip
     Route::get('/trips/{trip}/parcels', [ParcelController::class, 'indexByTrip'])->name('parcels.byTrip');
-
     // Payments
     Route::post('/payment/process', [PaymentController::class, 'process'])->name('payment.process');
 

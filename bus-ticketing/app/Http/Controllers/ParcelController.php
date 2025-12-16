@@ -7,6 +7,8 @@ use App\Models\Trip; // <-- 1. Import the Trip model
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Inertia\Inertia;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class ParcelController extends Controller
 {
     /**
@@ -285,6 +287,101 @@ public function show(Parcel $parcel)
         ],
     ]);
 }
+
+
+
+
+    // Export résumé
+    public function exportSummary()
+    {
+        $parcels = Parcel::with(['trip'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // En-têtes
+        $sheet->fromArray([
+            ['ID', 'Trip', 'Expéditeur', 'Destinataire', 'Poids', 'Prix', 'Statut', 'Créé le']
+        ], null, 'A1');
+
+        $row = 2;
+
+        foreach ($parcels as $parcel) {
+            $sheet->setCellValue('A'.$row, $parcel->id)
+                  ->setCellValue('B'.$row, $parcel->trip?->id ?? '-')
+                 ->setCellValue('C'.$row, $parcel->sender_name ?? '-')
+                 ->setCellValue('D'.$row, $parcel->recipient_name ?? '-')
+                  ->setCellValue('E'.$row, $parcel->weight)
+                  ->setCellValue('F'.$row, $parcel->price)
+                  ->setCellValue('G'.$row, ucfirst($parcel->status))
+                  ->setCellValue('H'.$row, optional($parcel->created_at)->format('d/m/Y H:i'));
+
+            $row++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'parcels_summary_' . now()->format('Ymd_His') . '.xlsx';
+
+        ob_end_clean();
+
+        return response()->stream(function() use ($writer) {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="'. $filename .'"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    // Export détaillé
+    public function exportDetailed()
+    {
+        $parcels = Parcel::with(['trip.bus', 'trip.route.departureCity', 'trip.route.arrivalCity'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->fromArray([
+            ['ID', 'Trip ID', 'Bus', 'Route', 'Expéditeur', 'Destinataire', 'Poids', 'Prix', 'Statut', 'Créé le']
+        ], null, 'A1');
+
+        $row = 2;
+
+        foreach ($parcels as $parcel) {
+            $route = $parcel->trip?->route;
+            $bus = $parcel->trip?->bus;
+
+            $sheet->setCellValue('A'.$row, $parcel->id)
+                  ->setCellValue('B'.$row, $parcel->trip?->id ?? '-')
+                  ->setCellValue('C'.$row, $bus?->model ?? '-')
+                  ->setCellValue('D'.$row, ($route?->departureCity?->name ?? '-') . ' → ' . ($route?->arrivalCity?->name ?? '-'))
+                 ->setCellValue('C'.$row, $parcel->sender_name ?? '-')
+                 ->setCellValue('D'.$row, $parcel->recipient_name ?? '-')
+                  ->setCellValue('G'.$row, $parcel->weight)
+                  ->setCellValue('H'.$row, $parcel->price)
+                  ->setCellValue('I'.$row, ucfirst($parcel->status))
+                  ->setCellValue('J'.$row, optional($parcel->created_at)->format('d/m/Y H:i'));
+
+            $row++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'parcels_detailed_' . now()->format('Ymd_His') . '.xlsx';
+
+        ob_end_clean();
+
+        return response()->stream(function() use ($writer) {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="'. $filename .'"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
 
 
 

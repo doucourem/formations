@@ -97,6 +97,14 @@ export default function TicketsIndex({ tickets }) {
               >
                 Résumé par jour
               </Button>
+              <Button
+    variant="contained"
+    color="primary"
+    onClick={() => window.location.href = route('ticket.export')}
+>
+    Exporter Excel
+</Button>
+
             </Stack>
           }
         />

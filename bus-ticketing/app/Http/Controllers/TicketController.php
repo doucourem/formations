@@ -8,7 +8,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
-
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class TicketController extends Controller
 {
     /**
@@ -82,25 +83,28 @@ public function index(Request $request)
 
 
 public function dailySummary(Request $request)
-    {
-        // Optionnel : filtrer par agence, utilisateur ou dates
-        $ticketsQuery = Ticket::query();
+{
+    // 🔹 Base query
+    $ticketsQuery = Ticket::query();
 
-        if ($request->has('from') && $request->has('to')) {
-            $from = Carbon::parse($request->from)->startOfDay();
-            $to = Carbon::parse($request->to)->endOfDay();
-            $ticketsQuery->whereBetween('created_at', [$from, $to]);
-        }
-
-        $tickets = $ticketsQuery
-            ->select('id', 'created_at', 'price')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return Inertia::render('Tickets/DailyTicketsSummary', [
-            'tickets' => $tickets,
-        ]);
+    // 🔹 Filtrage par dates si fourni
+    if ($request->filled('from') && $request->filled('to')) {
+        $from = Carbon::parse($request->from)->startOfDay();
+        $to = Carbon::parse($request->to)->endOfDay();
+        $ticketsQuery->whereBetween('created_at', [$from, $to]);
     }
+
+    // 🔹 Récupération tickets avec tri DESC
+    $tickets = $ticketsQuery
+        ->select('id', 'created_at', 'price')
+        ->orderBy('created_at', 'asc')
+        ->get();
+
+    // 🔹 Retour vers Inertia
+    return Inertia::render('Tickets/DailyTicketsSummary', [
+        'tickets' => $tickets,
+    ]);
+}
 
     /**
      * ➕ Formulaire de création
@@ -440,5 +444,64 @@ public function webhookSearch(Request $request)
         'tickets' => $response,
     ]);
 }
+
+public function export(Request $request)
+{
+    // 🔍 Récupération des tickets avec relations
+    $tickets = Ticket::with(['trip.route.departureCity', 'trip.route.arrivalCity', 'baggages'])
+        ->orderBy('id', 'desc')
+        ->get();
+
+    // 📊 Création du fichier Excel
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+
+    // 📝 En-têtes des colonnes
+    $sheet->fromArray([
+        ['ID', 'Client', 'Statut du ticket', 'Siège', 'Prix', 'Itinéraire', 'Nombre de bagages', 'Poids total bagages', 'Prix total bagages']
+    ], null, 'A1');
+
+    $ligne = 2;
+    foreach ($tickets as $ticket) {
+        $route = $ticket->trip?->route;
+
+        // 🔹 Traduction du statut en français
+        $statutFr = match($ticket->status) {
+            'paid' => 'Payé',
+            'reserved' => 'Réservé',
+            'cancelled' => 'Annulé',
+            default => 'Inconnu',
+        };
+
+        $sheet->setCellValue('A'.$ligne, $ticket->id)
+              ->setCellValue('B'.$ligne, $ticket->client_name)
+              ->setCellValue('C'.$ligne, $statutFr) // statut en français
+              ->setCellValue('D'.$ligne, $ticket->seat_number)
+              ->setCellValue('E'.$ligne, $ticket->price)
+              ->setCellValue('F'.$ligne, $route && $route->departureCity && $route->arrivalCity
+                  ? $route->departureCity->name.' → '.$route->arrivalCity->name
+                  : null)
+              ->setCellValue('G'.$ligne, $ticket->baggages->count())
+              ->setCellValue('H'.$ligne, $ticket->baggages->sum('weight'))
+              ->setCellValue('I'.$ligne, $ticket->baggages->sum('price'));
+        $ligne++;
+    }
+
+    $writer = new Xlsx($spreadsheet);
+    $nomFichier = 'tickets_export_'.now()->format('Ymd_His').'.xlsx';
+
+    // ⚡ Vider le buffer pour éviter la corruption
+    ob_end_clean();
+
+    // 📤 Retour du fichier Excel
+    return response()->stream(function() use ($writer) {
+        $writer->save('php://output');
+    }, 200, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition' => 'attachment; filename="'. $nomFichier .'"',
+        'Cache-Control' => 'max-age=0',
+    ]);
+}
+
 
 }

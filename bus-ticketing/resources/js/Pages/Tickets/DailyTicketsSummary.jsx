@@ -31,26 +31,40 @@ export default function DailyTicketsSummary({ tickets = [] }) {
   const user = auth?.user || {};
 
   // 🔹 Calcul résumé par jour (très robuste)
-  const dailySummary = useMemo(() => {
-    const summary = {};
+ const dailySummary = useMemo(() => {
+  const summary = {};
 
-    tickets.forEach(ticket => {
-      const date = new Date(ticket.created_at).toISOString().split("T")[0]; 
-      // Format "YYYY-MM-DD"
+  tickets.forEach(ticket => {
+    if (!ticket.created_at) return;
 
-      if (!summary[date]) summary[date] = { count: 0, total: 0 };
-      summary[date].count += 1;
-      summary[date].total += Number(ticket.price) || 0;
-    });
+    // 🔒 Sécurisé pour Laravel
+    const dateObj = new Date(ticket.created_at.replace(' ', 'T'));
+    if (isNaN(dateObj)) return;
 
-    return Object.entries(summary)
-      .map(([date, data]) => ({
-        date,
-        ...data,
-        displayDate: new Date(date).toLocaleDateString(), // format human friendly
-      }))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-  }, [tickets]);
+    const key = dateObj.toISOString().slice(0, 10); // YYYY-MM-DD
+
+    if (!summary[key]) {
+      summary[key] = {
+        date: key,
+        timestamp: dateObj.getTime(),
+        count: 0,
+        total: 0,
+      };
+    }
+
+    summary[key].count += 1;
+    summary[key].total += Number(ticket.price) || 0;
+  });
+
+ return Object.values(summary)
+  .sort((a, b) => b.timestamp - a.timestamp) // 🔹 Plus récent en premier
+  .map(d => ({
+    ...d,
+    displayDate: new Date(d.date).toLocaleDateString("fr-FR"),
+  }));
+
+}, [tickets]);
+
 
   return (
     <GuestLayout>

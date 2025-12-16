@@ -12,31 +12,34 @@ use App\Models\Payment;
 class HistoryController extends Controller
 {
     public function index(Request $request)
-    {
-        $startDate = $request->input('startDate', now()->startOfDay()->toDateString());
-        $endDate = $request->input('endDate', now()->toDateString());
-        $clientId = $request->input('clientId');
+{
+    $startDate = $request->input('startDate', now()->startOfDay()->toDateString());
+    $endDate = $request->input('endDate', now()->toDateString());
+    $clientId = $request->input('clientId');
 
-        $clients = ThirdParty::all();
-        $transactions = Transaction::with('client')
-            ->when($clientId, fn($q) => $q->where('client_id', $clientId))
-            ->whereDate('created_at', '>=', $startDate)
-            ->whereDate('created_at', '<=', $endDate)
-            ->get();
+    // Récupérer les clients
+    $clients = ThirdParty::all();
 
-        $payments = Transaction::with('client')
-            ->when($clientId, fn($q) => $q->where('client_id', $clientId))
-            ->whereDate('created_at', '>=', $startDate)
-            ->whereDate('created_at', '<=', $endDate)
-            ->get();
+    // Transactions filtrées par client et date
+    $transactions = Transaction::with('transfer.thirdParty')
+        ->when($clientId, fn($q) => $q->whereHas('transfer', fn($q2) => $q2->where('third_party_id', $clientId)))
+        ->whereDate('created_at', '>=', $startDate)
+        ->whereDate('created_at', '<=', $endDate)
+        ->get();
 
-        return Inertia::render('History', [
-            'clients' => $clients,
-            'transactions' => $transactions,
-            'payments' => $payments,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'selectedClient' => $clientId ? Client::find($clientId) : null
-        ]);
-    }
+    // Paiements filtrés par client et date (si tu as un type ou un statut "payment")
+    $payments = $transactions->where('type', 'payment'); // ou autre critère pour distinguer
+
+    $transactionsOnly = $transactions->where('type', 'transfer'); // ou autre critère
+
+    return Inertia::render('History/index', [
+        'clients' => $clients,
+        'transactions' => $transactionsOnly,
+        'payments' => $payments,
+        'startDate' => $startDate,
+        'endDate' => $endDate,
+        'selectedClient' => $clientId ? ThirdParty::find($clientId) : null
+    ]);
+}
+
 }

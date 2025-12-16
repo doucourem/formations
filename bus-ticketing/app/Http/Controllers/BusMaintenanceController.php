@@ -58,4 +58,39 @@ if (!empty($validated['mileage'])) {
 }
         return back()->with('success', 'Maintenance ajoutée avec succès');
     }
+
+
+    // app/Http/Controllers/BusMaintenanceController.php
+
+public function update(Request $request, BusMaintenance $maintenance)
+{
+    $validated = $request->validate([
+        'maintenance_date' => 'required|date',
+        'type' => 'required|string',
+        'mileage' => 'nullable|integer|min:0',
+        'cost' => 'nullable|numeric|min:0',
+        'labour_cost' => 'nullable|numeric|min:0',
+        'parts' => 'nullable|string',
+        'duration_hours' => 'nullable|numeric|min:0',
+        'garage_id' => 'nullable|exists:garages,id',
+        'photo_before' => 'nullable|image|max:2048',
+        'photo_after' => 'nullable|image|max:2048',
+        'notes' => 'nullable|string',
+    ]);
+
+    if ($request->hasFile('photo_before')) {
+        $validated['photo_before'] =
+            $request->file('photo_before')->store('maintenances', 'public');
+    }
+
+    if ($request->hasFile('photo_after')) {
+        $validated['photo_after'] =
+            $request->file('photo_after')->store('maintenances', 'public');
+    }
+
+    $maintenance->update($validated);
+
+    return back()->with('success', 'Maintenance mise à jour');
+}
+
 }

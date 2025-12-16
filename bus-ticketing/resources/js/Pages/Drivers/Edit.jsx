@@ -85,6 +85,9 @@ export default function Edit({ driver }) {
     setForm(prev => ({ ...prev, photo: null, remove_photo: true }));
     setPreview(null);
   };
+
+
+
 const handleSubmit = async (e) => {
   e.preventDefault();
 
@@ -99,9 +102,8 @@ const handleSubmit = async (e) => {
   payload.append("address", form.address || "");
   payload.append("remove_photo", form.remove_photo ? 1 : 0);
   if (form.photo) payload.append("photo", form.photo);
-
+ payload.append("_method", "PUT");
   const isEdit = !!driver?.id; // true si édition, false si création
-
   await router.post(
    route("drivers.update", driver.id),
     payload,

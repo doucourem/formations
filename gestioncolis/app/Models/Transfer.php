@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany; // <- important pour le type hint
 
 class Transfer extends Model
 {
@@ -18,7 +19,7 @@ class Transfer extends Model
         'withdraw_code',
         'amount_sent',
         'amount_to_pay',
-          'code',
+        'code',
         'notes',
         'status',
         'user_id',
@@ -42,9 +43,17 @@ class Transfer extends Model
         return $this->belongsTo(ThirdParty::class);
     }
 
-    // Relation avec User (si tu veux stocker l'utilisateur qui crée le transfert)
+    // Relation avec User
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+
+    // Relation correcte avec Transaction
+    public function transactions(): HasMany
+    {
+        // Ici 'transfer_id' doit être la clé étrangère dans la table transactions
+        return $this->hasMany(Transaction::class, 'transfer_id'); 
+    }
 }
+

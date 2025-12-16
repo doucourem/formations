@@ -23,7 +23,8 @@ use App\Http\Controllers\{
     FinancialNotesController,
     ThirdPartyController,
     AccountingController,
-    HistoryController
+    HistoryController,
+    ReportController
 };
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -78,7 +79,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'parcels' => ParcelController::class,
         'drivers' => DriverController::class,
         'transfers' => TransferController::class,
-        'third-parties'=>  ThirdPartyController::class
+        'third-parties'=>  ThirdPartyController::class,
+        'reports'  =>ReportController::class,
+        
     ]);
 Route::middleware(['auth'])->group(function () {
     Route::get('/accounting', [AccountingController::class, 'index'])->name('accounting.index');

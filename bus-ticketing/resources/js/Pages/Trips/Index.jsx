@@ -99,18 +99,33 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                 <Typography variant="h5">Gestion des trajets</Typography>
               </Stack>
             }
-            action={
-              (userRole === "manageragence" || userRole === "manager" || userRole === "admin") && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddCircleOutlineIcon />}
-                  onClick={() => Inertia.get(route("trips.create"))}
-                >
-                  Nouveau trajet
-                </Button>
-              )
-            }
+            action=
+              {(userRole === "manageragence" || userRole === "manager" || userRole === "admin") && (
+  <>
+    <Button
+      variant="contained"
+      color="primary"
+      startIcon={<AddCircleOutlineIcon />}
+      onClick={() => Inertia.get(route("trips.create"))}
+    >
+      Nouveau trajet
+    </Button>
+
+    <Button
+      variant="outlined"
+      onClick={() => window.location.href = route('trips.export')}
+    >
+      Export Résumé Excel
+    </Button>
+
+    <Button
+      variant="outlined"
+      onClick={() => window.location.href = route('trips.export-detailed')}
+    >
+      Export Détail Excel
+    </Button>
+  </>
+)}
           />
           <Divider />
           <CardContent>
@@ -128,6 +143,8 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
               <Button variant="contained" color="secondary" onClick={filtrer} disabled={loading}>
                 {loading ? <CircularProgress size={20} color="inherit" /> : "Filtrer"}
               </Button>
+            
+
             </Stack>
 
             {/* TABLEAU DES TRAJETS */}

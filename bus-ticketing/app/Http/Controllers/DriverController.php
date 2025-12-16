@@ -73,13 +73,8 @@ public function update(Request $request, Driver $driver)
         }
         $data['photo'] = $request->file('photo')->store('drivers', 'public');
     }
-
-    dd($data);
-    exit;
     $driver->update($data);
-
-    return redirect()->route('drivers.edit', $driver->id)
-                     ->with('success', 'Chauffeur mis à jour avec succès !');
+     return back()->with('success', true);
 }
 
 
