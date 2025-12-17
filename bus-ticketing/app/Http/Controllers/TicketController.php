@@ -351,13 +351,13 @@ public function dailySummary(Request $request)
                 'city_name' => $ticket->startStop->city?->name,
                 'to_city_name' => $ticket->startStop->toCity?->name,
                 'distance_from_start' => $ticket->startStop->distance_from_start,
-                'price' => $ticket->startStnop->partial_price,
+               
             ] : null,
             'end_stop' => $ticket->endStop ? [
                 'city_name' => $ticket->endStop->city?->name,
                 'to_city_name' => $ticket->endStop->toCity?->name,
                 'distance_from_start' => $ticket->endStop->distance_from_start,
-                'price' => $ticket->endStop->partial_price,
+                
             ] : null,
             'user' => $ticket->user ? [
                 'name' => $ticket->user->name,

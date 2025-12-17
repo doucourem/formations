@@ -22,13 +22,19 @@ use App\Http\Controllers\{
     TripAssignmentController,
     TripExpenseController,
     BusMaintenanceController,
-    GarageController
+    GarageController,
+    CompanyController
 };
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+
+
+
 Route::get('/', fn() => Inertia::render('HomePage'))->name('home');
+Route::get('/garages3', fn() => Inertia::render('HomePageMUIAnimated'))->name('garages3');
+Route::get('/garages2', fn() => Inertia::render('HomePageEnhanced'))->name('garages2');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -75,6 +81,8 @@ Route::get('/parcels/export-detailed', [ParcelController::class, 'exportDetailed
         'transfers' => TransferController::class,
         'trip-expenses' => TripExpenseController::class,
     ]);
+
+    Route::resource('companies', CompanyController::class);
     Route::resource('garages', GarageController::class);
 
     // Bus Maintenance

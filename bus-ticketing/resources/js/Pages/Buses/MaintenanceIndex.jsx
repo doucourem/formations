@@ -61,7 +61,7 @@ export default function MaintenanceIndex({ bus, maintenances, garages }) {
             <strong>Modèle :</strong> {bus.model || "—"}
           </Typography>
           <Typography variant="body1">
-            <strong>Kilométrage actuel :</strong> {bus.current_km?.toLocaleString()} km
+            <strong>Kilométrage actuel :</strong> {bus.last_maintenance_km?.toLocaleString()} km
           </Typography>
           <Typography variant="body1" color="error">
             <strong>Prochaine maintenance prévue à :</strong>{" "}

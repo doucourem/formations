@@ -50,64 +50,139 @@ class BusController extends Controller
     }
     
     public function edit(Bus $bus)
-    {
-        $bus->load('agency');
-    
-        // Charger toutes les agences pour le select
-        $agencies = \App\Models\Agency::select('id', 'name')->get();
-    
-        return Inertia::render('Buses/Edit', [
-            'bus' => [
-                'id' => $bus->id,
-                'registration_number' => $bus->registration_number,
-                'model' => $bus->model,
-                'capacity' => $bus->capacity,
-                'status' => $bus->status,
-                'agency_id' => $bus->agency_id,
-                'agency' => $bus->agency?->name ?? '',
-            ],
-            'agencies' => $agencies,
-        ]);
-    }
+{
+    $bus->load('agency');
+
+    $agencies = \App\Models\Agency::select('id', 'name')->get();
+
+    return Inertia::render('Buses/Edit', [
+        'bus' => [
+            'id' => $bus->id,
+            'vehicle_type' => $bus->vehicle_type ?? 'bus',
+            'registration_number' => $bus->registration_number,
+            'model' => $bus->model,
+            'capacity' => $bus->capacity,
+            'max_load' => $bus->max_load,
+            'tank_capacity' => $bus->tank_capacity,
+            'product_type' => $bus->product_type,
+            'compartments' => $bus->compartments ?? 1,
+            'tank_material' => $bus->tank_material,
+            'pump_type' => $bus->pump_type,
+            'adr_certified' => $bus->adr_certified,
+            'fire_extinguisher' => $bus->fire_extinguisher,
+            'last_inspection_date' => $bus->last_inspection_date,
+            'next_inspection_date' => $bus->next_inspection_date,
+            'status' => $bus->status,
+            'agency_id' => $bus->agency_id,
+            'agency' => $bus->agency?->name ?? '',
+        ],
+        'agencies' => $agencies,
+    ]);
+}
+
     
     /**
      * Store a newly created bus in storage.
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'registration_number' => ['required', 'string', 'max:50', 'unique:buses,registration_number'],
-            'model' => ['required', 'string', 'max:255'],
-            'capacity' => ['required', 'integer', 'min:1'],
-            'status' => ['required', 'in:active,inactive,maintenance'],
-        ]);
+public function store(Request $request)
+{
+    $validator = \Validator::make($request->all(), [
+        'vehicle_type' => 'required|in:bus,truck,tanker',
+        'registration_number' => 'required|unique:buses',
+        'model' => 'required|string|max:255',
+        'capacity' => 'nullable|integer|min:1',   // Bus
+        'max_load' => 'nullable|numeric|min:0',   // Truck
+        'tank_capacity' => 'nullable|numeric|min:0', // Tanker
+        'product_type' => 'nullable|string',      // Tanker
+        'compartments' => 'nullable|integer|min:1',
+        'tank_material' => 'nullable|string',
+        'pump_type' => 'nullable|string',
+        'adr_certified' => 'nullable|boolean',
+        'fire_extinguisher' => 'nullable|boolean',
+        'last_inspection_date' => 'nullable|date',
+        'next_inspection_date' => 'nullable|date',
+        'status' => 'required|in:active,inactive,maintenance',
+        'agency_id' => 'nullable|exists:agencies,id',
+    ]);
 
-        Bus::create($validated);
+    // Validation conditionnelle selon le type de véhicule
+    $validator->sometimes('capacity', 'required|integer|min:1', function ($input) {
+        return $input->vehicle_type === 'bus';
+    });
+    $validator->sometimes('max_load', 'required|numeric|min:0', function ($input) {
+        return $input->vehicle_type === 'truck';
+    });
+    $validator->sometimes(['tank_capacity', 'product_type'], 'required', function ($input) {
+        return $input->vehicle_type === 'tanker';
+    });
+    $validator->sometimes('next_inspection_date', 'after_or_equal:last_inspection_date', function ($input) {
+        return !empty($input->last_inspection_date) && !empty($input->next_inspection_date);
+    });
 
-        return redirect()
-            ->route('buses.index')
-            ->with('success', 'Bus créé avec succès.');
+    if ($validator->fails()) {
+        return redirect()->back()
+            ->withErrors($validator)
+            ->withInput();
     }
+
+    Bus::create($validator->validated());
+
+    return redirect()->route('buses.index')
+        ->with('success', 'Véhicule créé avec succès');
+}
+
+
+
 
     /**
      * Update the specified bus in storage.
      */
-    public function update(Request $request, Bus $bus)
-    {
-        $validated = $request->validate([
-            'registration_number' => ['required', 'string', 'max:50', 'unique:buses,registration_number,' . $bus->id],
-            'model' => ['required', 'string', 'max:255'],
-            'capacity' => ['required', 'integer', 'min:1'],
-            'status' => ['required', 'in:active,inactive,maintenance'],
-            'agency_id' => ['required', 'exists:agencies,id'],
-        ]);
+  public function update(Request $request, Bus $bus)
+{
+    $validator = \Validator::make($request->all(), [
+        'vehicle_type' => 'required|in:bus,truck,tanker',
+        'registration_number' => 'required|unique:buses,registration_number,' . $bus->id,
+        'model' => 'required|string|max:255',
+        'capacity' => 'nullable|integer|min:1',   // Bus
+        'max_load' => 'nullable|numeric|min:0',   // Truck
+        'tank_capacity' => 'nullable|numeric|min:0', // Tanker
+        'product_type' => 'nullable|string',      // Tanker
+        'compartments' => 'nullable|integer|min:1',
+        'tank_material' => 'nullable|string',
+        'pump_type' => 'nullable|string',
+        'adr_certified' => 'nullable|boolean',
+        'fire_extinguisher' => 'nullable|boolean',
+        'last_inspection_date' => 'nullable|date',
+        'next_inspection_date' => 'nullable|date',
+        'status' => 'required|in:active,inactive,maintenance',
+        'agency_id' => 'nullable|exists:agencies,id',
+    ]);
 
-        $bus->update($validated);
+    // Validation conditionnelle selon le type de véhicule
+    $validator->sometimes('capacity', 'required|integer|min:1', function ($input) {
+        return $input->vehicle_type === 'bus';
+    });
+    $validator->sometimes('max_load', 'required|numeric|min:0', function ($input) {
+        return $input->vehicle_type === 'truck';
+    });
+    $validator->sometimes(['tank_capacity', 'product_type'], 'required', function ($input) {
+        return $input->vehicle_type === 'tanker';
+    });
+    $validator->sometimes('next_inspection_date', 'after_or_equal:last_inspection_date', function ($input) {
+        return !empty($input->last_inspection_date) && !empty($input->next_inspection_date);
+    });
 
-        return redirect()
-            ->route('buses.index')
-            ->with('success', 'Bus mis à jour avec succès.');
+    if ($validator->fails()) {
+        return redirect()->back()
+            ->withErrors($validator)
+            ->withInput();
     }
+
+    $bus->update($validator->validated());
+
+    return redirect()->route('buses.index')
+        ->with('success', 'Véhicule modifié avec succès');
+}
 
     /**
      * Optionnel : suppression d’un bus

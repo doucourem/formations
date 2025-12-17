@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react"; 
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { router } from "@inertiajs/react";
@@ -21,6 +21,9 @@ import {
   DialogActions,
   DialogTitle,
   Tooltip,
+  Card,
+  CardHeader,
+  CardContent,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -34,6 +37,7 @@ export default function Index({ garages }) {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedGarage, setSelectedGarage] = useState(null);
+  const [expandedGarageId, setExpandedGarageId] = useState(null);
 
   // Filtre
   const filteredGarages = useMemo(() => {
@@ -59,92 +63,129 @@ export default function Index({ garages }) {
     setDeleteDialogOpen(false);
   };
 
+  const toggleExpand = (id) => {
+    setExpandedGarageId(expandedGarageId === id ? null : id);
+  };
+
   return (
     <GuestLayout>
       <Box sx={{ p: 2 }}>
-        {/* HEADER */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-          <Typography variant="h6" fontWeight={600}>Garages</Typography>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={() => router.visit(route("garages.create"))}
-          >
-            Nouveau
-          </Button>
-        </Stack>
-
-        {/* SEARCH */}
-        <TextField
-          size="small"
-          fullWidth
-          placeholder="Rechercher un garage..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ mb: 2 }}
-        />
-
-        {/* TABLEAU */}
-        {paginatedGarages.length === 0 ? (
-          <Typography align="center" sx={{ mt: 3 }}>
-            Aucun garage trouvé.
-          </Typography>
-        ) : (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead sx={{ bgcolor: "#1565c0" }}>
-                <TableRow>
-                  {["Nom", "Adresse", "Email", "Téléphone", "Actions"].map((col) => (
-                    <TableCell key={col} sx={{ color: "white", fontWeight: "bold" }}>{col}</TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedGarages.map((g) => (
-                  <TableRow key={g.id} hover>
-                    <TableCell>{g.name}</TableCell>
-                    <TableCell>{g.address || "-"}</TableCell>
-                    <TableCell>{g.email || "-"}</TableCell>
-                    <TableCell>{g.phone || "-"}</TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        <Tooltip title="Modifier">
-                          <IconButton
-                            color="primary"
-                            onClick={() => router.visit(route("garages.edit", g.id))}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Supprimer">
-                          <IconButton
-                            color="error"
-                            onClick={() => handleDeleteClick(g)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-
-        {/* PAGINATION */}
-        {pageCount > 1 && (
-          <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
-            <Pagination
-              count={pageCount}
-              page={page}
-              onChange={(e, value) => setPage(value)}
-              color="primary"
+        <Card>
+          <CardHeader
+            title={<Typography variant="h6" fontWeight={600}>Garages</Typography>}
+            action={
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => router.visit(route("garages.create"))}
+              >
+                Nouveau
+              </Button>
+            }
+          />
+          <CardContent>
+            {/* SEARCH */}
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Rechercher un garage..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ mb: 2 }}
             />
-          </Box>
-        )}
+
+            {/* TABLEAU */}
+            {paginatedGarages.length === 0 ? (
+              <Typography align="center" sx={{ mt: 3 }}>
+                Aucun garage trouvé.
+              </Typography>
+            ) : (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead sx={{ bgcolor: "#1565c0" }}>
+                    <TableRow>
+                      {["Nom", "Adresse", "Email", "Téléphone", "Actions"].map((col) => (
+                        <TableCell key={col} sx={{ color: "white", fontWeight: "bold" }}>{col}</TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedGarages.map((g) => (
+                      <React.Fragment key={g.id}>
+                        <TableRow hover onClick={() => toggleExpand(g.id)} sx={{ cursor: "pointer" }}>
+                          <TableCell>{g.name}</TableCell>
+                          <TableCell>{g.address || "-"}</TableCell>
+                          <TableCell>{g.email || "-"}</TableCell>
+                          <TableCell>{g.phone || "-"}</TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={1}>
+                              <Tooltip title="Modifier">
+                                <IconButton
+                                  color="primary"
+                                  onClick={(e) => { e.stopPropagation(); router.visit(route("garages.edit", g.id)); }}
+                                >
+                                  <EditIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Supprimer">
+                                <IconButton
+                                  color="error"
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteClick(g); }}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+
+                        {/* MAINTENANCES */}
+                        {expandedGarageId === g.id && g.maintenances?.length > 0 && (
+                          <TableRow>
+                            <TableCell colSpan={5} sx={{ bgcolor: "#f5f5f5" }}>
+                              <Typography variant="subtitle2" sx={{ mb: 1 }}>Maintenances :</Typography>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Véhicule</TableCell>
+                                    <TableCell>Date</TableCell>
+                                    <TableCell>Status</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {g.maintenances.map((m) => (
+                                    <TableRow key={m.id}>
+                                      <TableCell>{m.vehicle}</TableCell>
+                                      <TableCell>{m.date}</TableCell>
+                                      <TableCell>{m.status}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+
+            {/* PAGINATION */}
+            {pageCount > 1 && (
+              <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
+                <Pagination
+                  count={pageCount}
+                  page={page}
+                  onChange={(e, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Dialog suppression */}
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
