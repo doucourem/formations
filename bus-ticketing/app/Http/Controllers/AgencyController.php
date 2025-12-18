@@ -6,68 +6,61 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Agency;
 use App\Models\City;
+use App\Models\Companies;
 
 class AgencyController extends Controller
 {
     /**
-     * Liste des agences avec filtre par ville.
+     * Liste des agences avec filtre par ville ou compagnie.
      */
-   public function index(Request $request)
-{
-    $perPage = (int) $request->input('per_page', 10);
-    $cityId = $request->input('city_id');
-
-    // Charger agences avec ville + compter les tickets vendus via les agents
-    $agencies = Agency::with('city')
-        ->withCount('tickets') // tickets vendus par les utilisateurs de l'agence
-        ->when($cityId, fn($q) => $q->where('city_id', $cityId))
-        ->orderBy('name')
-        ->paginate($perPage)
-        ->withQueryString()
-        ->through(fn($agency) => [
-            'id' => $agency->id,
-            'name' => $agency->name,
-            'city' => $agency->city?->name ?? '-',
-            'tickets_sold' => $agency->tickets_count ?? 0, // ajout nombre de billets vendus
-            'created_at' => $agency->created_at?->toDateTimeString() ?? '',
-            'updated_at' => $agency->updated_at?->toDateTimeString() ?? '',
-        ]);
-
-    return Inertia::render('Agencies/Index', [
-        'agencies' => $agencies,
-        'filters' => [
-            'city_id' => $cityId,
-            'per_page' => $perPage,
-        ],
-    ]);
-}
-
-
-    /**
-     * Affiche le formulaire de création avec la liste des villes.
-     */
-    public function create()
+    public function index(Request $request)
     {
-        $cities = City::orderBy('name')->get(['id', 'name']);
+        $perPage = (int) $request->input('per_page', 10);
+        $cityId = $request->input('city_id');
+        $companyId = $request->input('company_id');
 
-        return Inertia::render('Agencies/Create', [
+        $agencies = Agency::with(['city', 'company'])
+            ->withCount('tickets')
+            ->when($cityId, fn($q) => $q->where('city_id', $cityId))
+            ->when($companyId, fn($q) => $q->where('company_id', $companyId))
+            ->orderBy('name')
+            ->paginate($perPage)
+            ->withQueryString()
+            ->through(fn($agency) => [
+                'id' => $agency->id,
+                'name' => $agency->name,
+                'city' => $agency->city?->name ?? '-',
+                'company' => $agency->company?->name ?? '-',
+                'tickets_sold' => $agency->tickets_count ?? 0,
+                'created_at' => $agency->created_at?->toDateTimeString() ?? '',
+                'updated_at' => $agency->updated_at?->toDateTimeString() ?? '',
+            ]);
+
+        $companies = Companies::select('id', 'name')->orderBy('name')->get();
+        $cities = City::select('id', 'name')->orderBy('name')->get();
+
+        return Inertia::render('Agencies/Index', [
+            'agencies' => $agencies,
+            'filters' => [
+                'city_id' => $cityId,
+                'company_id' => $companyId,
+                'per_page' => $perPage,
+            ],
+            'companies' => $companies,
             'cities' => $cities,
         ]);
     }
 
     /**
-     * Affiche le formulaire d'édition d'une agence.
+     * Affiche le formulaire de création.
      */
-    public function edit(Agency $agency)
+    public function create()
     {
-        $cities = City::orderBy('name')->get(['id', 'name']);
+        $companies = Companies::select('id', 'name')->orderBy('name')->get();
+        $cities = City::select('id', 'name')->orderBy('name')->get();
 
-        return Inertia::render('Agencies/Edit', [
-            'agency' => [
-                'id' => $agency->id,
-                'name' => $agency->name,
-                'city_id' => $agency->city_id,
-            ],
+        return Inertia::render('Agencies/Create', [
+            'companies' => $companies,
             'cities' => $cities,
         ]);
     }
@@ -79,6 +72,7 @@ class AgencyController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'company_id' => ['required', 'exists:companies,id'],
             'city_id' => ['required', 'exists:cities,id'],
         ]);
 
@@ -90,12 +84,33 @@ class AgencyController extends Controller
     }
 
     /**
+     * Affiche le formulaire d'édition d'une agence.
+     */
+    public function edit(Agency $agency)
+    {
+        $companies = Companies::select('id', 'name')->orderBy('name')->get();
+        $cities = City::select('id', 'name')->orderBy('name')->get();
+
+        return Inertia::render('Agencies/Edit', [
+            'agency' => [
+                'id' => $agency->id,
+                'name' => $agency->name,
+                'company_id' => $agency->company_id,
+                'city_id' => $agency->city_id,
+            ],
+            'companies' => $companies,
+            'cities' => $cities,
+        ]);
+    }
+
+    /**
      * Met à jour une agence existante.
      */
     public function update(Request $request, Agency $agency)
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'company_id' => ['required', 'exists:companies,id'],
             'city_id' => ['required', 'exists:cities,id'],
         ]);
 

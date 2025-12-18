@@ -22,14 +22,16 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import EditIcon from "@mui/icons-material/Edit";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Edit({ bus, agencies = [] }) {
+export default function Edit({ bus, agencies = [], companies = [] }) {
   const [form, setForm] = useState({
     vehicle_type: "bus",
     registration_number: "",
     model: "",
     status: "active",
     agency_id: "",
+    company_id: "",
     capacity: "",
+
     max_load: "",
     tank_capacity: "",
     product_type: "",
@@ -50,6 +52,7 @@ export default function Edit({ bus, agencies = [] }) {
     if (bus) {
       setForm({
         vehicle_type: bus.vehicle_type || "bus",
+        company_id: bus.company_id || "",
         registration_number: bus.registration_number || "",
         model: bus.model || "",
         status: bus.status || "active",
@@ -139,6 +142,21 @@ export default function Edit({ bus, agencies = [] }) {
               onSubmit={handleSubmit}
               sx={{ display: "flex", flexDirection: "column", gap: 2 }}
             >
+               <FormControl fullWidth required error={!!errors.company_id}>
+                <InputLabel>Compagnie</InputLabel>
+                <Select
+                  name="company_id"
+                  value={form.company_id}
+                  onChange={handleChange}
+                >
+                  
+                  {companies.map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               {/* Type de véhicule */}
               <FormControl fullWidth required>
                 <InputLabel>Type de véhicule</InputLabel>

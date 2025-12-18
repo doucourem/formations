@@ -19,9 +19,10 @@ import EditIcon from "@mui/icons-material/Edit";
 import BusinessIcon from "@mui/icons-material/Business";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Edit({ agency, cities = [] }) {
+export default function Edit({ agency, cities = [], companies = [] }) {
   const [form, setForm] = useState({
     name: agency?.name || "",
+    company_id: agency?.company_id || "", // ✅ ajouté
     city_id: agency?.city_id || "",
   });
 
@@ -39,6 +40,7 @@ export default function Edit({ agency, cities = [] }) {
 
     let validationErrors = {};
     if (!form.name) validationErrors.name = "Le nom de l’agence est obligatoire.";
+    if (!form.company_id) validationErrors.company_id = "La compagnie est obligatoire.";
     if (!form.city_id) validationErrors.city_id = "La ville est obligatoire.";
 
     if (Object.keys(validationErrors).length > 0) {
@@ -94,10 +96,36 @@ export default function Edit({ agency, cities = [] }) {
                 helperText={errors.name}
               />
 
+              {/* Compagnie */}
+              <FormControl fullWidth required error={!!errors.company_id}>
+                <InputLabel>Compagnie</InputLabel>
+                <Select
+                  name="company_id"
+                  value={form.company_id}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="">Choisir une compagnie</MenuItem>
+                  {companies.map((company) => (
+                    <MenuItem key={company.id} value={company.id}>
+                      {company.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.company_id && (
+                  <Typography color="error" variant="caption">
+                    {errors.company_id}
+                  </Typography>
+                )}
+              </FormControl>
+
               {/* Ville */}
               <FormControl fullWidth required error={!!errors.city_id}>
                 <InputLabel>Ville</InputLabel>
-                <Select name="city_id" value={form.city_id} onChange={handleChange}>
+                <Select
+                  name="city_id"
+                  value={form.city_id}
+                  onChange={handleChange}
+                >
                   <MenuItem value="">Choisir une ville</MenuItem>
                   {cities.map((city) => (
                     <MenuItem key={city.id} value={city.id}>

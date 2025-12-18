@@ -22,7 +22,7 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function Create({ agencies = [] }) {
+export default function Create({ agencies = [], companies = [] }) {
   const [form, setForm] = useState({
     vehicle_type: "bus",
 
@@ -123,6 +123,21 @@ export default function Create({ agencies = [] }) {
               onSubmit={handleSubmit}
               sx={{ display: "flex", flexDirection: "column", gap: 2 }}
             >
+              <FormControl fullWidth required error={!!errors.company_id}>
+  <InputLabel>Compagnie</InputLabel>
+  <Select
+    name="company_id"
+    value={form.company_id}
+    onChange={handleChange}
+  >
+    {companies.map((c) => (
+      <MenuItem key={c.id} value={c.id}>
+        {c.name}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
+
               {/* Type */}
               <FormControl fullWidth required>
                 <InputLabel>Type de véhicule</InputLabel>

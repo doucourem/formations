@@ -7,8 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class Driver extends Model
 {
     protected $fillable = [
-        'first_name', 'last_name', 'birth_date', 'phone', 'email', 'address', 'photo'
+        'first_name', 'last_name', 'birth_date', 'phone', 'email', 'address', 'photo', 'company_id'
     ];
+
+    public function company()
+    {
+        return $this->belongsTo(Companies::class);
+    }
 
     public function documents()
     {
@@ -20,16 +25,16 @@ class Driver extends Model
         return $this->hasMany(DriverAssignment::class);
     }
 
-    // ➜ Relation correcte pour récupérer les voyages du chauffeur
+    // Relation vers les voyages via la table pivot
     public function trips()
-{
-    return $this->belongsToMany(
-        Trip::class,           // Modèle cible
-        'driver_assignments',  // Table pivot
-        'driver_id',           // Clé du chauffeur
-        'trip_id'              // Clé du voyage
-    )->with('route.departureCity', 'route.arrivalCity');
+    {
+        return $this->belongsToMany(
+            Trip::class,
+            'driver_assignments',
+            'driver_id',
+            'trip_id'
+        )->with('route.departureCity', 'route.arrivalCity');
+    }
 }
 
-}
 

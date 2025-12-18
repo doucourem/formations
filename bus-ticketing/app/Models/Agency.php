@@ -12,6 +12,7 @@ class Agency extends Model
     protected $fillable = [
         'name',
         'city_id',
+        'company_id',
         'address',
     ];
 
@@ -37,6 +38,10 @@ class Agency extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+     public function company() {
+        return $this->belongsTo(Companies::class);
     }
 
     /**

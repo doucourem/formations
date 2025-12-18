@@ -10,8 +10,10 @@ class GarageController extends Controller
 {
     public function index()
     {
-        $garages = Garage::latest()->get();
-        return Inertia::render('garages/Index', compact('garages'));
+       $garages = Garage::with(['maintenances.bus'])->get();
+
+return inertia('garages/Index', ['garages' => $garages]);
+
     }
 
     public function create()

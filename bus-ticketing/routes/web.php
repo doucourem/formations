@@ -23,11 +23,14 @@ use App\Http\Controllers\{
     TripExpenseController,
     BusMaintenanceController,
     GarageController,
-    CompanyController
+    CompanyController,
+    DeliveryController
 };
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+
 
 
 
@@ -81,6 +84,8 @@ Route::get('/parcels/export-detailed', [ParcelController::class, 'exportDetailed
         'transfers' => TransferController::class,
         'trip-expenses' => TripExpenseController::class,
     ]);
+Route::resource('deliveries', DeliveryController::class);
+Route::post('deliveries/{delivery}/log', [DeliveryController::class, 'addLog'])->name('deliveries.addLog');
 
     Route::resource('companies', CompanyController::class);
     Route::resource('garages', GarageController::class);

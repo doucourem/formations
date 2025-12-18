@@ -59,6 +59,7 @@ const menus = {
       items: [
         { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
         { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
+        { text: "Livraison", icon: <SyncAltIcon />, route: route("deliveries.index") },
         { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") }
       ]
     },
@@ -80,6 +81,7 @@ const menus = {
       title: "Gestion commerciale",
       items: [
         { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
+        { text: "Livraison", icon: <SyncAltIcon />, route: route("deliveries.index") },
         { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
         { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") }
       ]

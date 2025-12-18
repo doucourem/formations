@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Companies;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Bus;
@@ -43,17 +44,21 @@ class BusController extends Controller
     public function create()
     {
         $agencies = Agency::select('id', 'name')->get();
+         $companies = Companies::select('id', 'name')->get();
     
         return Inertia::render('Buses/Create', [
             'agencies' => $agencies,
+            'companies' => $companies,
         ]);
     }
     
     public function edit(Bus $bus)
 {
     $bus->load('agency');
+     $bus->load('company');
 
-    $agencies = \App\Models\Agency::select('id', 'name')->get();
+    $agencies = Agency::select('id', 'name')->get();
+    $companies = Companies::select('id', 'name')->get();
 
     return Inertia::render('Buses/Edit', [
         'bus' => [
@@ -75,8 +80,10 @@ class BusController extends Controller
             'status' => $bus->status,
             'agency_id' => $bus->agency_id,
             'agency' => $bus->agency?->name ?? '',
+            'company_id' => $bus->company_id,
         ],
         'agencies' => $agencies,
+        'companies' => $companies,
     ]);
 }
 
@@ -89,6 +96,7 @@ public function store(Request $request)
     $validator = \Validator::make($request->all(), [
         'vehicle_type' => 'required|in:bus,truck,tanker',
         'registration_number' => 'required|unique:buses',
+        'company_id' => 'required|exists:companies,id',
         'model' => 'required|string|max:255',
         'capacity' => 'nullable|integer|min:1',   // Bus
         'max_load' => 'nullable|numeric|min:0',   // Truck
@@ -120,6 +128,7 @@ public function store(Request $request)
     });
 
     if ($validator->fails()) {
+    
         return redirect()->back()
             ->withErrors($validator)
             ->withInput();
@@ -141,6 +150,7 @@ public function store(Request $request)
 {
     $validator = \Validator::make($request->all(), [
         'vehicle_type' => 'required|in:bus,truck,tanker',
+        'company_id' => 'required|exists:companies,id',
         'registration_number' => 'required|unique:buses,registration_number,' . $bus->id,
         'model' => 'required|string|max:255',
         'capacity' => 'nullable|integer|min:1',   // Bus

@@ -11,6 +11,7 @@ class Bus extends Model
 
     protected $fillable = [
         'agency_id',
+        'company_id',
         'product_type',                   // bus, truck, tanker
         'registration_number',
         'model',
@@ -64,5 +65,9 @@ class Bus extends Model
     public function maintenances()
     {
         return $this->hasMany(BusMaintenance::class);
+    }
+     public function company()
+    {
+        return $this->belongsTo(Companies::class, 'company_id');
     }
 }

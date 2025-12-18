@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import GuestLayout from "@/Layouts/GuestLayout";
-import { Inertia } from "@inertiajs/inertia";
+import { router } from "@inertiajs/react";
 import {
   Card,
   CardContent,
@@ -13,12 +13,15 @@ import {
   Alert,
   Avatar,
   IconButton,
-  Tooltip
+  Tooltip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { router } from "@inertiajs/react";
 
-export default function Edit({ driver }) {
+export default function Edit({ driver, companies = [] }) {
   const [form, setForm] = useState({
     first_name: driver.first_name || "",
     last_name: driver.last_name || "",
@@ -28,17 +31,33 @@ export default function Edit({ driver }) {
     address: driver.address || "",
     photo: null,
     remove_photo: false,
+    company_id: driver.company_id || "",
   });
 
   const [preview, setPreview] = useState(driver.photo ? `/storage/${driver.photo}` : null);
   const [localErrors, setLocalErrors] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  // Validation synchronisée
+  const handleChange = (field, value) => {
+    if (field === "phone") value = value.replace(/\D/g, "").slice(0, 8);
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setForm(prev => ({ ...prev, photo: file, remove_photo: false }));
+    setPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemovePhoto = () => {
+    setForm(prev => ({ ...prev, photo: null, remove_photo: true }));
+    setPreview(null);
+  };
+
   const validateAll = () => {
     const errors = {};
-
-    ["first_name", "last_name", "phone", "email", "photo"].forEach((field) => {
+    ["first_name", "last_name", "phone", "email", "photo", "company_id"].forEach(field => {
       const value = form[field];
       switch (field) {
         case "first_name":
@@ -59,36 +78,18 @@ export default function Edit({ driver }) {
             if (value.size > 2 * 1024 * 1024) errors.photo = "La photo doit faire moins de 2 Mo";
           }
           break;
+        case "company_id":
+          if (!value) errors.company_id = "La compagnie est obligatoire";
+          break;
         default:
           break;
       }
     });
-
     setLocalErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleChange = (field, value) => {
-    if (field === "phone") value = value.replace(/\D/g, "").slice(0, 8);
-    setForm(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setForm(prev => ({ ...prev, photo: file, remove_photo: false }));
-    setPreview(URL.createObjectURL(file));
-  };
-
-  const handleRemovePhoto = () => {
-    setForm(prev => ({ ...prev, photo: null, remove_photo: true }));
-    setPreview(null);
-  };
-
-
-
-const handleSubmit = async (e) => {
+ const handleSubmit = (e) => {
   e.preventDefault();
 
   if (!validateAll()) return;
@@ -100,35 +101,17 @@ const handleSubmit = async (e) => {
   payload.append("email", form.email || "");
   payload.append("birth_date", form.birth_date || "");
   payload.append("address", form.address || "");
-  payload.append("remove_photo", form.remove_photo ? 1 : 0);
+   payload.append("company_id", form.company_id || "");
+  // ✅ Make sure remove_photo is always boolean
+  payload.append("remove_photo", form.remove_photo ? "1" : "0");
   if (form.photo) payload.append("photo", form.photo);
- payload.append("_method", "PUT");
-  const isEdit = !!driver?.id; // true si édition, false si création
-  await router.post(
-   route("drivers.update", driver.id),
-    payload,
-    {
-      forceFormData: true,
-      onSuccess: () => {
-        setSnackbar({
-          open: true,
-          message: isEdit
-            ? "Chauffeur mis à jour avec succès !"
-            : "Chauffeur ajouté avec succès !",
-          severity: "success",
-        });
-      },
-      onError: (errors) => {
-        setSnackbar({
-          open: true,
-          message: errors
-            ? Object.values(errors).join(", ")
-            : "Erreur lors de l'enregistrement.",
-          severity: "error",
-        });
-      },
-    }
-  );
+  payload.append("_method", "PUT");
+
+  router.post(route("drivers.update", driver.id), payload, {
+    forceFormData: true,
+    onSuccess: () => setSnackbar({ open: true, message: "Chauffeur mis à jour avec succès !", severity: "success" }),
+    onError: (errors) => setSnackbar({ open: true, message: errors ? Object.values(errors).join(", ") : "Erreur lors de l'enregistrement.", severity: "error" }),
+  });
 };
 
 
@@ -138,13 +121,12 @@ const handleSubmit = async (e) => {
         <CardHeader title={<Typography variant="h5" fontWeight="bold">Modifier Chauffeur</Typography>} sx={{ textAlign: "center" }} />
         <CardContent>
           <Box component="form" encType="multipart/form-data" onSubmit={handleSubmit} display="flex" flexDirection="column" gap={3}>
-            
+
             {/* PHOTO */}
             <Box textAlign="center">
               <Box sx={{ width: 130, height: 130, mx: "auto", borderRadius: 3, overflow: "hidden", border: "2px solid #ddd", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Avatar src={preview || "/default-avatar.png"} sx={{ width: "100%", height: "100%" }} variant="square" />
               </Box>
-
               <Box display="flex" justifyContent="center" gap={1} mt={1}>
                 <Button variant="contained" component="label">Changer photo
                   <input type="file" hidden accept="image/*" onChange={handleFileChange} />
@@ -160,6 +142,16 @@ const handleSubmit = async (e) => {
             <TextField label="Email" type="email" value={form.email} onChange={e => handleChange("email", e.target.value)} error={!!localErrors.email} helperText={localErrors.email} fullWidth />
             <TextField label="Date de naissance" type="date" value={form.birth_date} onChange={e => handleChange("birth_date", e.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
             <TextField label="Adresse" value={form.address} onChange={e => handleChange("address", e.target.value)} multiline rows={2} fullWidth />
+
+            {/* COMPAGNIE */}
+            <FormControl fullWidth error={!!localErrors.company_id}>
+              <InputLabel>Compagnie</InputLabel>
+              <Select value={form.company_id} onChange={e => handleChange("company_id", e.target.value)} label="Compagnie">
+                <MenuItem value="">Sélectionner une compagnie</MenuItem>
+                {companies.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+              </Select>
+              {localErrors.company_id && <Typography color="error">{localErrors.company_id}</Typography>}
+            </FormControl>
 
             <Button type="submit" variant="contained" color="primary" sx={{ py: 1.2, borderRadius: 2, fontSize: "1rem" }}>Enregistrer</Button>
           </Box>

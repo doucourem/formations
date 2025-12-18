@@ -24,6 +24,7 @@ import {
   Card,
   CardHeader,
   CardContent,
+  Chip
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -39,6 +40,21 @@ export default function Index({ garages }) {
   const [selectedGarage, setSelectedGarage] = useState(null);
   const [expandedGarageId, setExpandedGarageId] = useState(null);
 
+  // Pagination interne maintenances
+  const [maintenancesPage, setMaintenancesPage] = useState({});
+  const rowsPerPageMaint = 5;
+
+  const getPaginatedMaintenances = (garage) => {
+    const currentPage = maintenancesPage[garage.id] || 1;
+    const start = (currentPage - 1) * rowsPerPageMaint;
+    const end = start + rowsPerPageMaint;
+    return garage.maintenances.slice(start, end);
+  };
+
+  const handleMaintenancesPageChange = (garageId, value) => {
+    setMaintenancesPage(prev => ({ ...prev, [garageId]: value }));
+  };
+
   // Filtre
   const filteredGarages = useMemo(() => {
     return (garages || []).filter((g) =>
@@ -46,7 +62,7 @@ export default function Index({ garages }) {
     );
   }, [garages, search]);
 
-  // Pagination
+  // Pagination principale
   const pageCount = Math.ceil(filteredGarages.length / rowsPerPage);
   const paginatedGarages = filteredGarages.slice(
     (page - 1) * rowsPerPage,
@@ -145,24 +161,48 @@ export default function Index({ garages }) {
                           <TableRow>
                             <TableCell colSpan={5} sx={{ bgcolor: "#f5f5f5" }}>
                               <Typography variant="subtitle2" sx={{ mb: 1 }}>Maintenances :</Typography>
+
                               <Table size="small">
                                 <TableHead>
-                                  <TableRow>
-                                    <TableCell>Véhicule</TableCell>
-                                    <TableCell>Date</TableCell>
-                                    <TableCell>Status</TableCell>
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {g.maintenances.map((m) => (
-                                    <TableRow key={m.id}>
-                                      <TableCell>{m.vehicle}</TableCell>
-                                      <TableCell>{m.date}</TableCell>
-                                      <TableCell>{m.status}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
+  <TableRow>
+    <TableCell>Véhicule</TableCell>
+    <TableCell>Date</TableCell>
+    <TableCell>Type</TableCell>
+    <TableCell>Coût</TableCell>
+  </TableRow>
+</TableHead>
+<TableBody>
+  {g.maintenances.map((m) => (
+    <TableRow key={m.id}>
+      <TableCell>{m.bus?.registration_number || "-"}</TableCell>
+     <TableCell>
+  {new Date(m.maintenance_date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  })}
+</TableCell>
+
+      <TableCell>{m.type}</TableCell>
+      <TableCell>{m.cost}</TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+
                               </Table>
+
+                              {/* PAGINATION INTERNE */}
+                              {g.maintenances.length > rowsPerPageMaint && (
+                                <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
+                                  <Pagination
+                                    count={Math.ceil(g.maintenances.length / rowsPerPageMaint)}
+                                    page={maintenancesPage[g.id] || 1}
+                                    onChange={(e, value) => handleMaintenancesPageChange(g.id, value)}
+                                    size="small"
+                                    color="primary"
+                                  />
+                                </Box>
+                              )}
                             </TableCell>
                           </TableRow>
                         )}
@@ -173,7 +213,7 @@ export default function Index({ garages }) {
               </TableContainer>
             )}
 
-            {/* PAGINATION */}
+            {/* PAGINATION PRINCIPALE */}
             {pageCount > 1 && (
               <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
                 <Pagination

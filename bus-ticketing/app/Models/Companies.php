@@ -41,6 +41,7 @@ class Companies extends Model
         return $query->where('type', 'cargo');
     }
 
+
     /**
      * Relations (prêtes pour extension)
      */
@@ -48,15 +49,15 @@ class Companies extends Model
     // Véhicules (camions, bus, citernes, etc.)
     public function vehicles()
     {
-        return $this->hasMany(Vehicle::class);
+        return $this->hasMany(Bus::class);
     }
 
     // Maintenances
     public function maintenances()
     {
         return $this->hasManyThrough(
-            Maintenance::class,
-            Vehicle::class
+            BusMaintenance::class,
+            Bus::class
         );
     }
 
@@ -87,4 +88,5 @@ class Companies extends Model
             ? asset('storage/' . $this->logo)
             : asset('images/company-default.png');
     }
+
 }
