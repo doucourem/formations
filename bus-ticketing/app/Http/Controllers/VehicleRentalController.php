@@ -13,7 +13,7 @@ class VehicleRentalController extends Controller
      */
     public function index()
     {
-        $rentals = VehicleRental::with('vehicle')
+        $rentals = VehicleRental::with('bus')
             ->orderBy('rental_start', 'desc')
             ->paginate(10);
 
@@ -154,4 +154,41 @@ class VehicleRentalController extends Controller
 
         return redirect()->back()->with('success', 'Durée de location prolongée avec succès.');
     }
+
+/**
+ * Enregistrer la prolongation
+ */
+public function storeExtension(Request $request, VehicleRental $vehicleRental)
+{
+    $data = $request->validate([
+        'rental_end' => 'required|date|after:' . $vehicleRental->rental_end,
+        'photo_after' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
+
+    // Vérifier conflit avec une autre location
+    $conflict = VehicleRental::where('vehicle_id', $vehicleRental->vehicle_id)
+        ->where('status', 'active')
+        ->where('id', '<>', $vehicleRental->id)
+        ->where(function ($q) use ($vehicleRental, $data) {
+            $q->whereBetween('rental_start', [$vehicleRental->rental_end, $data['rental_end']])
+              ->orWhereBetween('rental_end', [$vehicleRental->rental_end, $data['rental_end']]);
+        })->exists();
+
+    if ($conflict) {
+        return redirect()->back()->with('error', 'Le véhicule est déjà loué sur cette période prolongée.');
+    }
+
+    $vehicleRental->rental_end = $data['rental_end'];
+
+    // Upload photo après prolongation
+    if ($request->hasFile('photo_after')) {
+        $vehicleRental->photo_after = $request->file('photo_after')->store('rentals', 'public');
+    }
+
+    $vehicleRental->save();
+
+    return redirect()->route('vehicle-rentals.index')
+                     ->with('success', 'Location prolongée avec succès.');
+}
+
 }

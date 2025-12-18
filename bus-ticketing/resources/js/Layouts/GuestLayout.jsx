@@ -60,6 +60,7 @@ const menus = {
         { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
         { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
         { text: "Livraison", icon: <SyncAltIcon />, route: route("deliveries.index") },
+        { text: "Location", icon: <SyncAltIcon />, route: route("vehicle-rentals.index") },
         { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") }
       ]
     },
@@ -82,6 +83,7 @@ const menus = {
       items: [
         { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
         { text: "Livraison", icon: <SyncAltIcon />, route: route("deliveries.index") },
+        { text: "Location", icon: <SyncAltIcon />, route: route("vehicle-rentals.index") },
         { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
         { text: "Transfers", icon: <SyncAltIcon />, route: route("transfers.index") }
       ]

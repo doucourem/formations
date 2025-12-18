@@ -18,7 +18,7 @@ class VehicleRental extends Model
         'status',
     ];
 
-    public function vehicle()
+    public function bus()
     {
         return $this->belongsTo(Bus::class, 'vehicle_id');
     }

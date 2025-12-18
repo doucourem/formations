@@ -24,7 +24,8 @@ use App\Http\Controllers\{
     BusMaintenanceController,
     GarageController,
     CompanyController,
-    DeliveryController
+    DeliveryController,
+    VehicleRentalController
 };
 
 use Illuminate\Support\Facades\Route;
@@ -84,11 +85,18 @@ Route::get('/parcels/export-detailed', [ParcelController::class, 'exportDetailed
         'transfers' => TransferController::class,
         'trip-expenses' => TripExpenseController::class,
     ]);
+
+
+    Route::get('/maintenance-plans/{plan}/tasks', function (\App\Models\MaintenancePlan $plan) {
+    return $plan->tasks;
+})->name('maintenance-plans.tasks');
+
 Route::resource('deliveries', DeliveryController::class);
 Route::post('deliveries/{delivery}/log', [DeliveryController::class, 'addLog'])->name('deliveries.addLog');
 
     Route::resource('companies', CompanyController::class);
     Route::resource('garages', GarageController::class);
+     Route::resource('vehicle-rentals', VehicleRentalController::class);
 
     // Bus Maintenance
     Route::get('buses/{bus}/maintenance', [BusMaintenanceController::class, 'index'])->name('bus.maintenance.index');

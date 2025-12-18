@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('vehicle_rentals', function (Blueprint $table) {
             $table->id();
             $table->foreignId('vehicle_id')->constrained('buses')->onDelete('cascade');
-            $table->string('renter_name'); // Nom de la personne/entreprise qui loue
+            $table->string('client_name'); // Nom de la personne/entreprise qui loue
             $table->decimal('rental_price', 12, 2); // prix total ou par jour
             $table->dateTime('rental_start');
             $table->dateTime('rental_end');
