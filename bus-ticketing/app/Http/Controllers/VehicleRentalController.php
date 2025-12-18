@@ -5,23 +5,28 @@ namespace App\Http\Controllers;
 use App\Models\Bus;
 use App\Models\VehicleRental;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class VehicleRentalController extends Controller
 {
     /**
      * Liste des locations.
      */
-    public function index()
-    {
-        $rentals = VehicleRental::with('bus')
-            ->orderBy('rental_start', 'desc')
-            ->paginate(10);
+   public function index(Request $request)
+{
+    $rentals = VehicleRental::with('bus')
+        ->latest()
+        ->paginate(15) // ← paginate au lieu de get()
+        ->withQueryString(); // conserve la recherche et filtres
 
-        return inertia('VehicleRentals/Index', [
-            'rentals' => $rentals,
-        ]);
-    }
+    return Inertia::render('VehicleRentals/Index', [
+        'rentals' => $rentals
+    ]);
+}
 
+
+
+    
     /**
      * Formulaire de création.
      */

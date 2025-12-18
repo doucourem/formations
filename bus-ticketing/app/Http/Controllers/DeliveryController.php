@@ -11,11 +11,16 @@ use Inertia\Inertia;
 class DeliveryController extends Controller
 {
     // Liste des livraisons
-    public function index()
-    {
-        $deliveries = Delivery::with(['bus','driver','logs'])->latest()->get();
-        return Inertia::render('Delivery/DeliveryIndex', compact('deliveries'));
-    }
+   public function index(Request $request)
+{
+    $deliveries = Delivery::with(['bus','driver','logs'])
+        ->latest()
+        ->paginate(15) // <-- paginate au lieu de get()
+        ->withQueryString(); // conserve les filtres dans l'URL
+
+    return Inertia::render('Delivery/DeliveryIndex', compact('deliveries'));
+}
+
 
     // Formulaire création
     public function create()
