@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bus;
 use App\Models\BusMaintenance;
+use App\Models\MaintenancePlan;
 use App\Models\Garage;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,12 +12,16 @@ use Inertia\Inertia;
 class BusMaintenanceController extends Controller
 {
     // Liste des maintenances pour un bus
-    public function index(Bus $bus)
+  public function index(Bus $bus)
 {
     return Inertia::render('Buses/MaintenanceIndex', [
         'bus' => $bus,
-        'maintenances' => $bus->maintenances()->orderBy('maintenance_date', 'desc')->get(),
-        'garages' => Garage::orderBy('name')->get(), // Ajout des garages
+        'maintenances' => $bus->maintenances()
+            ->with('maintenance_plan') // Charger le plan lié
+            ->orderBy('maintenance_date', 'desc')
+            ->get(),
+        'garages' => Garage::orderBy('name')->get(),
+        'maintenancePlans' => MaintenancePlan::orderBy('name')->get(), // Passer les plans
     ]);
 }
 

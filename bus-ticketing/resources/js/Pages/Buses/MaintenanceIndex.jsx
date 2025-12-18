@@ -24,7 +24,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import GuestLayout from "@/Layouts/GuestLayout";
 import MaintenanceForm from "./MaintenanceForm";
 
-export default function MaintenanceIndex({ bus, maintenances, garages }) {
+export default function MaintenanceIndex({ bus, maintenances, garages, maintenancePlans }) {
   const [open, setOpen] = useState(false);
   const [selectedMaintenance, setSelectedMaintenance] = useState(null);
 
@@ -61,11 +61,12 @@ export default function MaintenanceIndex({ bus, maintenances, garages }) {
             <strong>Modèle :</strong> {bus.model || "—"}
           </Typography>
           <Typography variant="body1">
-            <strong>Kilométrage actuel :</strong> {bus.last_maintenance_km?.toLocaleString()} km
+            <strong>Kilométrage actuel :</strong>{" "}
+            {bus.last_maintenance_km?.toLocaleString() || "—"} km
           </Typography>
           <Typography variant="body1" color="error">
             <strong>Prochaine maintenance prévue à :</strong>{" "}
-            {bus.next_maintenance_km?.toLocaleString()} km
+            {bus.next_maintenance_km?.toLocaleString() || "—"} km
           </Typography>
         </Box>
       </Card>
@@ -83,13 +84,16 @@ export default function MaintenanceIndex({ bus, maintenances, garages }) {
       {/* Dialog / Pop-up */}
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>
-          {selectedMaintenance ? "✏️ Modifier la maintenance" : "➕ Ajouter une maintenance"}
+          {selectedMaintenance
+            ? "✏️ Modifier la maintenance"
+            : "➕ Ajouter une maintenance"}
         </DialogTitle>
         <DialogContent>
           <Divider sx={{ mb: 2 }} />
           <MaintenanceForm
             bus={bus}
             garages={garages}
+            maintenancePlans={maintenancePlans}
             maintenance={selectedMaintenance}
             closeDialog={handleClose}
           />
@@ -110,7 +114,7 @@ export default function MaintenanceIndex({ bus, maintenances, garages }) {
               <TableHead sx={{ bgcolor: "#1565c0" }}>
                 <TableRow>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
-                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Type</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>Plan</TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Kilométrage</TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Coût (FCFA)</TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Notes</TableCell>
@@ -123,13 +127,14 @@ export default function MaintenanceIndex({ bus, maintenances, garages }) {
                     "fr-FR",
                     { day: "2-digit", month: "2-digit", year: "numeric" }
                   );
+                  const planName = m.maintenance_plan?.name || m.type || "—";
 
                   return (
                     <TableRow key={m.id}>
                       <TableCell>{formattedDate}</TableCell>
-                      <TableCell>{m.type}</TableCell>
+                      <TableCell>{planName}</TableCell>
                       <TableCell>{m.mileage?.toLocaleString() || "—"}</TableCell>
-                      <TableCell>{m.cost?.toLocaleString()} FCFA</TableCell>
+                      <TableCell>{m.cost?.toLocaleString() || "0"} FCFA</TableCell>
                       <TableCell>{m.notes || "—"}</TableCell>
                       <TableCell>
                         <IconButton

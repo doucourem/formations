@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
+import axios from "axios";
 import {
   Box,
   TextField,
@@ -13,6 +14,7 @@ import {
 export default function MaintenanceForm({
   bus,
   garages = [],
+  maintenancePlans = [],
   maintenance = null,
   closeDialog,
 }) {
@@ -23,8 +25,8 @@ export default function MaintenanceForm({
   // -----------------------------
   const [form, setForm] = useState({
     bus_id: bus.id,
+    maintenance_plan_id: "",
     maintenance_date: "",
-    type: "",
     mileage: "",
     cost: "",
     labour_cost: "",
@@ -36,6 +38,7 @@ export default function MaintenanceForm({
     notes: "",
   });
 
+  const [tasks, setTasks] = useState([]);
   const [previewBefore, setPreviewBefore] = useState(null);
   const [previewAfter, setPreviewAfter] = useState(null);
 
@@ -46,8 +49,8 @@ export default function MaintenanceForm({
     if (isEdit) {
       setForm({
         bus_id: bus.id,
+        maintenance_plan_id: maintenance.maintenance_plan_id ?? "",
         maintenance_date: maintenance.maintenance_date ?? "",
-        type: maintenance.type ?? "",
         mileage: maintenance.mileage ?? "",
         cost: maintenance.cost ?? "",
         labour_cost: maintenance.labour_cost ?? "",
@@ -59,54 +62,60 @@ export default function MaintenanceForm({
         notes: maintenance.notes ?? "",
       });
 
-      if (maintenance.photo_before) {
-        setPreviewBefore(`/storage/${maintenance.photo_before}`);
-      }
-      if (maintenance.photo_after) {
-        setPreviewAfter(`/storage/${maintenance.photo_after}`);
-      }
+      if (maintenance.photo_before) setPreviewBefore(`/storage/${maintenance.photo_before}`);
+      if (maintenance.photo_after) setPreviewAfter(`/storage/${maintenance.photo_after}`);
     }
   }, [isEdit, maintenance, bus.id]);
+
+  // -----------------------------
+  // Charger les tâches du plan
+  // -----------------------------
+  useEffect(() => {
+    if (form.maintenance_plan_id) {
+      axios
+        .get(route("maintenance-plans.tasks", form.maintenance_plan_id))
+        .then((res) => {
+          const formatted = res.data.map((t) => ({
+            id: t.id,
+            task_name: t.task_name,
+            status: "ok", // valeur par défaut
+          }));
+          setTasks(formatted);
+        });
+    } else {
+      setTasks([]);
+    }
+  }, [form.maintenance_plan_id]);
 
   // -----------------------------
   // Handlers
   // -----------------------------
   const handleChange = (field) => (e) => {
-    const value =
-      e.target.type === "file" ? e.target.files[0] : e.target.value;
-
+    const value = e.target.type === "file" ? e.target.files[0] : e.target.value;
     setForm((prev) => ({ ...prev, [field]: value }));
 
-    // preview image
+    // Preview image
     if (e.target.type === "file" && value) {
       const url = URL.createObjectURL(value);
-      field === "photo_before"
-        ? setPreviewBefore(url)
-        : setPreviewAfter(url);
+      field === "photo_before" ? setPreviewBefore(url) : setPreviewAfter(url);
     }
   };
 
   const submit = (e) => {
     e.preventDefault();
-
     const formData = new FormData();
     Object.entries(form).forEach(([key, value]) => {
-      if (value !== null && value !== "") {
-        formData.append(key, value);
-      }
+      if (value !== null && value !== "") formData.append(key, value);
     });
+
+    formData.append("tasks", JSON.stringify(tasks));
 
     if (isEdit) {
       formData.append("_method", "PUT");
-
-      router.post(
-        route("bus.maintenance.update", maintenance.id),
-        formData,
-        {
-          forceFormData: true,
-          onSuccess: () => closeDialog?.(),
-        }
-      );
+      router.post(route("bus.maintenance.update", maintenance.id), formData, {
+        forceFormData: true,
+        onSuccess: () => closeDialog?.(),
+      });
     } else {
       router.post(route("bus.maintenance.store"), formData, {
         forceFormData: true,
@@ -125,8 +134,23 @@ export default function MaintenanceForm({
       </Typography>
 
       <Stack spacing={3}>
-        {/* Informations principales */}
+        {/* Plan d’entretien et date */}
         <Stack spacing={2}>
+          <TextField
+            select
+            fullWidth
+            label="Plan d’entretien"
+            value={form.maintenance_plan_id}
+            onChange={(e) => setForm({ ...form, maintenance_plan_id: e.target.value })}
+            required
+          >
+            {maintenancePlans.map((plan) => (
+              <MenuItem key={plan.id} value={plan.id}>
+                {plan.name} ({plan.interval_value} {plan.interval_type})
+              </MenuItem>
+            ))}
+          </TextField>
+
           <TextField
             type="date"
             fullWidth
@@ -136,21 +160,6 @@ export default function MaintenanceForm({
             onChange={handleChange("maintenance_date")}
             required
           />
-
-          <TextField
-            select
-            fullWidth
-            label="Type de maintenance"
-            value={form.type}
-            onChange={handleChange("type")}
-            required
-          >
-            {["vidange", "pneus", "freins", "moteur", "autre"].map((t) => (
-              <MenuItem key={t} value={t}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </MenuItem>
-            ))}
-          </TextField>
 
           <TextField
             type="number"
@@ -163,6 +172,34 @@ export default function MaintenanceForm({
 
         <Divider />
 
+        {/* Checklist */}
+        {tasks.length > 0 && (
+          <>
+            <Typography fontWeight="bold">Checklist</Typography>
+            <Stack spacing={1}>
+              {tasks.map((task, index) => (
+                <TextField
+                  key={task.id}
+                  select
+                  fullWidth
+                  label={task.task_name}
+                  value={task.status}
+                  onChange={(e) => {
+                    const updated = [...tasks];
+                    updated[index].status = e.target.value;
+                    setTasks(updated);
+                  }}
+                >
+                  <MenuItem value="ok">OK</MenuItem>
+                  <MenuItem value="replaced">Remplacé</MenuItem>
+                  <MenuItem value="repair">À réparer</MenuItem>
+                </TextField>
+              ))}
+            </Stack>
+            <Divider />
+          </>
+        )}
+
         {/* Coûts */}
         <Stack spacing={2}>
           <TextField
@@ -172,7 +209,6 @@ export default function MaintenanceForm({
             value={form.cost}
             onChange={handleChange("cost")}
           />
-
           <TextField
             type="number"
             fullWidth
@@ -194,7 +230,6 @@ export default function MaintenanceForm({
             value={form.parts}
             onChange={handleChange("parts")}
           />
-
           <TextField
             type="number"
             fullWidth
@@ -233,14 +268,8 @@ export default function MaintenanceForm({
             InputLabelProps={{ shrink: true }}
             onChange={handleChange("photo_before")}
           />
-
           {previewBefore && (
-            <img
-              src={previewBefore}
-              alt="Avant"
-              width={130}
-              style={{ borderRadius: 8 }}
-            />
+            <img src={previewBefore} alt="Avant" width={130} style={{ borderRadius: 8 }} />
           )}
 
           <TextField
@@ -250,14 +279,8 @@ export default function MaintenanceForm({
             InputLabelProps={{ shrink: true }}
             onChange={handleChange("photo_after")}
           />
-
           {previewAfter && (
-            <img
-              src={previewAfter}
-              alt="Après"
-              width={130}
-              style={{ borderRadius: 8 }}
-            />
+            <img src={previewAfter} alt="Après" width={130} style={{ borderRadius: 8 }} />
           )}
         </Stack>
 
@@ -274,12 +297,7 @@ export default function MaintenanceForm({
         />
 
         {/* Bouton */}
-        <Button
-          variant="contained"
-          type="submit"
-          size="large"
-          sx={{ alignSelf: "flex-end" }}
-        >
+        <Button variant="contained" type="submit" size="large" sx={{ alignSelf: "flex-end" }}>
           {isEdit ? "Mettre à jour" : "Ajouter"}
         </Button>
       </Stack>
