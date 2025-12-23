@@ -132,14 +132,19 @@ export default function HomePage() {
             <Typography variant="h4" fontWeight="800">Espace Partenaires</Typography>
           </Stack>
           
-          <Grid container spacing={3}>
+         <Grid container spacing={3}>
   {partnerTypes.map((partner, i) => (
-    <Grid item xs={12} md={4} key={i}>
+    <Grid item xs={12} sm={6} md={4} key={i}>
       <Paper 
         elevation={0}
         sx={{ 
-          p: 4, height: '100%', borderRadius: 4, border: '1px solid', borderColor: 'divider',
-          transition: '0.3s', '&:hover': { boxShadow: 10, transform: 'translateY(-5px)', borderColor: partner.color }
+          p: 4,
+          height: '100%',
+          borderRadius: 4,
+          border: '1px solid',
+          borderColor: 'divider',
+          transition: '0.3s',
+          '&:hover': { boxShadow: 10, transform: 'translateY(-5px)', borderColor: partner.color }
         }}
       >
         <Box sx={{ color: partner.color, mb: 2 }}>{partner.icon}</Box>
@@ -157,6 +162,7 @@ export default function HomePage() {
     </Grid>
   ))}
 </Grid>
+
 
         </Box>
 
