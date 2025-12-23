@@ -37,6 +37,29 @@ use Inertia\Inertia;
 
 
 Route::get('/', fn() => Inertia::render('HomePage'))->name('home');
+
+// Compagnies de transport
+Route::get('/compagnies', function () {
+    return Inertia::render('CompaniesPage');
+})->name('companies');
+
+// Maintenance / garages
+Route::get('/maintenance', function () {
+    return Inertia::render('MaintenancePage');
+})->name('maintenance');
+
+// Billets / Réservations
+Route::get('/billets', function () {
+    return Inertia::render('TicketsPage');
+})->name('tickets');
+
+// Gros porteurs / véhicules lourds
+Route::get('/gros-porteurs', function () {
+    return Inertia::render('HeavyVehiclesPage');
+})->name('heavyVehicles');
+
+// Abonnements
+
 Route::get('/garages3', fn() => Inertia::render('HomePageMUIAnimated'))->name('garages3');
 Route::get('/garages2', fn() => Inertia::render('HomePageEnhanced'))->name('garages2');
 

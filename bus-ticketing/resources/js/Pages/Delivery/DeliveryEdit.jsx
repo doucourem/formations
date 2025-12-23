@@ -44,10 +44,8 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
     Object.keys(form).forEach((key) => {
       data.append(key, form[key]);
     });
-    Inertia.post(route("deliveries.update", delivery.id), data, {
-      _method: "PUT",
-      onSuccess: () => alert("Livraison mise à jour avec succès !"),
-    });
+      data.append('_method', 'PUT');
+    Inertia.post(route("deliveries.update", delivery.id), data);
   };
 
   return (
