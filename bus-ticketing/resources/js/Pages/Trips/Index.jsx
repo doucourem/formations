@@ -31,6 +31,9 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import GuestLayout from "@/Layouts/GuestLayout";
@@ -99,33 +102,18 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                 <Typography variant="h5">Gestion des trajets</Typography>
               </Stack>
             }
-            action=
-              {(userRole === "manageragence" || userRole === "manager" || userRole === "admin") && (
-  <>
-    <Button
-      variant="contained"
-      color="primary"
-      startIcon={<AddCircleOutlineIcon />}
-      onClick={() => Inertia.get(route("trips.create"))}
-    >
-      Nouveau trajet
-    </Button>
-
-    <Button
-      variant="outlined"
-      onClick={() => window.location.href = route('trips.export')}
-    >
-      Export Résumé Excel
-    </Button>
-
-    <Button
-      variant="outlined"
-      onClick={() => window.location.href = route('trips.export-detailed')}
-    >
-      Export Détail Excel
-    </Button>
-  </>
-)}
+            action={
+              (userRole === "manageragence" || userRole === "manager" || userRole === "admin") && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AddCircleOutlineIcon />}
+                  onClick={() => Inertia.get(route("trips.create"))}
+                >
+                  Nouveau trajet
+                </Button>
+              )
+            }
           />
           <Divider />
           <CardContent>
@@ -143,8 +131,6 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
               <Button variant="contained" color="secondary" onClick={filtrer} disabled={loading}>
                 {loading ? <CircularProgress size={20} color="inherit" /> : "Filtrer"}
               </Button>
-            
-
             </Stack>
 
             {/* TABLEAU DES TRAJETS */}
@@ -170,7 +156,34 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                           <TableCell>{trip.route?.price} FCFA</TableCell>
                           <TableCell>{trip.places_dispo}</TableCell>
                           <TableCell>
+
                             <Stack direction="row" spacing={1}>
+                                {/* Modifier / Supprimer seulement pour manager / manageragence et trajets futurs */}
+                            {trip.departure_at && new Date(trip.departure_at) >= new Date() &&
+  (userRole === "manageragence" || userRole === "manager" || userRole === "admin") && (
+                                <>
+                                  <Tooltip title="Modifier">
+                                    <IconButton
+                                      color="primary"
+                                      size="small"
+                                      component={Link}
+                                      href={trip.edit_url || route("trips.edit", trip.id)}
+                                    >
+                                      <EditIcon />
+                                    </IconButton>
+                                  </Tooltip>
+
+                                  <Tooltip title="Supprimer">
+                                    <IconButton
+                                      color="error"
+                                      size="small"
+                                      onClick={() => handleDelete(trip.id)}
+                                    >
+                                      <DeleteIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              )}
                               <Tooltip title="Voir le trajet">
                                 <IconButton color="info" size="small" component={Link} href={route("trips.show", trip.id)}><VisibilityIcon /></IconButton>
                               </Tooltip>

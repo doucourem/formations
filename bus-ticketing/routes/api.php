@@ -14,9 +14,15 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Twilio\Rest\Client;
 use App\Models\Ticket;
+
 use App\Http\Controllers\TwilioWebhookController;
 
 use App\Http\Controllers\PaymentWebhookController;
+use App\Http\Controllers\AuthController;
+
+// routes/api.php
+Route::post('/login', [AuthController::class, 'login']);
+Route::middleware('auth:sanctum')->get('/me', fn(Request $r) => $r->user());
 
 Route::post('/payments/callback', [PaymentWebhookController::class, 'handle'])
      ->name('payments.callback');

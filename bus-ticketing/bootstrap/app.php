@@ -19,10 +19,14 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // Groupe API (pas de CSRF par défaut)
-        $middleware->api();
+        // Groupe API (Sanctum)
+        $middleware->api(append: [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            'throttle:api',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Ici tu peux configurer le reporting ou custom handler
+        //
     })
     ->create();

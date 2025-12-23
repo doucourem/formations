@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::table('buses', function (Blueprint $table) {
 
             // 🔄 Amélioration du statut
-            $table->enum('status', ['available', 'maintenance', 'inactive'])
-                  ->default('available')
+            $table->enum('status', ['active', 'maintenance', 'inactive'])
+                  ->default('active')
                   ->change();
 
             // ➕ Suivi maintenance

@@ -9,7 +9,7 @@ return new class extends Migration
    public function up(): void
 {
     Schema::table('buses', function (Blueprint $table) {
-        $table->string('vehicle_type')->after('type')->default('bus');
+        $table->string('vehicle_type')->default('bus');
     });
 }
 
