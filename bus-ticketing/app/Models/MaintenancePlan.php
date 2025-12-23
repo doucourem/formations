@@ -16,6 +16,7 @@ class MaintenancePlan extends Model
 
     public function tasks()
     {
-        return $this->hasMany(MaintenanceTask::class);
+        return $this->hasMany(MaintenancePlanTask::class);
     }
+
 }
