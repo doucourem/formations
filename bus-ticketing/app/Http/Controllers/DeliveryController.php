@@ -77,7 +77,7 @@ class DeliveryController extends Controller
     public function update(Request $request, Delivery $delivery)
     {
         $data = $request->validate([
-            'vehicle_id' => 'required|exists:vehicles,id',
+          'vehicle_id' => ['required', 'exists:'.(new Bus)->getTable().',id'],
             'driver_id' => 'required|exists:drivers,id',
             'product_name' => 'required|string',
             'product_lot' => 'nullable|string',

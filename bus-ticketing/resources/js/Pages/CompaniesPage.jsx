@@ -22,56 +22,39 @@ export default function CompaniesPage() {
       <PageHero
         title="Compagnies de transport"
         subtitle="Gérez vos bus, trajets et ventes de billets en toute simplicité"
+        buttonText="Affilier ma compagnie"
+        buttonLink="#"
       />
 
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: { xs: 3, md: 4 } }}>
         {/* --- SECTION 1: FONCTIONNALITÉS --- */}
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Gestion de la flotte" 
-              description="Ajoutez et gérez vos bus et véhicules depuis une seule plateforme." 
-              icon={<BusAlert color="primary" />}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Gestion des trajets" 
-              description="Créez vos itinéraires, horaires et tarifs rapidement." 
-              icon={<Route color="primary" />}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Vente de billets" 
-              description="Suivez les ventes effectuées en ligne et via WhatsApp." 
-              icon={<ConfirmationNumber color="primary" />}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Statistiques" 
-              description="Analysez vos revenus et performances." 
-              icon={<QueryStats color="primary" />}
-            />
-          </Grid>
+        <Grid container spacing={{ xs: 3, md: 4 }}>
+          {[
+            { title: "Gestion de la flotte", desc: "Ajoutez et gérez vos bus et véhicules depuis une seule plateforme.", icon: <BusAlert color="primary" /> },
+            { title: "Gestion des trajets", desc: "Créez vos itinéraires, horaires et tarifs rapidement.", icon: <Route color="primary" /> },
+            { title: "Vente de billets", desc: "Suivez les ventes effectuées en ligne et via WhatsApp.", icon: <ConfirmationNumber color="primary" /> },
+            { title: "Statistiques", desc: "Analysez vos revenus et performances.", icon: <QueryStats color="primary" /> }
+          ].map((feature, i) => (
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <FeatureCard title={feature.title} description={feature.desc} icon={feature.icon} />
+            </Grid>
+          ))}
         </Grid>
 
         {/* --- SECTION 2: APPEL À L'INSCRIPTION --- */}
         <Paper 
           elevation={0} 
           sx={{ 
-            mt: 8, p: 5, borderRadius: 4, 
+            mt: { xs: 6, md: 8 }, p: { xs: 3, md: 5 }, borderRadius: 4, 
             background: "linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)", 
             color: "white", textAlign: "center"
           }}
         >
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
+          <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ fontSize: { xs: '1.8rem', md: '2.5rem' } }}>
             Digitalisez votre billetterie dès aujourd'hui
           </Typography>
           <Typography variant="body1" sx={{ mb: 4, opacity: 0.9, maxWidth: 700, mx: "auto" }}>
-            Augmentez votre taux de remplissage en vendant vos billets sur notre réseau 
-            web et mobile. Une gestion simplifiée pour un profit optimisé.
+            Augmentez votre taux de remplissage en vendant vos billets sur notre réseau web et mobile. Une gestion simplifiée pour un profit optimisé.
           </Typography>
           <Button 
             variant="contained" 
@@ -80,6 +63,7 @@ export default function CompaniesPage() {
             startIcon={<AppRegistration />}
             sx={{ 
               bgcolor: "white", color: "#1b5e20", fontWeight: "bold", px: 6,
+              width: { xs: '100%', sm: 'auto' },
               "&:hover": { bgcolor: "#f0f0f0" } 
             }}
           >
@@ -88,7 +72,7 @@ export default function CompaniesPage() {
         </Paper>
 
         {/* --- SECTION 3: CANAUX DE VENTE --- */}
-        <Grid container spacing={4} sx={{ mt: 6 }}>
+        <Grid container spacing={{ xs: 3, md: 4 }} sx={{ mt: 6 }}>
           {[
             { title: "Vente en Ligne", desc: "Vos billets disponibles 24h/7j sur le web.", icon: <Language /> },
             { title: "WhatsApp Bot", desc: "Réservation automatique via messagerie.", icon: <WhatsApp /> },
@@ -106,7 +90,7 @@ export default function CompaniesPage() {
       </Container>
 
       {/* --- MODAL D'INSCRIPTION COMPAGNIE --- */}
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" PaperProps={{ sx: { m: { xs: 1, sm: 2 } } }}>
         <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           Devenir Compagnie Partenaire
           <IconButton onClick={handleClose} size="small"><Close /></IconButton>
@@ -115,7 +99,9 @@ export default function CompaniesPage() {
           <Stack spacing={3} sx={{ mt: 1 }}>
             <TextField label="Nom de la Compagnie" fullWidth />
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}><TextField label="Nombre de bus" type="number" fullWidth /></Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField label="Nombre de bus" type="number" fullWidth />
+              </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Zone principale" fullWidth defaultValue="nat">
                   <MenuItem value="nat">National</MenuItem>

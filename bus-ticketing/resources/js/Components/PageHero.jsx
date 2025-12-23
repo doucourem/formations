@@ -1,15 +1,20 @@
-import React from "react";
-import { Box, Typography, Button, Stack, Container, IconButton } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Typography, Button, Stack, Container, IconButton, Drawer, List, ListItem, ListItemText } from "@mui/material";
 import { motion } from "framer-motion";
-import { Menu as MenuIcon, LocalShipping } from "@mui/icons-material"; 
+import { Menu as MenuIcon } from "@mui/icons-material";
 import Logo from "@/Assets/logo.png";
 
 export default function PageHero({ title, subtitle, buttonText, buttonLink }) {
-  // Définir les liens pour le menu
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   const menuLinks = {
     "Compagnies": "/compagnies",
     "Garages": "/maintenance",
     "Logistique / PL": "/gros-porteurs"
+  };
+
+  const toggleDrawer = (open) => () => {
+    setDrawerOpen(open);
   };
 
   return (
@@ -53,10 +58,23 @@ export default function PageHero({ title, subtitle, buttonText, buttonLink }) {
           </Stack>
 
           {/* MENU (Mobile) */}
-          <IconButton sx={{ display: { xs: 'flex', md: 'none' } }}>
+          <IconButton sx={{ display: { xs: 'flex', md: 'none' } }} onClick={toggleDrawer(true)}>
             <MenuIcon />
           </IconButton>
         </Stack>
+
+        {/* --- DRAWER MOBILE --- */}
+        <Drawer anchor="right" open={drawerOpen} onClose={toggleDrawer(false)}>
+          <Box sx={{ width: 250, p: 2 }}>
+            <List>
+              {Object.keys(menuLinks).map((item) => (
+                <ListItem button component="a" href={menuLinks[item]} key={item} onClick={toggleDrawer(false)}>
+                  <ListItemText primary={item} />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        </Drawer>
 
         {/* --- CONTENU DU HERO --- */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>

@@ -98,7 +98,7 @@ export default function DeliveryIndex({ deliveries }) {
                     <TableRow key={d.id}>
                       <TableCell>{d.id}</TableCell>
                       <TableCell>{d.bus.registration_number}</TableCell>
-                      <TableCell>{d.bus.name}</TableCell>
+                      <TableCell>{d.driver.first_name}</TableCell>
                       <TableCell>{d.product_name}</TableCell>
                       <TableCell>{d.product_lot}</TableCell>
                       <TableCell>{d.quantity_loaded}</TableCell>
