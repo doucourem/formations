@@ -98,6 +98,22 @@ export default function TicketForm({ ticket = null, trips = [] }) {
 
   const allSeats = Array.from({ length: busCapacity }, (_, i) => (i + 1).toString());
   const freeSeats = allSeats.filter(seat => !occupiedSeats.includes(seat));
+const handleCancelReservation = async () => {
+  if (!ticket?.id) return;
+
+  const confirm = window.confirm("Voulez-vous vraiment annuler cette réservation ?");
+  if (!confirm) return;
+
+  try {
+    await put(route("ticket.update", ticket.id), { status: "cancelled" });
+    alert("La réservation a été annulée avec succès !");
+    // Mettre à jour localement le formulaire ou recharger la page
+    setData("status", "cancelled");
+  } catch (error) {
+    alert("Erreur lors de l'annulation : " + error.message);
+  }
+};
+
 
   return (
     <GuestLayout>
@@ -188,9 +204,28 @@ export default function TicketForm({ ticket = null, trips = [] }) {
           </FormControl>
 
           {/* Soumission */}
-          <Button type="submit" variant="contained" color="success" disabled={processing || isBusFull}>
-            {ticket?.id ? "Mettre à jour" : "Créer"}
-          </Button>
+        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+  <Button 
+    type="submit" 
+    variant="contained" 
+    color="success" 
+    disabled={processing || isBusFull}
+  >
+    {ticket?.id ? "Mettre à jour la réservation" : "Créer la réservation"}
+  </Button>
+
+  {ticket?.id && data.status !== "cancelled" && (
+    <Button
+      type="button"
+      variant="outlined"
+      color="error"
+      onClick={() => handleCancelReservation()}
+    >
+      Annuler la réservation
+    </Button>
+  )}
+</Box>
+
 
           {isBusFull && <Alert severity="warning" sx={{ mt: 2 }}>🚫 Le bus est complet — impossible de réserver un nouveau billet.</Alert>}
 

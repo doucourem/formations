@@ -52,6 +52,20 @@ export default function VehicleRentalIndex({ rentals }) {
     );
   };
 
+  // Ajoutez cette fonction en haut du composant
+const translateStatus = (status) => {
+  switch (status) {
+    case "active":
+      return "Active";
+    case "completed":
+      return "Terminée";
+    case "cancelled":
+      return "Annulée";
+    default:
+      return status;
+  }
+};
+
   return (
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 2 }}>
@@ -105,55 +119,46 @@ export default function VehicleRentalIndex({ rentals }) {
               </TableHead>
 
               <TableBody>
-                {rentals.data.length > 0 ? (
-                  rentals.data.map((rental) => (
-                    <TableRow key={rental.id}>
-                      <TableCell>{rental.id}</TableCell>
-                      <TableCell>{rental.vehicle?.registration_number || "-"}</TableCell>
-                      <TableCell>{rental.client_name}</TableCell>
-                      <TableCell>{new Date(rental.rental_start).toLocaleString()}</TableCell>
-                      <TableCell>{new Date(rental.rental_end).toLocaleString()}</TableCell>
-                      <TableCell>{rental.rental_price}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
-                          {rental.photo_before_url && (
-                            <img src={rental.photo_before_url} alt="Avant" width={50} />
-                          )}
-                          {rental.photo_after_url && (
-                            <img src={rental.photo_after_url} alt="Après" width={50} />
-                          )}
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{rental.status}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
-                          <IconButton
-                            color="primary"
-                            onClick={() => Inertia.get(route("vehicle-rentals.show", rental.id))}
-                          >
-                            <VisibilityIcon />
-                          </IconButton>
-                          <IconButton
-                            color="warning"
-                            onClick={() => Inertia.get(route("vehicle-rentals.edit", rental.id))}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton color="error" onClick={() => handleDelete(rental.id)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={9} align="center">
-                      Aucune location enregistrée.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
+  {rentals.data.length > 0 ? (
+    rentals.data.map((rental) => (
+      <TableRow key={rental.id}>
+        <TableCell>{rental.id}</TableCell>
+        <TableCell>{rental.bus?.registration_number || "-"}</TableCell>
+        <TableCell>{rental.client_name}</TableCell>
+        <TableCell>{new Date(rental.rental_start).toLocaleString()}</TableCell>
+        <TableCell>{new Date(rental.rental_end).toLocaleString()}</TableCell>
+        <TableCell>{rental.rental_price}</TableCell>
+        <TableCell>
+          <Stack direction="row" spacing={1}>
+            {rental.photo_before_url && <img src={rental.photo_before_url} alt="Avant" width={50} />}
+            {rental.photo_after_url && <img src={rental.photo_after_url} alt="Après" width={50} />}
+          </Stack>
+        </TableCell>
+        <TableCell>{translateStatus(rental.status)}</TableCell>
+        <TableCell>
+          <Stack direction="row" spacing={1}>
+            <IconButton color="primary" onClick={() => Inertia.get(route("vehicle-rentals.show", rental.id))}>
+              <VisibilityIcon />
+            </IconButton>
+            <IconButton color="warning" onClick={() => Inertia.get(route("vehicle-rentals.edit", rental.id))}>
+              <EditIcon />
+            </IconButton>
+            <IconButton color="error" onClick={() => handleDelete(rental.id)}>
+              <DeleteIcon />
+            </IconButton>
+          </Stack>
+        </TableCell>
+      </TableRow>
+    ))
+  ) : (
+    <TableRow>
+      <TableCell colSpan={9} align="center">
+        Aucune location enregistrée.
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
+
             </Table>
           </TableContainer>
 

@@ -10,9 +10,11 @@ class MaintenanceTask extends Model
     protected $fillable = [
         'bus_maintenance_id',
         'maintenance_plan_task_id',
+        'maintenance_plan_id',
         'status',
         'notes',
     ];
+
 
     public function maintenance()
     {

@@ -12,6 +12,7 @@ class BusMaintenance extends Model
     protected $fillable = [
         'bus_id',
         'garage_id',
+        'type',
         'maintenance_plan_id', // ✅ nouveau
         'maintenance_date',
         'next_due_date',       // ✅ nouveau

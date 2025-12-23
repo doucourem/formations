@@ -82,7 +82,7 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               >
                 {drivers.map((driver) => (
                   <MenuItem key={driver.id} value={driver.id}>
-                    {driver.name}
+                    {driver.first_name}
                   </MenuItem>
                 ))}
               </TextField>

@@ -40,6 +40,7 @@ public function store(Request $request)
         'maintenance_date' => 'required|date',
 
         'mileage' => 'nullable|integer|min:0',
+        'type' => 'required|string|max:255',
         'cost' => 'nullable|integer|min:0',
         'labour_cost' => 'nullable|integer|min:0',
         'parts' => 'nullable|string',
@@ -77,10 +78,12 @@ public function store(Request $request)
 
             foreach ($tasks as $task) {
                 MaintenanceTask::create([
-                    'bus_maintenance_id' => $maintenance->id,
-                    'maintenance_plan_task_id' => $task['id'],
-                    'status' => $task['status'], // ok | replaced | repair
-                ]);
+    'bus_maintenance_id' => $maintenance->id,
+    'maintenance_plan_task_id' => $task['id'],
+    'maintenance_plan_id' => $maintenance->maintenance_plan_id, // <-- à ajouter
+    'status' => $task['status'], // ok | replaced | repair
+]);
+
             }
         }
     });
@@ -96,31 +99,56 @@ public function update(Request $request, BusMaintenance $maintenance)
 {
     $validated = $request->validate([
         'maintenance_date' => 'required|date',
-        'type' => 'required|string',
+        'type' => 'required|string|max:255',
         'mileage' => 'nullable|integer|min:0',
         'cost' => 'nullable|numeric|min:0',
         'labour_cost' => 'nullable|numeric|min:0',
         'parts' => 'nullable|string',
         'duration_hours' => 'nullable|numeric|min:0',
         'garage_id' => 'nullable|exists:garages,id',
-        'photo_before' => 'nullable|image|max:2048',
-        'photo_after' => 'nullable|image|max:2048',
+        'photo_before' => 'nullable|image|max:5120',
+        'photo_after'  => 'nullable|image|max:5120',
         'notes' => 'nullable|string',
+        'tasks' => 'nullable|string', // JSON depuis React
     ]);
 
-    if ($request->hasFile('photo_before')) {
-        $validated['photo_before'] =
-            $request->file('photo_before')->store('maintenances', 'public');
-    }
+    DB::transaction(function () use ($request, $validated, $maintenance) {
 
-    if ($request->hasFile('photo_after')) {
-        $validated['photo_after'] =
-            $request->file('photo_after')->store('maintenances', 'public');
-    }
+        // 📸 Upload photos si présentes
+        if ($request->hasFile('photo_before')) {
+            $validated['photo_before'] =
+                $request->file('photo_before')->store('maintenances', 'public');
+        }
 
-    $maintenance->update($validated);
+        if ($request->hasFile('photo_after')) {
+            $validated['photo_after'] =
+                $request->file('photo_after')->store('maintenances', 'public');
+        }
 
-    return back()->with('success', 'Maintenance mise à jour');
+        // 🔧 Mise à jour de la maintenance
+        $maintenance->update($validated);
+
+        // ✅ Synchronisation des tâches
+        if ($request->filled('tasks')) {
+            $tasks = json_decode($request->tasks, true);
+
+            foreach ($tasks as $task) {
+                MaintenanceTask::updateOrCreate(
+                    [
+                        'bus_maintenance_id' => $maintenance->id,
+                        'maintenance_plan_task_id' => $task['id'],
+                    ],
+                    [
+                        'maintenance_plan_id' => $maintenance->maintenance_plan_id,
+                        'status' => $task['status'],
+                    ]
+                );
+            }
+        }
+    });
+
+    return redirect()->back()->with('success', 'Maintenance mise à jour avec succès');
 }
+
 
 }

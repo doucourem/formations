@@ -25,11 +25,11 @@ export default function DeliveryCreate({ vehicles, drivers, rate_per_km = 1000 }
         <CardContent>
           <Box component="form" display="grid" gap={2} onSubmit={handleSubmit}>
             <TextField select label="Véhicule" name="vehicle_id" value={form.vehicle_id} onChange={handleChange} required>
-              {vehicles.map(v => <MenuItem key={v.id} value={v.id}>{v.registration_number} ({v.type})</MenuItem>)}
+              {vehicles.map(v => <MenuItem key={v.id} value={v.id}>{v.registration_number} ({v.model})</MenuItem>)}
             </TextField>
 
             <TextField select label="Chauffeur" name="driver_id" value={form.driver_id} onChange={handleChange} required>
-              {drivers.map(d => <MenuItem key={d.id} value={d.id}>{d.name} ({d.phone})</MenuItem>)}
+              {drivers.map(d => <MenuItem key={d.id} value={d.id}>{d.first_name} ({d.last_name})</MenuItem>)}
             </TextField>
 
             <TextField label="Produit" name="product_name" value={form.product_name} onChange={handleChange} required />

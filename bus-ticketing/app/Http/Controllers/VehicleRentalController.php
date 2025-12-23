@@ -199,8 +199,10 @@ public function storeExtension(Request $request, VehicleRental $vehicleRental)
 public function show($id)
 {
     $rental = VehicleRental::findOrFail($id);
-    return view('vehicle_rentals.show', compact('rental'));
-}
 
+    return Inertia::render('VehicleRentals/show', [
+        'rental' => $rental
+    ]);
+}
 
 }

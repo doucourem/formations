@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Box, TextField, Button, MenuItem, Typography } from '@mui/material';
+import { Box, TextField, Button, MenuItem, Typography, Card, CardContent, Divider } from '@mui/material';
 
 export default function Create({ vehicles }) {
   const [form, setForm] = useState({
@@ -62,32 +62,40 @@ export default function Create({ vehicles }) {
 
   return (
     <GuestLayout>
-      <Typography variant="h5">Nouvelle Location</Typography>
-      <Box component="form" mt={2} onSubmit={handleSubmit} display="grid" gap={2}>
-        <TextField select label="Véhicule" name="vehicle_id" value={form.vehicle_id} onChange={handleChange} required>
-          {vehicles.map(v => (
-            <MenuItem key={v.id} value={v.id}>{v.registration_number}</MenuItem>
-          ))}
-        </TextField>
-        <TextField label="Client" name="client_name" value={form.client_name} onChange={handleChange} required />
-        <TextField label="Prix" name="rental_price" value={form.rental_price} onChange={handleChange} type="number" required />
-        <TextField label="Début" type="datetime-local" name="rental_start" value={form.rental_start} onChange={handleChange} required />
-        <TextField label="Fin" type="datetime-local" name="rental_end" value={form.rental_end} onChange={handleChange} required />
+      <Typography variant="h5" mb={2}>Nouvelle Location</Typography>
 
-        <Box>
-          <Typography>Photo avant la location</Typography>
-          <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'before')} />
-          {previewBefore && <img src={previewBefore} alt="Avant" style={{ maxWidth: 200, marginTop: 5 }} />}
-        </Box>
+      <Card>
+        <CardContent>
+          <Box component="form" onSubmit={handleSubmit} display="grid" gap={2}>
+            <TextField select label="Véhicule" name="vehicle_id" value={form.vehicle_id} onChange={handleChange} required>
+              {vehicles.map(v => (
+                <MenuItem key={v.id} value={v.id}>{v.registration_number}</MenuItem>
+              ))}
+            </TextField>
 
-        <Box>
-          <Typography>Photo après la location</Typography>
-          <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'after')} />
-          {previewAfter && <img src={previewAfter} alt="Après" style={{ maxWidth: 200, marginTop: 5 }} />}
-        </Box>
+            <TextField label="Client" name="client_name" value={form.client_name} onChange={handleChange} required />
+            <TextField label="Prix" name="rental_price" value={form.rental_price} onChange={handleChange} type="number" required />
+            <TextField label="Début" type="datetime-local" name="rental_start" value={form.rental_start} onChange={handleChange} required />
+            <TextField label="Fin" type="datetime-local" name="rental_end" value={form.rental_end} onChange={handleChange} required />
 
-        <Button type="submit" variant="contained" color="primary">Enregistrer</Button>
-      </Box>
+            <Divider sx={{ my: 2 }} />
+
+            <Box>
+              <Typography>Photo avant la location</Typography>
+              <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'before')} />
+              {previewBefore && <img src={previewBefore} alt="Avant" style={{ maxWidth: 200, marginTop: 5 }} />}
+            </Box>
+
+            <Box>
+              <Typography>Photo après la location</Typography>
+              <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'after')} />
+              {previewAfter && <img src={previewAfter} alt="Après" style={{ maxWidth: 200, marginTop: 5 }} />}
+            </Box>
+
+            <Button type="submit" variant="contained" color="primary">Enregistrer</Button>
+          </Box>
+        </CardContent>
+      </Card>
     </GuestLayout>
   );
 }
