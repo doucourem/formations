@@ -196,4 +196,11 @@ public function storeExtension(Request $request, VehicleRental $vehicleRental)
                      ->with('success', 'Location prolongée avec succès.');
 }
 
+public function show($id)
+{
+    $rental = VehicleRental::findOrFail($id);
+    return view('vehicle_rentals.show', compact('rental'));
+}
+
+
 }

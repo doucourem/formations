@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { Card, Text, Button, IconButton, TextInput } from "react-native-paper";
 import supabase from "../supabaseClient";
-import TransactionsListCaisse from "./TransactionsListCaisse";
 
 export default function CashesList({ navigation }) {
   const { width: screenWidth } = useWindowDimensions();
@@ -16,10 +15,8 @@ export default function CashesList({ navigation }) {
   const [kiosks, setKiosks] = useState([]);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
-  const [profile, setProfile] = useState(null); // ✅ nouveau
+  const [profile, setProfile] = useState(null);
   const [hasProfile, setHasProfile] = useState(true);
-
-  const MIN_BALANCE = 1000;
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", fetchAll);
@@ -27,75 +24,72 @@ export default function CashesList({ navigation }) {
   }, [navigation]);
 
   const fetchAll = async () => {
-    await Promise.all([fetchCashes(), fetchKiosks(), fetchUsers()]);
+    await Promise.all([fetchProfileAndCashes(), fetchKiosks(), fetchUsers()]);
   };
 
- // Fonction pour calculer le solde d'une caisse
-const calculateCashBalance = async (cashId) => {
-  const { data: transactions, error } = await supabase
-    .from("transactions")
-    .select("amount, type")
-    .eq("cash_id", cashId);
+  // === Fetch user profile & cashes ===
+  const fetchProfileAndCashes = async () => {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) return Alert.alert("Erreur", userError.message);
+    if (!user) return Alert.alert("Erreur", "Utilisateur non connecté");
 
-  if (error) {
-    Alert.alert("Erreur", error.message);
-    return 0;
-  }
+    const { data: profileData, error: profileError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  let balance = 0;
-  transactions.forEach((tx) => {
-    balance += tx.type === "CREDIT" ? -tx.amount : tx.amount;
-  });
+    if (profileError) return Alert.alert("Erreur", profileError.message);
 
-  return balance;
-};
+    if (!profileData) {
+      setHasProfile(false);
+      setProfile(null);
+      setCashes([]);
+      return;
+    } else {
+      setProfile(profileData);
+      setHasProfile(true);
+    }
 
-// Dans fetchCashes, après avoir récupéré les cashes :
-const fetchCashes = async () => {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+    // 1️⃣ Récupérer les cashes selon le rôle
+    let query = supabase.from("cashes").select("*");
+    if (profileData.role === "kiosque") query = query.eq("cashier_id", user.id);
+    if (profileData.role === "grossiste") query = query.eq("seller_id", user.id);
 
-  if (userError) return Alert.alert("Erreur", userError.message);
-  if (!user) return Alert.alert("Erreur", "Utilisateur non connecté");
+    const { data: cashData, error: cashError } = await query;
+    if (cashError) return Alert.alert("Erreur", cashError.message);
+    if (!cashData || cashData.length === 0) {
+      setCashes([]);
+      return;
+    }
 
-  const { data: profileData, error: profileError } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+    // 2️⃣ Récupérer toutes les transactions d'un coup
+    const cashIds = cashData.map(c => c.id);
+    const { data: transactions, error: txError } = await supabase
+      .from("transactions")
+      .select("cash_id, amount, type")
+      .in("cash_id", cashIds);
 
-  if (profileError) return Alert.alert("Erreur", profileError.message);
+    if (txError) return Alert.alert("Erreur", txError.message);
 
-  if (!profileData) {
-    setHasProfile(false);
-    setProfile(null);
-    setCashes([]);
-    return;
-  } else {
-    setProfile(profileData);
-    setHasProfile(true);
-  }
+    // 3️⃣ Calculer les soldes côté client
+    const cashBalances = {};
+    cashData.forEach(c => {
+      const cashTxs = transactions.filter(t => t.cash_id === c.id);
+      const balance = cashTxs.reduce(
+        (sum, t) => sum + (t.type === "CREDIT" ? t.amount : -t.amount),
+        0
+      );
+      cashBalances[c.id] = balance;
+    });
 
-  let query = supabase.from("cashes").select("*");
-  if (profileData.role === "kiosque") query = query.eq("cashier_id", user.id);
-  if (profileData.role === "grossiste") query = query.eq("seller_id", user.id);
-  const { data, error } = await query;
-  if (error) return Alert.alert("Erreur", error.message);
+    const cashesWithBalance = cashData.map(c => ({
+      ...c,
+      balance: cashBalances[c.id] || 0,
+    }));
 
-  if (data) {
-    // Calculer le solde réel pour chaque caisse
-    const cashesWithBalance = await Promise.all(
-      data.map(async (c) => ({
-        ...c,
-        balance: await calculateCashBalance(c.id), // ← solde réel
-      }))
-    );
     setCashes(cashesWithBalance);
-  }
-};
-
+  };
 
   const fetchKiosks = async () => {
     const { data, error } = await supabase.from("kiosks").select("id, name");
@@ -118,7 +112,7 @@ const fetchCashes = async () => {
         onPress: async () => {
           const { error } = await supabase.from("cashes").delete().eq("id", id);
           if (error) Alert.alert("Erreur", error.message);
-          else fetchCashes();
+          else fetchProfileAndCashes();
         },
       },
     ]);
@@ -145,165 +139,121 @@ const fetchCashes = async () => {
               .eq("id", cash.id);
 
             if (error) Alert.alert("Erreur", error.message);
-            else fetchCashes();
+            else fetchProfileAndCashes();
           },
         },
       ]
     );
   };
 
+  // === Créer des maps pour accès rapide aux noms ===
+  const kiosksMap = Object.fromEntries(kiosks.map(k => [k.id, k.name]));
+  const usersMap = Object.fromEntries(users.map(u => [u.id, u.full_name || u.email || ""]));
+  const searchLower = search.toLowerCase();
+
   const filteredCashes = cashes.filter((cash) => {
-    const kiosk = kiosks.find((k) => k.id === cash.kiosk_id);
-    const cashier = users.find((u) => u.id === cash.cashier_id);
+    const kioskName = kiosksMap[cash.kiosk_id] || "";
+    const cashierName = usersMap[cash.cashier_id] || "";
     return (
-      cash.name.toLowerCase().includes(search.toLowerCase()) ||
-      (kiosk?.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (cashier?.full_name || cashier?.email || "")
-        .toLowerCase()
-        .includes(search.toLowerCase())
+      cash.name.toLowerCase().includes(searchLower) ||
+      kioskName.toLowerCase().includes(searchLower) ||
+      cashierName.toLowerCase().includes(searchLower)
     );
   });
 
   return (
     <View style={styles.container}>
-  <TextInput
-    placeholder="Rechercher une BOUTIQUE, client ou coursier..."
-    value={search}
-    onChangeText={setSearch}
-    style={styles.searchInput}
-  />
+      <TextInput
+        placeholder="Rechercher une BOUTIQUE, client ou coursier..."
+        value={search}
+        onChangeText={setSearch}
+        style={styles.searchInput}
+      />
 
-  {/* ✅ Bouton visible uniquement pour les profils kiosque */}
-  {profile && profile.role == "admin" && (
-    <Button
-      icon="plus"
-      mode="contained"
-      onPress={() => navigation.navigate("AddCash")}
-      style={[
-        styles.addButton,
-        {
-          width: screenWidth * 0.9,
-          alignSelf: "center",
-        },
-      ]}
-    >
-      Ajouter une BOUTIQUE
-    </Button>
-  )}
-
-  {!hasProfile && (
-    <Text
-      style={{
-        textAlign: "center",
-        color: "#B91C1C",
-        marginVertical: 8,
-        fontWeight: "600",
-      }}
-    >
-      ⚠️ Votre profil kiosque n’est pas encore créé.
-    </Text>
-  )}
-
-  <FlatList
-    contentContainerStyle={{ paddingBottom: 20 }}
-    data={filteredCashes}
-    keyExtractor={(item) => item.id.toString()}
-    renderItem={({ item }) => {
-      const kiosk = kiosks.find((k) => k.id === item.kiosk_id);
-      const cashier = users.find((u) => u.id === item.cashier_id);
-      const belowMin = item.balance > item.min_balance;
-
-      return (
-        <Card
-          style={[
-            styles.card,
-            { width: screenWidth * 0.95, alignSelf: "center" },
-            { backgroundColor: belowMin ? "#FEF2F2" : "#ECFDF5" },
-          ]}
+      {profile && profile.role === "admin" && (
+        <Button
+          icon="plus"
+          mode="contained"
+          onPress={() => navigation.navigate("AddCash")}
+          style={[styles.addButton, { width: screenWidth * 0.9, alignSelf: "center" }]}
         >
-        <Card.Title
+          Ajouter une BOUTIQUE
+        </Button>
+      )}
+
+      {!hasProfile && (
+        <Text style={{ textAlign: "center", color: "#B91C1C", marginVertical: 8, fontWeight: "600" }}>
+          ⚠️ Votre profil kiosque n’est pas encore créé.
+        </Text>
+      )}
+
+      <FlatList
+        contentContainerStyle={{ paddingBottom: 20 }}
+        data={filteredCashes}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => {
+          const kioskName = kiosksMap[item.kiosk_id];
+          const cashierName = usersMap[item.cashier_id];
+          const belowMin = item.balance < item.min_balance;
+
+          return (
+            <Card
+              style={[
+                styles.card,
+                { width: screenWidth * 0.95, alignSelf: "center" },
+                { backgroundColor: belowMin ? "#FEF2F2" : "#ECFDF5" }
+              ]}
+            >
+             <Card.Title
   title={item.name}
-  titleStyle={{ color: "#1F2937" }}
-  subtitle={`Client: ${kiosk?.name || "—"}`}
-  subtitleStyle={{ color: "#1F2937" }}
+  subtitle={`Client: ${kioskName || "—"}`}
+  titleStyle={{ color: "#000000", fontWeight: "bold" }}      // texte noir
+  subtitleStyle={{ color: "#000000" }}                        // sous-titre noir
   right={(props) => (
     <View style={{ flexDirection: "row" }}>
-      {/* ✅ Autorisé uniquement si le profil n’est PAS "kiosque" */}
       {profile?.role === "admin" && !item.closed && (
         <IconButton
           {...props}
           icon="pencil"
           size={20}
-          onPress={() =>
-            navigation.navigate("EditCash", { cash: item })
-          }
+          onPress={() => navigation.navigate("EditCash", { cash: item })}
         />
       )}
       {profile?.role === "admin" && (
-        <IconButton
-          {...props}
-          icon="delete"
-          size={20}
-          onPress={() => deleteCash(item.id)}
-        />
+        <IconButton {...props} icon="delete" size={20} onPress={() => deleteCash(item.id)} />
       )}
-      {/* ✅ Le kiosque peut quand même clôturer sa caisse */}
-      {profile?.role === "admin" &&  !item.closed && (
-        <IconButton
-          {...props}
-          icon="lock"
-          size={20}
-          onPress={() => closeCash(item)}
-        />
+      {profile?.role === "admin" && !item.closed && (
+        <IconButton {...props} icon="lock" size={20} onPress={() => closeCash(item)} />
       )}
     </View>
   )}
 />
 
-        <Card.Content>
-<Text
-  style={[
-    styles.text,
-    {
-      fontWeight: "bold",
-      color: item.balance<0 ? "#B91C1C" : "#166534", // rouge si solde < min, vert sinon
-    },
-  ]}
->
-  { item.balance<0
-    ? `⚠️ Il nous doit : ${item.balance} FCFA`
-    : `💰 Il a une avance : ${item.balance} FCFA`}
-</Text>
 
-  <Text style={[styles.text, { color: "#1F2937" }]}>
-    👤 Coursier : {cashier?.full_name || cashier?.email || "—"}
-  </Text>
-  <Text
-    style={[
-      styles.text,
-      { color: item.closed ? "#B91C1C" : "#166534" },
-    ]}
-  >
-    📦 État : {item.closed ? "Clôturée" : "Ouverte"}
-  </Text>
-
-  {/* ✅ Nouveau bouton pour voir les transactions */}
-  <Button
-    mode="outlined"
-    icon="eye"
-    onPress={() => navigation.navigate("TransactionsListCaisse", { cashId: item.id })}
-    style={{ marginTop: 10 }}
-  >
-    Voir les transactions
-  </Button>
-</Card.Content>
-
-        </Card>
-      );
-    }}
-  />
-</View>
-
+              <Card.Content>
+                <Text style={{ fontWeight: "bold", color: belowMin ? "#B91C1C" : "#166534" }}>
+                  {belowMin
+                    ? `⚠️ Il nous doit : ${item.balance} FCFA`
+                    : `💰 Il a une avance : ${item.balance} FCFA`}
+                </Text>
+                <Text>👤 Coursier : {cashierName || "—"}</Text>
+                <Text style={{ color: item.closed ? "#B91C1C" : "#166534" }}>
+                  📦 État : {item.closed ? "Clôturée" : "Ouverte"}
+                </Text>
+                <Button
+                  mode="outlined"
+                  icon="eye"
+                  onPress={() => navigation.navigate("TransactionsListCaisse", { cashId: item.id })}
+                  style={{ marginTop: 10 }}
+                >
+                  Voir les transactions
+                </Button>
+              </Card.Content>
+            </Card>
+          );
+        }}
+      />
+    </View>
   );
 }
 

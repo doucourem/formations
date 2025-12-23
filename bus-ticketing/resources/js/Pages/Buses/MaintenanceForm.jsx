@@ -36,6 +36,7 @@ export default function MaintenanceForm({
     photo_before: null,
     photo_after: null,
     notes: "",
+    type: "", // <-- ajouté
   });
 
   const [tasks, setTasks] = useState([]);
@@ -60,6 +61,7 @@ export default function MaintenanceForm({
         photo_before: null,
         photo_after: null,
         notes: maintenance.notes ?? "",
+        type: maintenance.type ?? "", // <-- ajouté
       });
 
       if (maintenance.photo_before) setPreviewBefore(`/storage/${maintenance.photo_before}`);
@@ -78,7 +80,7 @@ export default function MaintenanceForm({
           const formatted = res.data.map((t) => ({
             id: t.id,
             task_name: t.task_name,
-            status: "ok", // valeur par défaut
+            status: "ok",
           }));
           setTasks(formatted);
         });
@@ -149,6 +151,19 @@ export default function MaintenanceForm({
                 {plan.name} ({plan.interval_value} {plan.interval_type})
               </MenuItem>
             ))}
+          </TextField>
+
+          <TextField
+            select
+            fullWidth
+            label="Type de maintenance"
+            value={form.type}
+            onChange={handleChange("type")}
+            required
+          >
+            <MenuItem value="routine">Routine</MenuItem>
+            <MenuItem value="urgent">Urgent</MenuItem>
+            <MenuItem value="inspection">Inspection</MenuItem>
           </TextField>
 
           <TextField

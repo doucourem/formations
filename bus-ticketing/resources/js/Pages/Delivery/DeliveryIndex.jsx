@@ -86,7 +86,7 @@ export default function DeliveryIndex({ deliveries }) {
                     "Statut",
                     "Actions",
                   ].map((col) => (
-                    <TableCell key={col} sx={{ fontWeight: "bold" }}>
+                    <TableCell key={col} sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}>
                       {col}
                     </TableCell>
                   ))}
