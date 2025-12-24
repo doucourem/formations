@@ -1,0 +1,10 @@
+{
+  "name": "gesfinance-production",
+  "type": "web-service",
+  "buildCommand": "echo 'Build already completed'",
+  "startCommand": "./start-external.sh",
+  "port": 5000,
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

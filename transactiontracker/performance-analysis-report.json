@@ -1,0 +1,67 @@
+{
+  "timestamp": "2025-06-30T23:43:03.222Z",
+  "bundleSize": {},
+  "dependencies": {
+    "total": 68,
+    "devTotal": 22,
+    "heavy": [
+      "date-fns",
+      "framer-motion",
+      "recharts"
+    ],
+    "unused": []
+  },
+  "recommendations": [
+    "Supprimer les console.log en production",
+    "Considérer des alternatives plus légères aux dépendances lourdes",
+    "Implémenter le code splitting pour les composants",
+    "Activer la compression gzip",
+    "Configurer le cache navigateur avec headers appropriés",
+    "Minifier et optimiser les assets",
+    "Utiliser un CDN pour les assets statiques"
+  ],
+  "optimizations": [],
+  "structure": {
+    "clientFiles": 114,
+    "serverFiles": 11,
+    "totalComponents": 95,
+    "codeComplexity": {
+      "totalLines": 1597,
+      "complexity": "faible"
+    }
+  },
+  "codeIssues": {
+    "consoleStatements": 440,
+    "unusedImports": 0,
+    "largeFunctions": 0
+  },
+  "optimizationPlan": [
+    {
+      "name": "Optimisation du bundle",
+      "actions": [
+        "Code splitting par routes",
+        "Tree shaking agressif",
+        "Minification avancée",
+        "Suppression des console.log"
+      ]
+    },
+    {
+      "name": "Optimisation du serveur",
+      "actions": [
+        "Compression gzip",
+        "Headers de cache",
+        "Optimisation des requêtes DB",
+        "Connection pooling"
+      ]
+    },
+    {
+      "name": "Optimisation réseau",
+      "actions": [
+        "Lazy loading des images",
+        "Préchargement des routes critiques",
+        "Service Worker pour cache",
+        "Optimisation PWA"
+      ]
+    }
+  ]
+}

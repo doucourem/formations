@@ -1,0 +1,118 @@
+{
+  "healthCheck": true,
+  "users": {
+    "admin": {
+      "login": true,
+      "userData": {
+        "id": 3,
+        "firstName": "Admin",
+        "lastName": "System",
+        "username": "admin",
+        "role": "admin"
+      },
+      "apis": {
+        "/api/user/profile": true,
+        "/api/user/can-send": true,
+        "/api/daily-user": true,
+        "/api/transactions/user": true,
+        "/api/clients/user": true,
+        "/api/users": true
+      }
+    },
+    "orange": {
+      "login": true,
+      "userData": {
+        "id": 11,
+        "firstName": "DIALLO",
+        "lastName": "HAROUNA",
+        "username": "orange",
+        "role": "user"
+      },
+      "apis": {
+        "/api/user/profile": true,
+        "/api/user/can-send": true,
+        "/api/daily-user": true,
+        "/api/transactions/user": true,
+        "/api/clients/user": true
+      }
+    },
+    "cire": {
+      "login": true,
+      "userData": {
+        "id": 6,
+        "firstName": "DIALLO",
+        "lastName": "MAMADOU CIRE",
+        "username": "cire",
+        "role": "user"
+      },
+      "apis": {
+        "/api/user/profile": true,
+        "/api/user/can-send": true,
+        "/api/daily-user": true,
+        "/api/transactions/user": true,
+        "/api/clients/user": true
+      }
+    },
+    "barry": {
+      "login": true,
+      "userData": {
+        "id": 12,
+        "firstName": "RAMADAN",
+        "lastName": "BARRY",
+        "username": "barry",
+        "role": "user"
+      },
+      "apis": {
+        "/api/user/profile": true,
+        "/api/user/can-send": true,
+        "/api/daily-user": true,
+        "/api/transactions/user": true,
+        "/api/clients/user": true
+      }
+    },
+    "haroun@gmail.com": {
+      "login": true,
+      "userData": {
+        "id": 4,
+        "firstName": "BAH",
+        "lastName": "ALPHA",
+        "username": "haroun@gmail.com",
+        "role": "user"
+      },
+      "apis": {
+        "/api/user/profile": true,
+        "/api/user/can-send": true,
+        "/api/daily-user": true,
+        "/api/transactions/user": true,
+        "/api/clients/user": true
+      }
+    },
+    "bah": {
+      "login": true,
+      "userData": {
+        "id": 5,
+        "firstName": "BAH",
+        "lastName": "TAFSIR",
+        "username": "bah",
+        "role": "admin"
+      },
+      "apis": {
+        "/api/user/profile": true,
+        "/api/user/can-send": true,
+        "/api/daily-user": true,
+        "/api/transactions/user": true,
+        "/api/clients/user": true
+      }
+    }
+  },
+  "apis": {
+    "/api/test": true,
+    "/": true
+  },
+  "summary": {
+    "total": 40,
+    "success": 40,
+    "failed": 0,
+    "successRate": 100
+  }
+}

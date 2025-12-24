@@ -1,0 +1,323 @@
+/* Firefox-specific responsive fixes for GesFinance */
+
+/* Firefox CSS Grid fixes */
+@supports (-moz-appearance: none) {
+  .grid {
+    display: -moz-grid;
+    display: grid;
+  }
+  
+  .grid-cols-1 {
+    -moz-grid-template-columns: 1fr;
+    grid-template-columns: 1fr;
+  }
+  
+  .grid-cols-2 {
+    -moz-grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .grid-cols-3 {
+    -moz-grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+/* Firefox Flexbox fixes */
+@supports (-moz-appearance: none) {
+  .flex {
+    display: -moz-flex;
+    display: -webkit-flex;
+    display: flex;
+  }
+  
+  .flex-wrap {
+    -moz-flex-wrap: wrap;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap;
+  }
+  
+  .flex-1 {
+    -moz-flex: 1;
+    -webkit-flex: 1;
+    flex: 1;
+  }
+  
+  .justify-center {
+    -moz-justify-content: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+  }
+  
+  .items-center {
+    -moz-align-items: center;
+    -webkit-align-items: center;
+    align-items: center;
+  }
+  
+  .justify-between {
+    -moz-justify-content: space-between;
+    -webkit-justify-content: space-between;
+    justify-content: space-between;
+  }
+}
+
+/* Firefox button and input fixes */
+@supports (-moz-appearance: none) {
+  button, input, select, textarea {
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    
+    /* Fix box-sizing for Firefox */
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+  }
+  
+  /* Firefox specific input styling */
+  input[type="text"],
+  input[type="email"], 
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"] {
+    -moz-appearance: textfield;
+    padding: 12px 16px;
+    border-radius: 6px;
+    border: 2px solid #e5e7eb;
+    width: 100%;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  /* Firefox number input arrows removal */
+  input[type="number"]::-moz-inner-spin-button,
+  input[type="number"]::-moz-outer-spin-button {
+    -moz-appearance: none;
+    margin: 0;
+  }
+  
+  /* Firefox button styling */
+  button {
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: pointer;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  button::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+  }
+}
+
+/* Firefox responsive breakpoints */
+@supports (-moz-appearance: none) {
+  /* XS - Mobile (320px - 575px) */
+  @media (max-width: 575px) {
+    body {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .container {
+      padding-left: 8px;
+      padding-right: 8px;
+      max-width: 100%;
+    }
+    
+    /* Fix table display on mobile Firefox */
+    table {
+      width: 100%;
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+    
+    table thead {
+      display: none;
+    }
+    
+    table tbody {
+      display: block;
+    }
+    
+    table tr {
+      display: block;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      padding: 8px;
+      background: white;
+    }
+    
+    table td {
+      display: block;
+      border: none;
+      padding: 4px 0;
+      text-align: left;
+      font-size: 12px;
+    }
+    
+    table td:before {
+      content: attr(data-label) ': ';
+      font-weight: 600;
+      color: #374151;
+    }
+    
+    /* Firefox mobile button fixes */
+    button {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+    
+    /* Firefox mobile input fixes */
+    input, select, textarea {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+    
+    /* Firefox grid fixes for mobile */
+    .grid {
+      -moz-grid-template-columns: 1fr;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    
+    /* Firefox flex fixes for mobile */
+    .flex {
+      -moz-flex-wrap: wrap;
+      -webkit-flex-wrap: wrap;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  }
+  
+  /* SM - Small tablets (576px - 767px) */
+  @media (min-width: 576px) and (max-width: 767px) {
+    .container {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    
+    button, input, select, textarea {
+      font-size: 16px;
+      padding: 12px 16px;
+    }
+  }
+  
+  /* MD - Medium screens (768px - 991px) */
+  @media (min-width: 768px) and (max-width: 991px) {
+    .container {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    
+    /* Firefox grid for medium screens */
+    .grid-cols-2 {
+      -moz-grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  
+  /* LG - Large screens (992px - 1199px) */
+  @media (min-width: 992px) and (max-width: 1199px) {
+    .container {
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+    
+    /* Firefox grid for large screens */
+    .grid-cols-3 {
+      -moz-grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+  }
+  
+  /* XL - Extra large screens (1200px+) */
+  @media (min-width: 1200px) {
+    .container {
+      padding-left: 24px;
+      padding-right: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+  }
+}
+
+/* Firefox scroll behavior fixes */
+@supports (-moz-appearance: none) {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    -moz-osx-font-smoothing: grayscale;
+    font-smoothing: antialiased;
+  }
+  
+  /* Firefox touch action fixes */
+  button, input, select, textarea, [role="button"] {
+    touch-action: manipulation;
+  }
+}
+
+/* Firefox focus outline customization */
+@supports (-moz-appearance: none) {
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    -moz-outline-radius: 6px;
+  }
+  
+  button::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+  }
+}
+
+/* Firefox viewport fixes */
+@supports (-moz-appearance: none) {
+  @media (max-width: 575px) {
+    * {
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+    
+    body, html {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      font-size: 14px;
+    }
+    
+    /* Force width compliance for Firefox */
+    div, span, section, article, aside, header, footer, nav, main {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+  }
+}

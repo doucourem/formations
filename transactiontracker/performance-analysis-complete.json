@@ -1,0 +1,107 @@
+{
+  "timestamp": "2025-07-03T05:44:41.133Z",
+  "score": 65,
+  "level": "🟡 BON",
+  "issues": [
+    {
+      "category": "Frontend",
+      "description": "React Query sans staleTime configuré",
+      "severity": "MEDIUM",
+      "impact": "Requêtes répétitives inutiles",
+      "solution": "Configurer staleTime approprié"
+    },
+    {
+      "category": "Backend",
+      "description": "Pas de pagination sur listes",
+      "severity": "MEDIUM",
+      "impact": "Chargement lent avec beaucoup de données",
+      "solution": "Implémenter pagination"
+    },
+    {
+      "category": "Network",
+      "description": "Headers de cache manquants",
+      "severity": "HIGH",
+      "impact": "Assets rechargés à chaque visite",
+      "solution": "Ajouter Cache-Control appropriés"
+    }
+  ],
+  "optimizations": [
+    {
+      "category": "Frontend",
+      "description": "Implémenter lazy loading des composants",
+      "improvement": "Réduction 30-50% bundle initial",
+      "implementation": "React.lazy() + Suspense"
+    },
+    {
+      "category": "Frontend",
+      "description": "Nombre élevé de composants",
+      "improvement": "Bundle splitting recommandé",
+      "implementation": "Diviser en chunks par feature"
+    },
+    {
+      "category": "Build",
+      "description": "Dépendances lourdes multiples",
+      "improvement": "Bundle splitting par vendor",
+      "implementation": "Séparer vendors en chunks"
+    },
+    {
+      "category": "Network",
+      "description": "Compression assets manquante",
+      "improvement": "Réduction taille transfert 70%",
+      "implementation": "Middleware compression"
+    }
+  ],
+  "recommendations": {
+    "immediate": [
+      {
+        "category": "Network",
+        "description": "Headers de cache manquants",
+        "severity": "HIGH",
+        "impact": "Assets rechargés à chaque visite",
+        "solution": "Ajouter Cache-Control appropriés"
+      }
+    ],
+    "shortTerm": [
+      {
+        "category": "Frontend",
+        "description": "React Query sans staleTime configuré",
+        "severity": "MEDIUM",
+        "impact": "Requêtes répétitives inutiles",
+        "solution": "Configurer staleTime approprié"
+      },
+      {
+        "category": "Backend",
+        "description": "Pas de pagination sur listes",
+        "severity": "MEDIUM",
+        "impact": "Chargement lent avec beaucoup de données",
+        "solution": "Implémenter pagination"
+      }
+    ],
+    "longTerm": [
+      {
+        "category": "Frontend",
+        "description": "Implémenter lazy loading des composants",
+        "improvement": "Réduction 30-50% bundle initial",
+        "implementation": "React.lazy() + Suspense"
+      },
+      {
+        "category": "Frontend",
+        "description": "Nombre élevé de composants",
+        "improvement": "Bundle splitting recommandé",
+        "implementation": "Diviser en chunks par feature"
+      },
+      {
+        "category": "Build",
+        "description": "Dépendances lourdes multiples",
+        "improvement": "Bundle splitting par vendor",
+        "implementation": "Séparer vendors en chunks"
+      },
+      {
+        "category": "Network",
+        "description": "Compression assets manquante",
+        "improvement": "Réduction taille transfert 70%",
+        "implementation": "Middleware compression"
+      }
+    ]
+  }
+}

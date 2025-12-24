@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Firefox Responsive - GesFinance</title>
+    <style>
+        /* Test styles for Firefox responsive */
+        
+        /* Firefox detection */
+        @supports (-moz-appearance: none) {
+            body::before {
+                content: "🦊 Firefox détecté - Tests responsive actifs";
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: #ff6b35;
+                color: white;
+                padding: 8px;
+                text-align: center;
+                z-index: 1000;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            
+            body {
+                margin-top: 40px;
+            }
+        }
+        
+        /* Base styles */
+        * {
+            -moz-box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+        
+        /* Test grid */
+        .test-grid {
+            display: -moz-grid;
+            display: -webkit-grid;
+            display: grid;
+            -moz-grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            -webkit-grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .test-card {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Test flexbox */
+        .test-flex {
+            display: -moz-flex;
+            display: -webkit-flex;
+            display: flex;
+            -moz-flex-wrap: wrap;
+            -webkit-flex-wrap: wrap;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .test-flex-item {
+            -moz-flex: 1 1 200px;
+            -webkit-flex: 1 1 200px;
+            flex: 1 1 200px;
+            background: #e3f2fd;
+            padding: 16px;
+            border-radius: 8px;
+            min-width: 200px;
+        }
+        
+        /* Test buttons */
+        .test-button {
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 8px;
+            transition: background 0.2s;
+        }
+        
+        .test-button:hover {
+            background: #1976d2;
+        }
+        
+        .test-button:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        
+        .test-button::-moz-focus-inner {
+            border: 0;
+            padding: 0;
+        }
+        
+        /* Test inputs */
+        .test-input {
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            margin: 8px 0;
+            -moz-box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+        
+        .test-input:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+            border-color: #3b82f6;
+        }
+        
+        /* Firefox number input fix */
+        .test-input[type="number"]::-moz-inner-spin-button,
+        .test-input[type="number"]::-moz-outer-spin-button {
+            -moz-appearance: none;
+            margin: 0;
+        }
+        
+        /* Responsive breakpoints */
+        @media (max-width: 575px) {
+            .container {
+                padding: 0 8px;
+            }
+            
+            .test-grid {
+                -moz-grid-template-columns: 1fr;
+                -webkit-grid-template-columns: 1fr;
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .test-flex {
+                -moz-flex-direction: column;
+                -webkit-flex-direction: column;
+                flex-direction: column;
+            }
+            
+            .test-flex-item {
+                -moz-flex: 1;
+                -webkit-flex: 1;
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .test-button {
+                width: 100%;
+                margin: 4px 0;
+            }
+        }
+        
+        @media (min-width: 576px) and (max-width: 767px) {
+            .test-grid {
+                -moz-grid-template-columns: 1fr 1fr;
+                -webkit-grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (min-width: 768px) and (max-width: 991px) {
+            .test-grid {
+                -moz-grid-template-columns: 1fr 1fr 1fr;
+                -webkit-grid-template-columns: 1fr 1fr 1fr;
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        @supports (-moz-appearance: none) {
+            .status-indicator {
+                background: #ff6b35;
+            }
+            
+            .status-indicator::after {
+                content: " - Firefox OK";
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Responsive Firefox - GesFinance</h1>
+        
+        <div class="status-indicator">
+            Navigateur détecté
+        </div>
+        
+        <section>
+            <h2>Test Grid Layout</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3>Carte 1</h3>
+                    <p>Test de la grille CSS dans Firefox</p>
+                </div>
+                <div class="test-card">
+                    <h3>Carte 2</h3>
+                    <p>Responsive design avec préfixes -moz-</p>
+                </div>
+                <div class="test-card">
+                    <h3>Carte 3</h3>
+                    <p>Compatibilité cross-browser</p>
+                </div>
+            </div>
+        </section>
+        
+        <section>
+            <h2>Test Flexbox</h2>
+            <div class="test-flex">
+                <div class="test-flex-item">
+                    <h4>Flex Item 1</h4>
+                    <p>Test flexbox Firefox</p>
+                </div>
+                <div class="test-flex-item">
+                    <h4>Flex Item 2</h4>
+                    <p>Avec préfixes -moz-flex</p>
+                </div>
+                <div class="test-flex-item">
+                    <h4>Flex Item 3</h4>
+                    <p>Responsive wrap</p>
+                </div>
+            </div>
+        </section>
+        
+        <section>
+            <h2>Test Formulaires</h2>
+            <form>
+                <div>
+                    <label for="test-text">Texte:</label>
+                    <input type="text" id="test-text" class="test-input" placeholder="Tapez ici..." />
+                </div>
+                
+                <div>
+                    <label for="test-number">Nombre:</label>
+                    <input type="number" id="test-number" class="test-input" placeholder="123" />
+                </div>
+                
+                <div>
+                    <label for="test-email">Email:</label>
+                    <input type="email" id="test-email" class="test-input" placeholder="test@example.com" />
+                </div>
+                
+                <div>
+                    <button type="button" class="test-button">Bouton Normal</button>
+                    <button type="submit" class="test-button">Bouton Submit</button>
+                </div>
+            </form>
+        </section>
+        
+        <section>
+            <h2>Test Responsive</h2>
+            <p>Redimensionnez la fenêtre pour tester les breakpoints:</p>
+            <ul>
+                <li>XS: 0-575px (mobile)</li>
+                <li>SM: 576-767px (tablette petite)</li>
+                <li>MD: 768-991px (tablette)</li>
+                <li>LG: 992-1199px (desktop)</li>
+                <li>XL: 1200px+ (grand écran)</li>
+            </ul>
+        </section>
+    </div>
+    
+    <script>
+        // Test JavaScript pour Firefox
+        document.addEventListener('DOMContentLoaded', function() {
+            const isFirefox = typeof InstallTrigger !== 'undefined';
+            const statusIndicator = document.querySelector('.status-indicator');
+            
+            if (isFirefox) {
+                console.log('🦊 Firefox détecté - Tests responsive actifs');
+                statusIndicator.style.background = '#ff6b35';
+                statusIndicator.textContent = 'Firefox détecté - Responsive OK';
+            } else {
+                console.log('🌐 Autre navigateur détecté');
+                statusIndicator.style.background = '#4caf50';
+                statusIndicator.textContent = 'Autre navigateur - Test général';
+            }
+            
+            // Test des fonctionnalités CSS
+            const tests = {
+                grid: CSS.supports('display', 'grid'),
+                flex: CSS.supports('display', 'flex'),
+                appearance: CSS.supports('appearance', 'none'),
+                mozAppearance: CSS.supports('-moz-appearance', 'none')
+            };
+            
+            console.log('Tests de compatibilité:', tests);
+            
+            // Afficher les résultats
+            if (tests.grid && tests.flex) {
+                console.log('✅ Toutes les fonctionnalités CSS sont supportées');
+            } else {
+                console.log('⚠️ Certaines fonctionnalités CSS ne sont pas supportées');
+            }
+        });
+    </script>
+</body>
+</html>

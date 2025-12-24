@@ -1,0 +1,244 @@
+/* RESPONSIVE FIX - GesFinance */
+/* Corrections pour XS (320px) et tous les appareils mobiles */
+
+/* Base responsive settings */
+* {
+  box-sizing: border-box !important;
+}
+
+html, body {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Fix pour boutons et inputs qui dépassent */
+@media (max-width: 480px) {
+  /* Reset des styles conflictuels */
+  input, button, select, textarea {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    font-size: 16px !important; /* Évite le zoom iOS */
+    overflow: hidden !important;
+  }
+
+  /* Boutons spécifiques */
+  button {
+    padding: 10px 12px !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Inputs spécifiques */
+  input, select, textarea {
+    padding: 10px 12px !important;
+    border-radius: 6px !important;
+  }
+
+  /* Containers */
+  .container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl, .max-w-3xl, .max-w-2xl {
+    max-width: 100% !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Cartes et contenus */
+  .card, [class*="card"] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 8px !important;
+  }
+
+  /* Grille responsive */
+  .grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Flex responsive */
+  .flex {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Textes adaptatifs */
+  .text-lg { font-size: 16px !important; }
+  .text-base { font-size: 14px !important; }
+  .text-sm { font-size: 12px !important; }
+  .text-xs { font-size: 11px !important; }
+
+  /* Espacement réduit */
+  .p-8 { padding: 12px !important; }
+  .p-6 { padding: 10px !important; }
+  .p-4 { padding: 8px !important; }
+  .px-8 { padding-left: 12px !important; padding-right: 12px !important; }
+  .px-6 { padding-left: 10px !important; padding-right: 10px !important; }
+  .px-4 { padding-left: 8px !important; padding-right: 8px !important; }
+
+  /* Tables responsives */
+  table {
+    width: 100% !important;
+    font-size: 12px !important;
+  }
+  
+  th, td {
+    padding: 6px 4px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Corrections spécifiques pour XS (320px) */
+@media (max-width: 320px) {
+  /* Encore plus strict pour les très petits écrans */
+  body {
+    font-size: 13px !important;
+  }
+
+  input, button, select, textarea {
+    font-size: 16px !important;
+    padding: 8px 10px !important;
+  }
+
+  .container {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .p-4 { padding: 6px !important; }
+  .p-6 { padding: 8px !important; }
+  .p-8 { padding: 10px !important; }
+}
+
+/* Corrections pour SM (480px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  input, button, select, textarea {
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+  }
+}
+
+/* Corrections pour MD+ (768px+) */
+@media (min-width: 769px) {
+  .container {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+
+  input, button, select, textarea {
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+  }
+}
+
+/* Corrections pour la navigation mobile */
+@media (max-width: 640px) {
+  /* Navigation sticky */
+  .sticky {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+  }
+
+  /* Boutons de navigation */
+  .nav-button {
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    min-width: 0 !important;
+  }
+
+  /* Badges */
+  .badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+  }
+}
+
+/* Corrections pour les icônes */
+@media (max-width: 480px) {
+  .icon-sm {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  
+  .icon-xs {
+    width: 14px !important;
+    height: 14px !important;
+  }
+}
+
+/* Corrections pour les modales */
+@media (max-width: 480px) {
+  .modal-content {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 10px !important;
+  }
+}
+
+/* Corrections pour les formulaires */
+@media (max-width: 480px) {
+  .form-group {
+    margin-bottom: 12px !important;
+  }
+  
+  .form-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+}
+
+/* Corrections pour les alertes et notifications */
+@media (max-width: 480px) {
+  .alert, .notification {
+    margin: 8px !important;
+    padding: 10px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* Corrections pour les composants Shadcn UI */
+@media (max-width: 480px) {
+  .card {
+    margin: 0 !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+  }
+  
+  .card-header {
+    padding: 12px !important;
+  }
+  
+  .card-content {
+    padding: 12px !important;
+  }
+  
+  .badge {
+    font-size: 11px !important;
+    padding: 3px 6px !important;
+  }
+  
+  .dialog-content {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 8px !important;
+  }
+  
+  .popover-content {
+    width: 95% !important;
+    max-width: 95% !important;
+  }
+}

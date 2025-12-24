@@ -1,0 +1,326 @@
+/* 
+ * OPTIMISATIONS MOBILE - GesFinance
+ * CSS spécialisé pour performances mobile
+ * Date: 16 juillet 2025
+ */
+
+/* Optimisations tactiles */
+.mobile-touch-target {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Optimisations de défilement */
+.mobile-scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* Optimisations de performance */
+.mobile-performance {
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Optimisations de rendu */
+.mobile-render-optimization {
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100px;
+}
+
+/* Prévention du zoom iOS */
+@media screen and (max-width: 767px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/* Optimisations réseau lent */
+.mobile-network-slow {
+  animation-duration: 0.1s !important;
+  transition-duration: 0.1s !important;
+}
+
+/* Optimisations mémoire */
+.mobile-memory-efficient {
+  image-rendering: optimizeSpeed;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+/* Optimisations batterie */
+.mobile-battery-efficient {
+  pointer-events: auto;
+  will-change: auto;
+  animation-fill-mode: both;
+  animation-play-state: paused;
+}
+
+/* Activé seulement en cas d'interaction */
+.mobile-battery-efficient:hover,
+.mobile-battery-efficient:focus,
+.mobile-battery-efficient:active {
+  animation-play-state: running;
+}
+
+/* Optimisations viewport */
+@viewport {
+  width: device-width;
+  initial-scale: 1;
+  maximum-scale: 1;
+  user-scalable: no;
+}
+
+/* Optimisations SafeArea iOS */
+@supports(padding: max(0px)) {
+  .mobile-safe-area {
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+/* Optimisations de connectivité */
+@media (prefers-reduced-data: reduce) {
+  .mobile-data-saver {
+    background-image: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+}
+
+/* Optimisations de mouvement */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-motion-reduced {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Optimisations de contraste */
+@media (prefers-contrast: high) {
+  .mobile-high-contrast {
+    border-width: 2px !important;
+    outline-width: 2px !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Optimisations sombre */
+@media (prefers-color-scheme: dark) {
+  .mobile-dark-mode {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+    border-color: #333333 !important;
+  }
+}
+
+/* Optimisations pour connexion 3G */
+@media (max-width: 480px) and (connection: slow-2g), (connection: 2g), (connection: 3g) {
+  .mobile-3g-optimized {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+    background-image: none !important;
+  }
+}
+
+/* Optimisations de chargement */
+.mobile-loading-optimized {
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
+}
+
+/* Lazy loading pour images */
+.mobile-lazy-image {
+  loading: lazy;
+  decoding: async;
+  content-visibility: auto;
+  contain-intrinsic-size: 200px 150px;
+}
+
+/* Optimisations JavaScript */
+.mobile-js-optimized {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.mobile-js-optimized.interactive {
+  pointer-events: auto;
+}
+
+/* Optimisations de scroll */
+.mobile-scroll-optimized {
+  -webkit-overflow-scrolling: touch;
+  overflow-scrolling: touch;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* Optimisations de formulaire */
+.mobile-form-optimized input,
+.mobile-form-optimized textarea,
+.mobile-form-optimized select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-radius: 0;
+  background-clip: padding-box;
+  touch-action: manipulation;
+}
+
+/* Optimisations de navigation */
+.mobile-nav-optimized {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Optimisations de boutons */
+.mobile-button-optimized {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  border-radius: 8px;
+  transition: transform 0.1s ease;
+}
+
+.mobile-button-optimized:active {
+  transform: scale(0.98);
+}
+
+/* Optimisations de notifications */
+.mobile-notification-optimized {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  left: 12px;
+  right: 12px;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Optimisations de modal */
+.mobile-modal-optimized {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom) 12px;
+}
+
+/* Optimisations de cartes */
+.mobile-card-optimized {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 8px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Optimisations de liste */
+.mobile-list-optimized {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 60px;
+}
+
+.mobile-list-optimized li {
+  min-height: 60px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Optimisations de chargement progressif */
+.mobile-progressive-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: mobile-shimmer 2s infinite;
+}
+
+@keyframes mobile-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Optimisations de performance critiques */
+.mobile-critical-performance {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
+  will-change: transform;
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100px;
+}
