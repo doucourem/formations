@@ -38,13 +38,15 @@ export default function Index({ companies }) {
                   title={<Typography variant="h5"> Compagnies</Typography>}
                   action={
                     <Button
-                      variant="contained"
-                      color="primary"
-                      startIcon={<AddIcon />}
-                      onClick={() => Inertia.get(route('companies.create'))}
-                    >
-                      Nouvelle compagnie
-                    </Button>
+  variant="contained"
+  color="primary"
+  startIcon={<AddIcon />}
+  component={Link}
+  href={route('companies.create')}
+>
+  Nouvelle compagnie
+</Button>
+
                   }
                 />
         <CardContent>
