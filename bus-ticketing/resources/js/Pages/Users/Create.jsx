@@ -30,6 +30,21 @@ export default function Create({ agences, flash }) {
     post(route("users.store"));
   };
 
+  // Liste complète des profils
+  const roles = [
+    { value: "super_admin", label: "Super Administrateur" },
+    { value: "admin", label: "Administrateur" },
+    { value: "garage", label: "Garagiste" },
+    { value: "manager", label: "Manager" },
+    { value: "manageragence", label: "Chef d'agence" },
+    { value: "agent", label: "Billetaire" },
+    { value: "chauffeur", label: "Chauffeur" },
+    { value: "logistique", label: "Responsable logistique" },
+  ];
+
+  // Rôles qui doivent sélectionner une agence
+  const rolesAvecAgence = ["manageragence", "agent"];
+
   return (
     <GuestLayout>
       <Container maxWidth="sm">
@@ -42,7 +57,7 @@ export default function Create({ agences, flash }) {
           {flash?.success && <Alert severity="success" sx={{ mb: 2 }}>{flash.success}</Alert>}
           {flash?.error && <Alert severity="error" sx={{ mb: 2 }}>{flash.error}</Alert>}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <TextField
               label="Prénom"
               name="prenom"
@@ -101,6 +116,7 @@ export default function Create({ agences, flash }) {
               helperText={errors.password_confirmation}
             />
 
+            {/* Sélection du rôle */}
             <FormControl fullWidth margin="normal" error={!!errors.role}>
               <InputLabel id="role-label">Rôle</InputLabel>
               <Select
@@ -111,32 +127,36 @@ export default function Create({ agences, flash }) {
                 onChange={(e) => setData("role", e.target.value)}
               >
                 <MenuItem value="">Sélectionner un rôle</MenuItem>
-                <MenuItem value="admin">Administrateur</MenuItem>
-                <MenuItem value="manager">Manager</MenuItem>
-                <MenuItem value="manageragence">Chef d'agence</MenuItem>
-                <MenuItem value="agent">Billetaire</MenuItem>
+                {roles.map((role) => (
+                  <MenuItem key={role.value} value={role.value}>
+                    {role.label}
+                  </MenuItem>
+                ))}
               </Select>
               {errors.role && <Typography color="error" variant="caption">{errors.role}</Typography>}
             </FormControl>
 
-            <FormControl fullWidth margin="normal" error={!!errors.agence_id}>
-              <InputLabel id="agence-label">Agence</InputLabel>
-              <Select
-                labelId="agence-label"
-                name="agence_id"
-                value={data.agence_id}
-                label="Agence"
-                onChange={(e) => setData("agence_id", e.target.value)}
-              >
-                <MenuItem value="">Sélectionner une agence</MenuItem>
-                {agences.map((agence) => (
-                  <MenuItem key={agence.id} value={agence.id}>
-                    {agence.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.agence_id && <Typography color="error" variant="caption">{errors.agence_id}</Typography>}
-            </FormControl>
+            {/* Sélection de l'agence si le rôle nécessite une agence */}
+            {rolesAvecAgence.includes(data.role) && (
+              <FormControl fullWidth margin="normal" error={!!errors.agence_id}>
+                <InputLabel id="agence-label">Agence</InputLabel>
+                <Select
+                  labelId="agence-label"
+                  name="agence_id"
+                  value={data.agence_id}
+                  label="Agence"
+                  onChange={(e) => setData("agence_id", e.target.value)}
+                >
+                  <MenuItem value="">Sélectionner une agence</MenuItem>
+                  {agences.map((agence) => (
+                    <MenuItem key={agence.id} value={agence.id}>
+                      {agence.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.agence_id && <Typography color="error" variant="caption">{errors.agence_id}</Typography>}
+              </FormControl>
+            )}
 
             <Button
               type="submit"

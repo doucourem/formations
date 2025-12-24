@@ -58,7 +58,6 @@ export default function Index({ users, filters }) {
                     <TableCell x={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}><strong>ID</strong></TableCell>
                     <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}><strong>Nom</strong></TableCell>
                     <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}><strong>Email</strong></TableCell>
-                    <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}><strong>Rôle</strong></TableCell>
                     <TableCell sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }} align="center"><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
@@ -69,7 +68,6 @@ export default function Index({ users, filters }) {
                         <TableCell>{user.id}</TableCell>
                         <TableCell>{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.role || "-"}</TableCell>
                         <TableCell align="center">
                           <IconButton color="primary" href={route("users.edit", user.id)} size="small">
                             <EditIcon />

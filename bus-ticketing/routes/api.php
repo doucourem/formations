@@ -19,6 +19,7 @@ use App\Http\Controllers\TwilioWebhookController;
 
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\TicketApiController;
 
 // routes/api.php
 Route::post('/login', [AuthController::class, 'login']);
@@ -31,6 +32,16 @@ Route::post('/payments/callback', [PaymentWebhookController::class, 'handle'])
 Route::post('/webhook/tickets/search', [TicketController::class, 'webhookSearch']);
 
 
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('tickets', [TicketApiController::class, 'index']);
+    Route::get('tickets/{id}', [TicketApiController::class, 'show']);
+    Route::post('tickets', [TicketApiController::class, 'store']);
+    Route::put('tickets/{id}', [TicketApiController::class, 'update']);
+    Route::delete('tickets/{id}', [TicketApiController::class, 'destroy']);
+    Route::get('tickets/search', [TicketApiController::class, 'search']);
+});
 
 
 

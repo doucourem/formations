@@ -14,13 +14,23 @@ import {
   Portal,
   TextInput,
   Text,
-  Provider as PaperProvider,
   Card,
   List,
   useTheme,
 } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
 import { useNavigation } from "@react-navigation/native";
+
+/* ================= HELPERS ================= */
+
+const formatCFA = (amount) =>
+  new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "XOF",
+    minimumFractionDigits: 0,
+  }).format(amount || 0);
+
+/* ================= COMPONENT ================= */
 
 export default function WholesalersList() {
   const navigation = useNavigation();
@@ -31,34 +41,40 @@ export default function WholesalersList() {
   const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
   const [formData, setFormData] = useState({
     id: null,
     name: "",
     operator_id: null,
   });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
 
-  // Récupérer utilisateur connecté
+  /* ================= AUTH ================= */
+
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
       if (error) Alert.alert("Erreur Auth", error.message);
       else setUser(user);
     };
     getUser();
   }, []);
 
-  // Fetch grossistes dès que l'utilisateur est disponible
   useEffect(() => {
     if (user) fetchAll();
   }, [user]);
 
-  // Récupérer grossistes et opérateurs
+  /* ================= FETCH ALL ================= */
+
   const fetchAll = async () => {
     if (!user) return;
     setLoading(true);
     setError(null);
+
     try {
       const { data: whData, error: whError } = await supabase
         .from("wholesalers")
@@ -71,13 +87,35 @@ export default function WholesalersList() {
         .select("id, name");
       if (opError) throw opError;
 
-      const enrichedWholesalers = (whData || []).map((wh) => ({
-        ...wh,
-        operator_name: (opData || []).find((op) => op.id === wh.operator_id)?.name || "-",
-        manager_name: wh.user_id === user.id ? "Vous" : "-",
-      }));
+      const { data: txData, error: txError } = await supabase
+        .from("wholesaler_transactions")
+        .select("wholesaler_id, amount, type");
+      if (txError) throw txError;
 
-      setWholesalers(enrichedWholesalers);
+      const balances = {};
+      (txData || []).forEach((tx) => {
+        if (!balances[tx.wholesaler_id]) {
+          balances[tx.wholesaler_id] = { credit: 0, debit: 0 };
+        }
+        tx.type === "CREDIT"
+          ? (balances[tx.wholesaler_id].credit += Number(tx.amount))
+          : (balances[tx.wholesaler_id].debit += Number(tx.amount));
+      });
+
+      const enriched = (whData || []).map((wh) => {
+        const bal = balances[wh.id] || { credit: 0, debit: 0 };
+        return {
+          ...wh,
+          operator_name:
+            (opData || []).find((op) => op.id === wh.operator_id)?.name || "-",
+          manager_name: wh.user_id === user.id ? "Vous" : "-",
+          total_credit: bal.credit,
+          total_debit: bal.debit,
+          balance: bal.credit - bal.debit,
+        };
+      });
+
+      setWholesalers(enriched);
       setOperators(opData || []);
     } catch (err) {
       console.error(err);
@@ -87,12 +125,14 @@ export default function WholesalersList() {
     }
   };
 
-  const handleOpen = (wholesaler = null) => {
-    if (wholesaler) {
+  /* ================= CRUD ================= */
+
+  const handleOpen = (wh = null) => {
+    if (wh) {
       setFormData({
-        id: wholesaler.id,
-        name: wholesaler.name || "",
-        operator_id: wholesaler.operator_id || null,
+        id: wh.id,
+        name: wh.name,
+        operator_id: wh.operator_id,
       });
     } else {
       setFormData({ id: null, name: "", operator_id: null });
@@ -101,15 +141,9 @@ export default function WholesalersList() {
     setOpen(true);
   };
 
-  const handleClose = () => setOpen(false);
-
   const handleSave = async () => {
     if (!formData.name || !formData.operator_id) {
-      setError("Nom et Opérateur sont obligatoires.");
-      return;
-    }
-    if (!user?.id) {
-      setError("Utilisateur non connecté.");
+      setError("Nom et opérateur obligatoires");
       return;
     }
 
@@ -124,77 +158,68 @@ export default function WholesalersList() {
       };
 
       if (formData.id) {
-        const { error: updateError } = await supabase
-          .from("wholesalers")
-          .update(payload)
-          .eq("id", formData.id)
-          .eq("user_id", user.id);
-        if (updateError) throw updateError;
+        await supabase.from("wholesalers").update(payload).eq("id", formData.id);
       } else {
-        const { error: insertError } = await supabase
-          .from("wholesalers")
-          .insert([payload]);
-        if (insertError) throw insertError;
+        await supabase.from("wholesalers").insert([payload]);
       }
 
       fetchAll();
-      handleClose();
+      setOpen(false);
     } catch (err) {
-      console.error(err);
-      setError(err.message || "Erreur lors de l'enregistrement");
+      setError("Erreur lors de l'enregistrement");
     } finally {
       setSaving(false);
     }
   };
 
   const deleteWholesaler = (id) => {
-    Alert.alert(
-      "Confirmation",
-      "Voulez-vous vraiment supprimer ce fournisseur  ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from("wholesalers")
-                .delete()
-                .eq("id", id)
-                .eq("user_id", user?.id);
-              if (error) throw error;
-              fetchAll();
-            } catch (err) {
-              console.error(err);
-              setError("Erreur lors de la suppression");
-            }
-          },
+    Alert.alert("Confirmation", "Supprimer ce fournisseur ?", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          await supabase.from("wholesalers").delete().eq("id", id);
+          fetchAll();
         },
-      ]
-    );
+      },
+    ]);
   };
+
+  /* ================= RENDER ITEM ================= */
 
   const renderItem = ({ item }) => (
     <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
       <Card.Content>
         <List.Item
-          title={<Text style={{ color: theme.colors.onSurface }}>{item.name}</Text>}
+          title={
+            <View>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text
+                style={{
+                  color: item.balance >= 0 ? "#10b981" : "#EF4444",
+                  fontWeight: "bold",
+                  marginTop: 2,
+                }}
+              >
+                Solde : {formatCFA(item.balance)}
+              </Text>
+            </View>
+          }
           description={
             <Text style={{ color: theme.colors.onSurface }}>
-              Opérateur: {item.operator_name || "-"}{"\n"}
-              Manager: {item.manager_name || "-"}{"\n"}
-              Créé le: {new Date(item.created_at).toLocaleString()}
+              Opérateur : {item.operator_name}{"\n"}
+              Manager : {item.manager_name}{"\n"}
+              💰 Paiements : {formatCFA(item.total_credit)}{"\n"}
+              📤 Demandes : {formatCFA(item.total_debit)}{"\n"}
+              Créé le : {new Date(item.created_at).toLocaleString()}
             </Text>
           }
-          left={() => <List.Icon icon="truck" color={theme.colors.primary} />}
+          left={() => (
+            <List.Icon icon="truck" color={theme.colors.primary} />
+          )}
           right={() => (
             <View style={styles.actions}>
-              <TouchableOpacity
-                onPress={() => handleOpen(item)}
-                style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-              >
-                <Text style={styles.actionText}>Modifier</Text>
-              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate("WholesalerTransactions", {
@@ -202,13 +227,21 @@ export default function WholesalersList() {
                     wholesalerName: item.name,
                   })
                 }
-                style={[styles.actionButton, { backgroundColor: theme.colors.secondary }]}
+                style={[styles.actionButton, { backgroundColor: "#2563eb" }]}
               >
-                <Text style={styles.actionText}>Voir transactions</Text>
+                <Text style={styles.actionText}>Transactions</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleOpen(item)}
+                style={[styles.actionButton, { backgroundColor: "#10b981" }]}
+              >
+                <Text style={styles.actionText}>Modifier</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 onPress={() => deleteWholesaler(item.id)}
-                style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
+                style={[styles.actionButton, { backgroundColor: "#EF4444" }]}
               >
                 <Text style={styles.actionText}>Supprimer</Text>
               </TouchableOpacity>
@@ -219,91 +252,120 @@ export default function WholesalersList() {
     </Card>
   );
 
+  /* ================= UI ================= */
+
   return (
-    <PaperProvider theme={theme}>
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.header}>
-          <Text variant="headlineMedium" style={{ color: theme.colors.onSurface }}>
-            Mes fournisseurs
-          </Text>
-          <Button
-            mode="contained"
-            icon="plus"
-            onPress={() => handleOpen()}
-            buttonColor={theme.colors.primary}
-          >
-            Ajouter
-          </Button>
-        </View>
-
-        {error && <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>}
-
-        {loading ? (
-          <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 20 }} />
-        ) : (
-          <FlatList
-            data={wholesalers}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 20 }}
-          />
-        )}
-
-        <Portal>
-          <Dialog visible={open} onDismiss={handleClose} style={{ backgroundColor: theme.colors.surface }}>
-            <Dialog.Title style={{ color: theme.colors.onSurface }}>
-              {formData.id ? "Modifier un fournisseur" : "Ajouter un fournisseur"}
-            </Dialog.Title>
-            <Dialog.Content>
-              {error && <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>}
-              <TextInput
-                label="Nom"
-                value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
-                style={styles.input}
-                textColor={theme.colors.onSurface}
-              />
-              <View style={styles.pickerContainer}>
-                <Text style={[styles.label, { color: theme.colors.onSurface }]}>Opérateur</Text>
-                <RNPickerSelect
-                  onValueChange={(value) => setFormData({ ...formData, operator_id: value })}
-                  items={operators.map((o) => ({ label: o.name, value: o.id }))}
-                  value={formData.operator_id}
-                  style={{
-                    inputIOS: { ...pickerSelectStyles.inputIOS, color: theme.colors.onSurface, backgroundColor: theme.colors.background },
-                    inputAndroid: { ...pickerSelectStyles.inputAndroid, color: theme.colors.onSurface, backgroundColor: theme.colors.background },
-                  }}
-                  placeholder={{ label: "Sélectionner un opérateur...", value: null }}
-                />
-              </View>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={handleClose}>Annuler</Button>
-              <Button mode="contained" onPress={handleSave} loading={saving} buttonColor={theme.colors.primary}>
-                Enregistrer
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.background },
+      ]}
+    >
+      <View style={styles.header}>
+        <Text variant="headlineMedium" style={{ color: theme.colors.onBackground }}>
+          Mes fournisseurs
+        </Text>
+        <Button mode="contained" icon="plus" onPress={() => handleOpen()}>
+          Ajouter
+        </Button>
       </View>
-    </PaperProvider>
+
+      {error && <Text style={styles.error}>{error}</Text>}
+
+      {loading ? (
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      ) : (
+        <FlatList
+          data={wholesalers}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+        />
+      )}
+
+      {/* DIALOG */}
+      <Portal>
+        <Dialog
+          visible={open}
+          onDismiss={() => setOpen(false)}
+          style={{ backgroundColor: theme.colors.surface }}
+        >
+          <Dialog.Title style={{ color: theme.colors.onSurface }}>
+            {formData.id ? "Modifier" : "Ajouter"} un fournisseur
+          </Dialog.Title>
+
+          <Dialog.Content>
+            {error && (
+              <Text style={[styles.error, { marginBottom: 8 }]}>{error}</Text>
+            )}
+
+            <TextInput
+              label="Nom"
+              value={formData.name}
+              onChangeText={(t) =>
+                setFormData({ ...formData, name: t })
+              }
+              textColor={theme.colors.onSurface}
+            />
+
+            <RNPickerSelect
+              value={formData.operator_id}
+              onValueChange={(v) =>
+                setFormData({ ...formData, operator_id: v })
+              }
+              items={operators.map((o) => ({
+                label: o.name,
+                value: o.id,
+              }))}
+              placeholder={{ label: "Choisir un opérateur", value: null }}
+            />
+          </Dialog.Content>
+
+          <Dialog.Actions>
+            <Button onPress={() => setOpen(false)}>Annuler</Button>
+            <Button
+              mode="contained"
+              onPress={handleSave}
+              loading={saving}
+            >
+              Enregistrer
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </View>
   );
 }
 
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  card: { marginBottom: 12, elevation: 4 },
-  actions: { flexDirection: "column", alignItems: "flex-end", justifyContent: "center" },
-  actionButton: { padding: 8, borderRadius: 5, marginBottom: 4 },
-  actionText: { color: "white", fontSize: 12 },
-  errorText: { textAlign: "center", marginBottom: 20 },
-  input: { marginBottom: 16 },
-  pickerContainer: { marginBottom: 16 },
-  label: { fontSize: 16, marginBottom: 8 },
-});
-
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: 'gray', borderRadius: 4, paddingRight: 30 },
-  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: 'purple', borderRadius: 8, paddingRight: 30 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  card: { marginBottom: 12, borderRadius: 12 },
+  name: {
+    color: "#F8FAFC",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  actions: { alignItems: "flex-end" },
+  actionButton: {
+    padding: 6,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  actionText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  error: {
+    color: "#EF4444",
+    textAlign: "center",
+    marginBottom: 12,
+  },
 });

@@ -14,9 +14,9 @@ function StatWidget({ label, value, icon, color, progress }) {
   return (
     <Paper 
       elevation={3} 
-      sx={{ p: 3, borderRadius: 3, textAlign: 'center' }}
+      sx={{ p: 3, borderRadius: 3, textAlign: 'center', minWidth: 180 }}
     >
-      <Box sx={{ fontSize: 40, color }}>{icon}</Box>
+      <Box sx={{ fontSize: 40, color, mb: 1 }}>{icon}</Box>
       <Typography variant="h5" fontWeight="bold">{value}</Typography>
       <Typography variant="body2" color="text.secondary">{label}</Typography>
       {progress && <LinearProgress variant="determinate" value={progress} sx={{ mt: 1, borderRadius: 1 }} />}
@@ -31,12 +31,9 @@ export default function MaintenancePage() {
   const handleClose = () => setOpen(false);
 
   return (
-    <Box sx={{ 
-      minHeight: "100vh", 
-      bgcolor: "linear-gradient(135deg, #f5f7fa, #e4ebf5)", 
-      pb: 8 
-    }}>
-          
+
+      <Box sx={{ bgcolor: "#f4f7f6", minHeight: "100vh", pb: 10 }}>
+      {/* HERO */}
       <PageHero 
         title="Garages & Maintenance" 
         subtitle="Suivi en temps réel de votre parc" 
@@ -44,7 +41,7 @@ export default function MaintenancePage() {
 
       {/* SECTION 1: STATS */}
       <Container maxWidth="lg" sx={{ mt: -6 }}>
-        <Grid container spacing={3}>
+        <Grid container spacing={3} justifyContent="center">
           <Grid item xs={12} sm={4}>
             <StatWidget label="Au Garage" value="8" icon={<Build />} color="#e53935" progress={40}/>
           </Grid>
@@ -65,7 +62,8 @@ export default function MaintenancePage() {
             p: 4, borderRadius: 4, bgcolor: "primary.main", color: "white",
             display: "flex", flexDirection: { xs: "column", md: "row" },
             alignItems: "center", justifyContent: "space-between", gap: 3,
-            boxShadow: "0px 10px 30px rgba(25, 118, 210, 0.2)"
+            boxShadow: "0px 10px 30px rgba(25, 118, 210, 0.2)",
+            textAlign: { xs: "center", md: "left" }
           }}
         >
           <Box>
@@ -95,7 +93,7 @@ export default function MaintenancePage() {
         <Typography variant="h4" textAlign="center" fontWeight="bold" sx={{ mb: 6 }}>
           Pourquoi devenir partenaire ?
         </Typography>
-        <Grid container spacing={4}>
+        <Grid container spacing={4} justifyContent="center">
           {[
             { title: "Nouveaux Clients", desc: "Accès direct aux flottes locales.", icon: <TrendingUp color="primary" fontSize="large" /> },
             { title: "Gestion Digitale", desc: "Plus de papier, tout se passe ici.", icon: <Engineering color="primary" fontSize="large" /> },
@@ -151,6 +149,7 @@ export default function MaintenancePage() {
           <Button variant="contained" onClick={handleClose} sx={{ px: 4 }}>Envoyer ma demande</Button>
         </DialogActions>
       </Dialog>
+
     </Box>
   );
 }
