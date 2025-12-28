@@ -20,6 +20,12 @@ use App\Http\Controllers\TwilioWebhookController;
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\TicketApiController;
+use App\Http\Controllers\Api\TripApiController;
+
+use App\Http\Controllers\Api\SeatController;
+
+
+
 
 // routes/api.php
 Route::post('/login', [AuthController::class, 'login']);
@@ -41,7 +47,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('tickets/{id}', [TicketApiController::class, 'update']);
     Route::delete('tickets/{id}', [TicketApiController::class, 'destroy']);
     Route::get('tickets/search', [TicketApiController::class, 'search']);
+    Route::get('trips', [TripApiController::class, 'index']);
+Route::get('trips/{id}', [TripApiController::class, 'show']);
+Route::get('/trips/{trip}/tickets', [TicketApiController::class, 'byTrip']);
+
+
+
+
+Route::get('trips/{trip}/seats', [SeatController::class, 'availableSeats']);
+Route::post('seats/reserve', [SeatController::class, 'reserve']);
 });
+
+
+
+
+
 
 
 

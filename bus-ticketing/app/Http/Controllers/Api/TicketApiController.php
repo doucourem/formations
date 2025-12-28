@@ -75,4 +75,23 @@ class TicketApiController extends Controller
         $tickets = $ticketsQuery->get();
         return response()->json($tickets);
     }
+
+public function byTrip($tripId)
+{
+    $trip = Trip::find($tripId);
+
+    if (!$trip) {
+        return response()->json([
+            'message' => 'Voyage non trouvé'
+        ], 404);
+    }
+
+    $tickets = Ticket::where('trip_id', $tripId)->get();
+
+    return response()->json([
+        'data' => $tickets
+    ]);
+}
+
+
 }

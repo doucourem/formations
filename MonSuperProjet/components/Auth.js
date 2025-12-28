@@ -106,15 +106,8 @@ const signIn = async () => {
           >
             Se Connecter
           </Button>
-          <Button
-            mode="outlined"
-            onPress={signUp}
-            style={[styles.button, { borderColor: theme.colors.secondary }]}
-            labelStyle={[styles.buttonLabel, { color: theme.colors.secondary }]}
-          >
-            S'inscrire
-          </Button>
-        </View>
+          
+                 </View>
       </Card>
     </View>
   );

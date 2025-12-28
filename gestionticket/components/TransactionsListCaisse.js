@@ -87,10 +87,7 @@ export default function TransactionsListCaisse({ route }) {
     Solde Total
   </Text>
   <Text style={{ color: "#1F2937", marginBottom: 2 }}>
-    Total Paiement: {totalCredit} FCFA 
-  </Text>
-   <Text style={{ color: "#1F2937", marginBottom: 2 }}>
-     Total Envoie: {totalDebit} FCFA
+    Total Paiement: {totalCredit} FCFA | Total Envoie: {totalDebit} FCFA
   </Text>
   <Text style={{ fontWeight: "bold", color: totalBalance >= 0 ? "#22C55E" : "#EF4444" }}>
     Balance: {totalBalance} FCFA
@@ -109,10 +106,7 @@ export default function TransactionsListCaisse({ route }) {
             <View style={styles.sectionHeaderContainer}>
               <Text style={[styles.sectionHeader, { color: theme.colors.primary }]}>{section.title}</Text>
               <Text style={{ color: theme.colors.onSurface }}>
-                Total Paiement: {section.totalCredit} FCFA 
-              </Text>
-              <Text style={{ color: theme.colors.onSurface }}>
-                 Total Envoie: {section.totalDebit} FCFA
+                Total Paiement: {section.totalCredit} FCFA | Total Envoie: {section.totalDebit} FCFA
               </Text>
               <Text style={{ color: balanceColor, fontWeight: "bold" }}>
                 Balance Journalière: {dailyBalance} FCFA

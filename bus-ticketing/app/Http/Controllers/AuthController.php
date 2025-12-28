@@ -1,45 +1,69 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\Companies;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use App\Models\Bus;
-use App\Models\Agency;
-use App\Models\Trip;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $credentials = $request->validate([
+        $request->validate([
             'email' => 'required|email',
             'password' => 'required'
         ]);
 
-        if (!Auth::attempt($credentials)) {
-            return response()->json(['message' => 'Identifiants invalides'], 401);
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'message' => 'Identifiants incorrects'
+            ], 401);
         }
 
-        $user = Auth::user();
-
-        // ⚠️ Vérifier que c'est un driver
-        if ($user->role !== 'driver') {
-            return response()->json(['message' => 'Accès réservé aux chauffeurs'], 403);
-        }
-
-        $token = $user->createToken('driver-token')->plainTextToken;
+        $token = $user->createToken('mobile-token')->plainTextToken;
 
         return response()->json([
             'token' => $token,
-            'user' => $user->load('driver.bus')
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'full_name' => $user->name,
+                'role' => $user->role,
+            ]
         ]);
+    }
+
+    public function register(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|unique:users',
+            'password' => 'required|min:6',
+            'name' => 'required'
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'role' => 'user'
+        ]);
+
+        return response()->json([
+            'message' => 'Compte créé avec succès'
+        ], 201);
     }
 
     public function me(Request $request)
     {
-        return $request->user()->load('driver.bus');
+        return response()->json($request->user());
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->tokens()->delete();
+        return response()->json(['message' => 'Déconnecté']);
     }
 }

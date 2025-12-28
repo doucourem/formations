@@ -1,332 +1,308 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import supabase from "../supabaseClient";
 import {
-  StyleSheet,
   View,
+  StyleSheet,
   FlatList,
   Alert,
   ActivityIndicator,
-  TouchableOpacity,
 } from "react-native";
 import {
-  Button,
-  Dialog,
-  Portal,
-  TextInput,
-  Text,
   Card,
-  List,
-  useTheme,
+  Text,
+  Button,
+  Portal,
+  Dialog,
+  TextInput,
+  IconButton,
 } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 
 /* ================= HELPERS ================= */
-
-const formatCFA = (amount) =>
+const formatCFA = (amount = 0) =>
   new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: "XOF",
     minimumFractionDigits: 0,
-  }).format(amount || 0);
+  }).format(amount);
+
+/* ================= THEME ================= */
+const theme = {
+  colors: {
+    background: "#0A0F1A",
+    surface: "#1E293B",
+    primary: "#2563EB",
+    onSurface: "#F8FAFC",
+    placeholder: "#94A3B8",
+    success: "#22C55E",
+    error: "#EF4444",
+  },
+};
 
 /* ================= COMPONENT ================= */
-
 export default function WholesalersList() {
   const navigation = useNavigation();
-  const theme = useTheme();
 
   const [user, setUser] = useState(null);
   const [wholesalers, setWholesalers] = useState([]);
   const [operators, setOperators] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
 
-  const [formData, setFormData] = useState({
+  const [globalTotals, setGlobalTotals] = useState({
+    total_credit: 0,
+    total_debit: 0,
+    balance: 0,
+  });
+
+  const [currentWholesaler, setCurrentWholesaler] = useState({
     id: null,
     name: "",
     operator_id: null,
   });
 
   /* ================= AUTH ================= */
-
   useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      if (error) Alert.alert("Erreur Auth", error.message);
-      else setUser(user);
-    };
-    getUser();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setUser(data.user);
+    });
   }, []);
 
-  useEffect(() => {
-    if (user) fetchAll();
-  }, [user]);
+  /* ================= FETCH GLOBAL TOTALS ================= */
+  const fetchGlobalTotals = useCallback(async () => {
+    const { data, error } = await supabase.rpc("get_network_totals");
+    if (!error && data?.[0]) setGlobalTotals(data[0]);
+  }, []);
 
   /* ================= FETCH ALL ================= */
-
-  const fetchAll = async () => {
-    if (!user) return;
-    setLoading(true);
-    setError(null);
-
+  const fetchAll = useCallback(async () => {
     try {
-      const { data: whData, error: whError } = await supabase
-        .from("wholesalers")
-        .select("id, name, operator_id, user_id, created_at")
-        .order("created_at", { ascending: false });
-      if (whError) throw whError;
+      setLoading(true);
 
-      const { data: opData, error: opError } = await supabase
-        .from("operators")
-        .select("id, name");
-      if (opError) throw opError;
+      const results = await Promise.all([
+        supabase
+          .from("wholesalers")
+          .select("id, name, operator_id, user_id, created_at")
+          .order("created_at", { ascending: false }),
+        supabase.from("operators").select("id, name"),
+        supabase
+          .from("wholesaler_transactions")
+          .select("wholesaler_id, amount, type"),
+      ]);
 
-      const { data: txData, error: txError } = await supabase
-        .from("wholesaler_transactions")
-        .select("wholesaler_id, amount, type");
-      if (txError) throw txError;
+      const wh = results[0]?.data || [];
+      const op = results[1]?.data || [];
+      const tx = results[2]?.data || [];
+
+      setOperators(op);
 
       const balances = {};
-      (txData || []).forEach((tx) => {
-        if (!balances[tx.wholesaler_id]) {
-          balances[tx.wholesaler_id] = { credit: 0, debit: 0 };
-        }
-        tx.type === "CREDIT"
-          ? (balances[tx.wholesaler_id].credit += Number(tx.amount))
-          : (balances[tx.wholesaler_id].debit += Number(tx.amount));
+      tx.forEach((t) => {
+        const b = balances[t.wholesaler_id] ??= { credit: 0, debit: 0 };
+        t.type === "CREDIT"
+          ? (b.credit += Number(t.amount))
+          : (b.debit += Number(t.amount));
       });
 
-      const enriched = (whData || []).map((wh) => {
-        const bal = balances[wh.id] || { credit: 0, debit: 0 };
+      const enriched = wh.map((w) => {
+        const b = balances[w.id] || { credit: 0, debit: 0 };
         return {
-          ...wh,
-          operator_name:
-            (opData || []).find((op) => op.id === wh.operator_id)?.name || "-",
-          manager_name: wh.user_id === user.id ? "Vous" : "-",
-          total_credit: bal.credit,
-          total_debit: bal.debit,
-          balance: bal.credit - bal.debit,
+          ...w,
+          total_credit: b.credit,
+          total_debit: b.debit,
+          balance: b.credit - b.debit,
+          operator_name: op.find((o) => o.id === w.operator_id)?.name || "-",
         };
       });
 
       setWholesalers(enriched);
-      setOperators(opData || []);
-    } catch (err) {
-      console.error(err);
-      setError("Erreur lors du chargement des données");
+    } catch {
+      Alert.alert("Erreur", "Impossible de charger les données");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
-  /* ================= CRUD ================= */
+  /* ================= REFRESH ================= */
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchAll();
+    await fetchGlobalTotals();
+  }, [fetchAll, fetchGlobalTotals]);
 
-  const handleOpen = (wh = null) => {
-    if (wh) {
-      setFormData({
-        id: wh.id,
-        name: wh.name,
-        operator_id: wh.operator_id,
-      });
-    } else {
-      setFormData({ id: null, name: "", operator_id: null });
-    }
-    setError(null);
-    setOpen(true);
-  };
+  /* ================= AUTO REFRESH ON FOCUS ================= */
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        fetchAll();
+        fetchGlobalTotals();
+      }
+    }, [user])
+  );
 
+  /* ================= SAVE ================= */
   const handleSave = async () => {
-    if (!formData.name || !formData.operator_id) {
-      setError("Nom et opérateur obligatoires");
-      return;
+    if (!currentWholesaler.name || !currentWholesaler.operator_id) {
+      return Alert.alert("Erreur", "Tous les champs sont obligatoires");
     }
 
     setSaving(true);
-    setError(null);
 
-    try {
-      const payload = {
-        name: formData.name,
-        operator_id: formData.operator_id,
+    if (currentWholesaler.id) {
+      await supabase
+        .from("wholesalers")
+        .update({
+          name: currentWholesaler.name,
+          operator_id: currentWholesaler.operator_id,
+        })
+        .eq("id", currentWholesaler.id);
+    } else {
+      await supabase.from("wholesalers").insert({
+        name: currentWholesaler.name,
+        operator_id: currentWholesaler.operator_id,
         user_id: user.id,
-      };
-
-      if (formData.id) {
-        await supabase.from("wholesalers").update(payload).eq("id", formData.id);
-      } else {
-        await supabase.from("wholesalers").insert([payload]);
-      }
-
-      fetchAll();
-      setOpen(false);
-    } catch (err) {
-      setError("Erreur lors de l'enregistrement");
-    } finally {
-      setSaving(false);
+      });
     }
-  };
 
-  const deleteWholesaler = (id) => {
-    Alert.alert("Confirmation", "Supprimer ce fournisseur ?", [
-      { text: "Annuler", style: "cancel" },
-      {
-        text: "Supprimer",
-        style: "destructive",
-        onPress: async () => {
-          await supabase.from("wholesalers").delete().eq("id", id);
-          fetchAll();
-        },
-      },
-    ]);
+    setOpen(false);
+    setSaving(false);
+    setCurrentWholesaler({ id: null, name: "", operator_id: null });
+    fetchAll();
+    fetchGlobalTotals();
   };
 
   /* ================= RENDER ITEM ================= */
+  const renderItem = ({ item }) => {
+    const solde = (item.total_credit || 0) - (item.total_debit || 0);
+    const isPositive = solde >= 0;
 
-  const renderItem = ({ item }) => (
-    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-      <Card.Content>
-        <List.Item
-          title={
-            <View>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text
-                style={{
-                  color: item.balance >= 0 ? "#10b981" : "#EF4444",
-                  fontWeight: "bold",
-                  marginTop: 2,
-                }}
-              >
-                Solde : {formatCFA(item.balance)}
+    return (
+      <Card style={styles.card} mode="outlined">
+        <Card.Content>
+          {/* HEADER */}
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text variant="titleMedium">{item.name}</Text>
+              <Text style={styles.operatorText}>
+                Opérateur : {item.operator_name}
               </Text>
             </View>
-          }
-          description={
-            <Text style={{ color: theme.colors.onSurface }}>
-              Opérateur : {item.operator_name}{"\n"}
-              Manager : {item.manager_name}{"\n"}
-              💰 Paiements : {formatCFA(item.total_credit)}{"\n"}
-              📤 Demandes : {formatCFA(item.total_debit)}{"\n"}
-              Créé le : {new Date(item.created_at).toLocaleString()}
-            </Text>
-          }
-          left={() => (
-            <List.Icon icon="truck" color={theme.colors.primary} />
-          )}
-          right={() => (
             <View style={styles.actions}>
-              <TouchableOpacity
+              <IconButton
+                icon="eye-outline"
+                size={22}
                 onPress={() =>
                   navigation.navigate("WholesalerTransactions", {
                     wholesalerId: item.id,
                     wholesalerName: item.name,
                   })
                 }
-                style={[styles.actionButton, { backgroundColor: "#2563eb" }]}
-              >
-                <Text style={styles.actionText}>Transactions</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => handleOpen(item)}
-                style={[styles.actionButton, { backgroundColor: "#10b981" }]}
-              >
-                <Text style={styles.actionText}>Modifier</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => deleteWholesaler(item.id)}
-                style={[styles.actionButton, { backgroundColor: "#EF4444" }]}
-              >
-                <Text style={styles.actionText}>Supprimer</Text>
-              </TouchableOpacity>
+              />
+              <IconButton
+                icon="pencil-outline"
+                size={22}
+                onPress={() => {
+                  setCurrentWholesaler({
+                    id: item.id,
+                    name: item.name,
+                    operator_id: item.operator_id,
+                  });
+                  setOpen(true);
+                }}
+              />
             </View>
-          )}
-        />
-      </Card.Content>
-    </Card>
-  );
+          </View>
 
-  /* ================= UI ================= */
+          {/* SOLDE */}
+          <View style={styles.amountRow}>
+            <Text style={isPositive ? styles.positive : styles.negative}>
+              {isPositive ? "Solde créditeur" : "Solde débiteur"} :{" "}
+              {formatCFA(Math.abs(solde))}
+            </Text>
+            <IconButton
+              icon={isPositive ? "arrow-up-bold" : "arrow-down-bold"}
+              size={20}
+              iconColor={isPositive ? theme.colors.success : theme.colors.error}
+            />
+          </View>
+        </Card.Content>
+      </Card>
+    );
+  };
+
+  if (loading) return <ActivityIndicator style={{ marginTop: 40 }} />;
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.background },
-      ]}
-    >
-      <View style={styles.header}>
-        <Text variant="headlineMedium" style={{ color: theme.colors.onBackground }}>
-          Mes fournisseurs
-        </Text>
-        <Button mode="contained" icon="plus" onPress={() => handleOpen()}>
-          Ajouter
-        </Button>
-      </View>
+    <View style={styles.container}>
+      <Text style={styles.header}>Fournisseur & Soldes</Text>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      <Card style={styles.totalCard}>
+        <Card.Content>
+          <Text style={styles.totalLabel}>CRÉDIT TOTAL</Text>
+          <Text
+            style={{
+              fontWeight: "bold",
+              textAlign: "center",
+              color:
+                globalTotals.balance >= 0
+                  ? theme.colors.success
+                  : theme.colors.error,
+            }}
+          >
+            {formatCFA(globalTotals.balance)}
+          </Text>
+        </Card.Content>
+      </Card>
 
-      {loading ? (
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      ) : (
-        <FlatList
-          data={wholesalers}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderItem}
-        />
-      )}
+      <FlatList
+        data={wholesalers}
+        keyExtractor={(i) => i.id.toString()}
+        renderItem={renderItem}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
 
-      {/* DIALOG */}
+      <Button
+        mode="contained"
+        style={{ marginTop: 10 }}
+        onPress={() => {
+          setCurrentWholesaler({ id: null, name: "", operator_id: null });
+          setOpen(true);
+        }}
+      >
+        Ajouter fournisseur
+      </Button>
+
       <Portal>
-        <Dialog
-          visible={open}
-          onDismiss={() => setOpen(false)}
-          style={{ backgroundColor: theme.colors.surface }}
-        >
-          <Dialog.Title style={{ color: theme.colors.onSurface }}>
-            {formData.id ? "Modifier" : "Ajouter"} un fournisseur
+        <Dialog visible={open} onDismiss={() => setOpen(false)}>
+          <Dialog.Title>
+            {currentWholesaler.id
+              ? "Modifier fournisseur"
+              : "Ajouter fournisseur"}
           </Dialog.Title>
-
           <Dialog.Content>
-            {error && (
-              <Text style={[styles.error, { marginBottom: 8 }]}>{error}</Text>
-            )}
-
             <TextInput
               label="Nom"
-              value={formData.name}
+              value={currentWholesaler.name}
               onChangeText={(t) =>
-                setFormData({ ...formData, name: t })
+                setCurrentWholesaler({ ...currentWholesaler, name: t })
               }
-              textColor={theme.colors.onSurface}
             />
-
             <RNPickerSelect
-              value={formData.operator_id}
+              value={currentWholesaler.operator_id}
               onValueChange={(v) =>
-                setFormData({ ...formData, operator_id: v })
+                setCurrentWholesaler({ ...currentWholesaler, operator_id: v })
               }
-              items={operators.map((o) => ({
-                label: o.name,
-                value: o.id,
-              }))}
-              placeholder={{ label: "Choisir un opérateur", value: null }}
+              items={operators.map((o) => ({ label: o.name, value: o.id }))}
             />
           </Dialog.Content>
-
           <Dialog.Actions>
             <Button onPress={() => setOpen(false)}>Annuler</Button>
-            <Button
-              mode="contained"
-              onPress={handleSave}
-              loading={saving}
-            >
+            <Button loading={saving} onPress={handleSave}>
               Enregistrer
             </Button>
           </Dialog.Actions>
@@ -337,35 +313,59 @@ export default function WholesalersList() {
 }
 
 /* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: theme.colors.background,
+  },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  card: { marginBottom: 12, borderRadius: 12 },
-  name: {
-    color: "#F8FAFC",
+    fontSize: 20,
     fontWeight: "bold",
-    fontSize: 16,
-  },
-  actions: { alignItems: "flex-end" },
-  actionButton: {
-    padding: 6,
-    borderRadius: 6,
-    marginBottom: 4,
-  },
-  actionText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  error: {
-    color: "#EF4444",
     textAlign: "center",
     marginBottom: 12,
+    color: theme.colors.onSurface,
+  },
+  card: {
+    marginBottom: 10,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 14,
+  },
+  totalCard: {
+    marginBottom: 12,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+  },
+  totalLabel: {
+    color: "#FFF",
+    textAlign: "center",
+    fontWeight: "bold",
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  actions: {
+    flexDirection: "row",
+  },
+  operatorText: {
+    opacity: 0.7,
+    marginTop: 2,
+  },
+  amountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  positive: {
+    color: "#2e7d32",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  negative: {
+    color: "#c62828",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });
