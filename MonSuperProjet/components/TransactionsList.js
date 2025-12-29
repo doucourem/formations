@@ -532,21 +532,12 @@ const handleDeleteTransaction = (id) => {
           mode="outlined"
         />
 
-        <SegmentedButtons
-          value={dateFilter}
-          onValueChange={setDateFilter}
-          buttons={[
-            { value: "all", label: "Toutes" },
-            { value: "today", label: "Aujourd’hui" },
-          ]}
-          style={{ marginBottom: height * 0.01 }}
-        />
 
         <SegmentedButtons
           value={typeFilter}
           onValueChange={setTypeFilter}
           buttons={[
-            { value: "all", label: "Tous" },
+            { value: "today", label: "Aujourd’hui" },
             { value: "CREDIT", label: "Envoie" },
             { value: "DEBIT", label: "Paiement" },
           ]}

@@ -32,7 +32,7 @@ const signIn = async () => {
   const { data: userProfile, error: profileError } = await supabase
     .from("users")
      .select("id, email, full_name, role") // <- rôle inclus
-    .eq("auth_id", authData.user.id)
+    .eq("id", authData.user.id)
     .maybeSingle();
 
   if (profileError || !userProfile) {
@@ -49,18 +49,6 @@ const signIn = async () => {
     routes: [{ name: "MainDrawer", params: { user: userProfile } }],
   });
 };
-
-
-
-  const signUp = async () => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      Alert.alert("Erreur d'inscription", error.message);
-      console.error("Erreur d'inscription :", error.message);
-    } else {
-      Alert.alert("Succès", "🎉 Compte créé ! Veuillez vérifier votre email pour confirmation.");
-    }
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>

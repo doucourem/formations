@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import supabase from "../supabaseClient";
 import {
   View,
@@ -6,6 +6,7 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import {
   Card,
@@ -175,6 +176,37 @@ export default function WholesalersList() {
     fetchGlobalTotals();
   };
 
+  /* ================= DELETE ================= */
+  const handleDelete = async (id) => {
+    Alert.alert(
+      "Confirmer la suppression",
+      "Voulez-vous vraiment supprimer ce fournisseur ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from("wholesalers")
+                .delete()
+                .eq("id", id);
+
+              if (error) throw error;
+
+              fetchAll();
+              fetchGlobalTotals();
+              Alert.alert("Succès", "Fournisseur supprimé avec succès");
+            } catch (err) {
+              Alert.alert("Erreur", err.message || "Impossible de supprimer");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   /* ================= RENDER ITEM ================= */
   const renderItem = ({ item }) => {
     const solde = (item.total_credit || 0) - (item.total_debit || 0);
@@ -183,7 +215,6 @@ export default function WholesalersList() {
     return (
       <Card style={styles.card} mode="outlined">
         <Card.Content>
-          {/* HEADER */}
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text variant="titleMedium">{item.name}</Text>
@@ -214,10 +245,14 @@ export default function WholesalersList() {
                   setOpen(true);
                 }}
               />
+              <IconButton
+                icon="delete-outline"
+                size={22}
+                onPress={() => handleDelete(item.id)}
+              />
             </View>
           </View>
 
-          {/* SOLDE */}
           <View style={styles.amountRow}>
             <Text style={isPositive ? styles.positive : styles.negative}>
               {isPositive ? "Solde créditeur" : "Solde débiteur"} :{" "}
@@ -278,7 +313,11 @@ export default function WholesalersList() {
       </Button>
 
       <Portal>
-        <Dialog visible={open} onDismiss={() => setOpen(false)}>
+        <Dialog
+          visible={open}
+          onDismiss={() => setOpen(false)}
+          style={{ width: "80%", alignSelf: "center" }}
+        >
           <Dialog.Title>
             {currentWholesaler.id
               ? "Modifier fournisseur"
@@ -291,6 +330,7 @@ export default function WholesalersList() {
               onChangeText={(t) =>
                 setCurrentWholesaler({ ...currentWholesaler, name: t })
               }
+              style={{ marginBottom: 12 }}
             />
             <RNPickerSelect
               value={currentWholesaler.operator_id}
@@ -298,6 +338,24 @@ export default function WholesalersList() {
                 setCurrentWholesaler({ ...currentWholesaler, operator_id: v })
               }
               items={operators.map((o) => ({ label: o.name, value: o.id }))}
+              style={{
+                inputIOS: {
+                  color: "#000",
+                  padding: 12,
+                  backgroundColor: "#fff",
+                  borderRadius: 8,
+                  marginBottom: 12,
+                },
+                inputAndroid: {
+                  color: "#000",
+                  padding: 12,
+                  backgroundColor: "#fff",
+                  borderRadius: 8,
+                  marginBottom: 12,
+                },
+              }}
+              useNativeAndroidPickerStyle={false}
+              placeholder={{ label: "Sélectionner un opérateur", value: null }}
             />
           </Dialog.Content>
           <Dialog.Actions>
@@ -330,6 +388,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: theme.colors.surface,
     borderRadius: 14,
+    width: "100%",
   },
   totalCard: {
     marginBottom: 12,
@@ -347,6 +406,8 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 4,
   },
   operatorText: {
     opacity: 0.7,

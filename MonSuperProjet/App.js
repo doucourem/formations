@@ -174,8 +174,9 @@ function DrawerNavigator({ user }) {
     admin: [
        { name: "Transactions", component: TransactionsList },
       { name: "BOUTIQUE", component: CashStack },
+       { name: "Clients", component: KiosksList },
       { name: "Fournisseurs", component: WholesalersList },
-      { name: "Clients", component: KiosksList },
+     
        { name: "Opérateurs", component: OperatorsList },
       { name: "Utilisateurs", component: UsersList },
       { name: "Changer mot de passe", component: ChangePasswordScreen },
