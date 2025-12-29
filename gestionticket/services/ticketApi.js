@@ -35,10 +35,18 @@ export const loadToken = async () => {
 
 // ================== TICKETS ==================
 
-export const fetchTickets = async (page = 1) => {
+export const fetchTickets = async ({ page = 1, search = '', status = '', date = null }) => {
   await loadToken();
-  return api.get(`/tickets?page=${page}`);
+
+  const params = { page };
+  if (search) params.search = search;
+  if (status) params.status = status;
+  if (date) params.date = date; // format YYYY-MM-DD
+
+  return api.get('/tickets', { params });
 };
+
+
 
 export const fetchTicket = async (id) => {
   await loadToken();

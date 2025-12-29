@@ -1,6 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Provider as PaperProvider, MD3DarkTheme, Button } from "react-native-paper";
+import { View, Text, StyleSheet, useColorScheme } from "react-native";
+import {
+  Provider as PaperProvider,
+  MD3DarkTheme,
+  MD3LightTheme,
+  useTheme,
+  Button,
+} from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator, DrawerContentScrollView } from "@react-navigation/drawer";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -19,20 +25,30 @@ import { logout } from "./services/authApi";
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
-const theme = {
-  ...MD3DarkTheme,
-  colors: { ...MD3DarkTheme.colors, primary: "#4F46E5", background: "#111827", surface: "#1F2937", onSurface: "#FCFBF8" },
-};
-
-// --- Custom Drawer ---
+/* ================= Custom Drawer ================= */
 const CustomDrawerContent = ({ user, screens, navigation }) => {
   const { token, setUser, setToken } = useAuth();
+  const theme = useTheme(); // ← récupère le thème courant
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: "#334155" }}>
-        <Text style={{ color: theme.colors.onSurface, fontSize: 20, fontWeight: "bold" }}>Tableau de bord</Text>
-        <Text style={{ color: "#CBD5E1" }}>{user?.email}</Text>
+      <View
+        style={{
+          padding: 20,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.colors.outline,
+        }}
+      >
+        <Text
+          style={{
+            color: theme.colors.onSurface,
+            fontSize: 20,
+            fontWeight: "bold",
+          }}
+        >
+          Tableau de bord
+        </Text>
+        <Text style={{ color: theme.colors.placeholder }}>{user?.email}</Text>
         <Button
           mode="outlined"
           onPress={async () => {
@@ -52,7 +68,7 @@ const CustomDrawerContent = ({ user, screens, navigation }) => {
             key={screen.name}
             mode="text"
             onPress={() => navigation.navigate(screen.name)}
-            textColor="#CBD5E1"
+            textColor={theme.colors.primary}
             style={{ alignSelf: "stretch", borderRadius: 0, paddingVertical: 6 }}
             contentStyle={{ justifyContent: "flex-start", paddingLeft: 16 }}
           >
@@ -64,16 +80,34 @@ const CustomDrawerContent = ({ user, screens, navigation }) => {
   );
 };
 
-// --- Drawer Navigator ---
+function CashStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="TripListScreen"
+        component={TripListScreen}
+        options={{ title: "Voyage" }}
+      />
+      <Stack.Screen
+        name="AddTicket"
+        component={CreateTicketScreen}
+        options={{ title: "Créer Ticket" }}
+      />
+      {/* Nouvelle page pour voir les transactions d’une BOUTIQUE */}
+      <Stack.Screen
+        name="TripTicketsScreen"
+        component={TripTicketsScreen}
+        options={{ title: "Tickets du voyage" }}
+      />
+    </Stack.Navigator>
+  );
+}
+/* ================= Drawer Navigator ================= */
 const DrawerNavigator = ({ user }) => {
+  const theme = useTheme();
   const screens = [
     { name: "Tickets", component: TicketListScreen },
-    { name: "Détails Ticket", component: TicketDetailScreen },
-{ name: "Voyage", component: TripListScreen },
-    
-    { name: "Créer Ticket", component: CreateTicketScreen },
-    { name: "Tickets du voyage", component: TripTicketsScreen },
-    
+    { name: "Voyage", component: CashStack },
     { name: "Changer mot de passe", component: ChangePasswordScreen },
   ];
 
@@ -83,7 +117,7 @@ const DrawerNavigator = ({ user }) => {
       screenOptions={{
         headerStyle: { backgroundColor: theme.colors.surface },
         headerTintColor: theme.colors.onSurface,
-        drawerStyle: { backgroundColor: "#111827" },
+        drawerStyle: { backgroundColor: theme.dark ? "#111827" : "#fff" },
       }}
     >
       {screens.map((screen) => (
@@ -93,9 +127,18 @@ const DrawerNavigator = ({ user }) => {
   );
 };
 
-// --- Main App ---
+/* ================= Auth Stack ================= */
+const AuthStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Auth" component={Auth} />
+    <Stack.Screen name="Register" component={Register} />
+  </Stack.Navigator>
+);
+
+/* ================= Main App Content ================= */
 const AppContent = () => {
   const { user, loading } = useAuth();
+  const theme = useTheme();
 
   if (loading) {
     return (
@@ -108,19 +151,15 @@ const AppContent = () => {
   return user ? <DrawerNavigator user={user} /> : <AuthStack />;
 };
 
-// --- Auth Stack ---
-const AuthStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Auth" component={Auth} />
-    <Stack.Screen name="Register" component={Register} />
-  </Stack.Navigator>
-);
-
+/* ================= Export App ================= */
 export default function App() {
+  const scheme = useColorScheme(); // "dark" ou "light"
+  const theme = scheme === "dark" ? MD3DarkTheme : MD3LightTheme;
+
   return (
     <PaperProvider theme={theme}>
       <AuthProvider>
-        <NavigationContainer>
+        <NavigationContainer theme={theme}>
           <AppContent />
         </NavigationContainer>
       </AuthProvider>
@@ -128,6 +167,7 @@ export default function App() {
   );
 }
 
+/* ================= Styles ================= */
 const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

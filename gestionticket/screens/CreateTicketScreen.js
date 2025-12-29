@@ -10,11 +10,11 @@ export default function CreateTicketScreen({ navigation, route }) {
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [paying, setPaying] = useState(false);
 
   const loadSeats = async () => {
     try {
       const res = await api.get(`/trips/${tripId}/seats`);
-      console.log(res.data); // vérifier la réponse
       setSeats(res.data);
     } catch (e) {
       Alert.alert("Erreur", "Impossible de charger les sièges");
@@ -70,9 +70,30 @@ export default function CreateTicketScreen({ navigation, route }) {
     }
   };
 
-  if (loading) {
-    return <ActivityIndicator style={{ marginTop: 40 }} />;
-  }
+  const payTicket = async () => {
+    if (!selectedSeat) {
+      Alert.alert("Erreur", "Veuillez sélectionner un siège avant de payer");
+      return;
+    }
+    setPaying(true);
+    try {
+      // Ici, tu peux appeler ton API de paiement
+      await createTicket({
+        trip_id: tripId,
+        client_name: clientName,
+        seat_number: selectedSeat,
+        status: "paid",
+      });
+      Alert.alert("Succès", "Paiement effectué");
+      loadSeats();
+    } catch (e) {
+      Alert.alert("Erreur", "Échec du paiement");
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  if (loading) return <ActivityIndicator style={{ marginTop: 40 }} />;
 
   return (
     <View style={styles.container}>
@@ -84,46 +105,60 @@ export default function CreateTicketScreen({ navigation, route }) {
       />
 
       <Text style={styles.title}>Choisir un siège</Text>
+
       <FlatList
         data={seats}
         numColumns={4}
         keyExtractor={(item) => item.seat_number.toString()}
-        renderItem={({ item }) => (
-          <Button
-            mode={selectedSeat === item.seat_number ? "contained" : "outlined"}
-            disabled={item.status === "sold"}
-            onPress={() => reserveSeat(item)}
-            style={[
-              styles.seat,
-              {
-                backgroundColor:
-                  selectedSeat === item.seat_number
-                    ? "#4CAF50"
-                    : item.status === "sold"
-                    ? "#F44336"
-                    : item.status === "reserved"
-                    ? "#FF9800"
-                    : undefined,
-              },
-            ]}
-            textColor="#fff"
-          >
-            {item.seat_number}
-          </Button>
-        )}
+        renderItem={({ item }) => {
+          let bgColor;
+          switch (item.status) {
+            case "sold":
+              bgColor = "#F44336";
+              break;
+            case "reserved":
+              bgColor = "#FF9800";
+              break;
+            default:
+              bgColor = "#4CAF50";
+          }
+          if (selectedSeat === item.seat_number) bgColor = "#1976D2";
+
+          return (
+            <Button
+              mode={selectedSeat === item.seat_number ? "contained" : "outlined"}
+              onPress={() => reserveSeat(item)}
+              disabled={item.status === "sold"}
+              style={[styles.seat, { backgroundColor: bgColor }]}
+              textColor="#fff"
+            >
+              {item.seat_number}
+            </Button>
+          );
+        }}
         contentContainerStyle={{ paddingBottom: 20 }}
-        showsVerticalScrollIndicator
       />
 
-      <Button
-        mode="contained"
-        onPress={saveTicket}
-        loading={saving}
-        disabled={!selectedSeat || saving}
-        style={{ marginTop: 20 }}
-      >
-        Confirmer la réservation
-      </Button>
+      <View style={styles.actions}>
+        <Button
+          mode="contained"
+          onPress={saveTicket}
+          loading={saving}
+          disabled={!selectedSeat || saving || paying}
+          style={{ flex: 1, marginRight: 5 }}
+        >
+          Confirmer la réservation
+        </Button>
+        <Button
+          mode="contained"
+          onPress={payTicket}
+          loading={paying}
+          disabled={!selectedSeat || saving || paying}
+          style={{ flex: 1, marginLeft: 5, backgroundColor: "#FF9800" }}
+        >
+          Payer
+        </Button>
+      </View>
     </View>
   );
 }
@@ -131,6 +166,7 @@ export default function CreateTicketScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   input: { marginBottom: 20 },
-  title: { marginBottom: 10, fontWeight: "bold" },
-  seat: { margin: 4, minWidth: 60 },
+  title: { marginBottom: 10, fontWeight: "bold", fontSize: 16 },
+  seat: { margin: 4, minWidth: 60, minHeight: 50, justifyContent: "center" },
+  actions: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
 });

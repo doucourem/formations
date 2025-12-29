@@ -91,7 +91,7 @@ export default function TripListScreen({ navigation }) {
               <Button
                 mode="outlined"
                 onPress={() =>
-                  navigation.navigate("Tickets du voyage", { tripId: item.id })
+                  navigation.navigate("TripTicketsScreen", { tripId: item.id })
                 }
               >
                 Voir tickets
@@ -102,7 +102,7 @@ export default function TripListScreen({ navigation }) {
                 mode="contained"
                 disabled={seats <= 0}
                 onPress={() =>
-                  navigation.navigate("Créer Ticket", { tripId: item.id })
+                  navigation.navigate("AddTicket", { tripId: item.id })
                 }
               >
                 {seats > 0 ? "Réserver" : "Complet"}
