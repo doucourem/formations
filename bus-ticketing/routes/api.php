@@ -31,6 +31,11 @@ use App\Http\Controllers\Api\SeatController;
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->get('/me', fn(Request $r) => $r->user());
 
+Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
+    $request->user()->currentAccessToken()->delete();
+    return response()->json(['message' => 'Déconnecté']);
+});
+
 Route::post('/payments/callback', [PaymentWebhookController::class, 'handle'])
      ->name('payments.callback');
 

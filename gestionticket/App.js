@@ -5,95 +5,67 @@ import {
   MD3DarkTheme,
   MD3LightTheme,
   useTheme,
-  Button,
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
-import { createDrawerNavigator, DrawerContentScrollView } from "@react-navigation/drawer";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Auth from "./components/Auth";
 import Register from "./components/Register";
 import TicketListScreen from "./screens/TicketListScreen";
-import TicketDetailScreen from "./screens/TicketDetailScreen";
 import CreateTicketScreen from "./screens/CreateTicketScreen";
 import TripListScreen from "./screens/TripListScreen";
 import TripTicketsScreen from "./screens/TripTicketsScreen";
 import ChangePasswordScreen from "./components/ChangePasswordScreen";
 import { logout } from "./services/authApi";
 
+/* ================= NAVIGATORS ================= */
 const Stack = createNativeStackNavigator();
-const Drawer = createDrawerNavigator();
+const Tab = createBottomTabNavigator();
 
-/* ================= Custom Drawer ================= */
-const CustomDrawerContent = ({ user, screens, navigation }) => {
-  const { token, setUser, setToken } = useAuth();
-  const theme = useTheme(); // ← récupère le thème courant
+/* ================= TICKETS STACK ================= */
+function TicketsStack() {
+  const theme = useTheme();
 
   return (
-    <View style={{ flex: 1 }}>
-      <View
-        style={{
-          padding: 20,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.colors.outline,
-        }}
-      >
-        <Text
-          style={{
-            color: theme.colors.onSurface,
-            fontSize: 20,
-            fontWeight: "bold",
-          }}
-        >
-          Tableau de bord
-        </Text>
-        <Text style={{ color: theme.colors.placeholder }}>{user?.email}</Text>
-        <Button
-          mode="outlined"
-          onPress={async () => {
-            await logout(token);
-            setUser(null);
-            setToken(null);
-          }}
-          style={{ marginTop: 10 }}
-        >
-          Déconnexion
-        </Button>
-      </View>
-
-      <DrawerContentScrollView>
-        {screens.map((screen) => (
-          <Button
-            key={screen.name}
-            mode="text"
-            onPress={() => navigation.navigate(screen.name)}
-            textColor={theme.colors.primary}
-            style={{ alignSelf: "stretch", borderRadius: 0, paddingVertical: 6 }}
-            contentStyle={{ justifyContent: "flex-start", paddingLeft: 16 }}
-          >
-            {screen.name}
-          </Button>
-        ))}
-      </DrawerContentScrollView>
-    </View>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTintColor: theme.colors.onSurface,
+      }}
+    >
+      <Stack.Screen
+        name="Tickets"
+        component={TicketListScreen}
+        options={{ title: "Tickets" }}
+      />
+    </Stack.Navigator>
   );
-};
+}
 
-function CashStack() {
+/* ================= VOYAGES STACK ================= */
+function VoyagesStack() {
+  const theme = useTheme();
+
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTintColor: theme.colors.onSurface,
+      }}
+    >
       <Stack.Screen
         name="TripListScreen"
         component={TripListScreen}
-        options={{ title: "Voyage" }}
+        options={{ title: "Voyages" }}
       />
       <Stack.Screen
         name="AddTicket"
         component={CreateTicketScreen}
         options={{ title: "Créer Ticket" }}
       />
-      {/* Nouvelle page pour voir les transactions d’une BOUTIQUE */}
       <Stack.Screen
         name="TripTicketsScreen"
         component={TripTicketsScreen}
@@ -102,58 +74,115 @@ function CashStack() {
     </Stack.Navigator>
   );
 }
-/* ================= Drawer Navigator ================= */
-const DrawerNavigator = ({ user }) => {
+
+/* ================= PASSWORD STACK ================= */
+function PasswordStack() {
   const theme = useTheme();
-  const screens = [
-    { name: "Tickets", component: TicketListScreen },
-    { name: "Voyage", component: CashStack },
-    { name: "Changer mot de passe", component: ChangePasswordScreen },
-  ];
 
   return (
-    <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} user={user} screens={screens} />}
+    <Stack.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: theme.colors.surface },
         headerTintColor: theme.colors.onSurface,
-        drawerStyle: { backgroundColor: theme.dark ? "#111827" : "#fff" },
       }}
     >
-      {screens.map((screen) => (
-        <Drawer.Screen key={screen.name} name={screen.name} component={screen.component} />
-      ))}
-    </Drawer.Navigator>
+      <Stack.Screen
+        name="Changer mot de passe"
+        component={ChangePasswordScreen}
+        options={{ title: "Changer mot de passe" }}
+      />
+    </Stack.Navigator>
   );
-};
+}
 
-/* ================= Auth Stack ================= */
-const AuthStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Auth" component={Auth} />
-    <Stack.Screen name="Register" component={Register} />
-  </Stack.Navigator>
-);
+/* ================= LOGOUT TAB ================= */
+function LogoutTab() {
+  const { token, setUser, setToken } = useAuth();
 
-/* ================= Main App Content ================= */
-const AppContent = () => {
+  React.useEffect(() => {
+    const doLogout = async () => {
+      try {
+        await logout(token);
+      } catch (e) {
+        console.log("Erreur logout", e);
+      } finally {
+        setUser(null);
+        setToken(null);
+      }
+    };
+    doLogout();
+  }, []);
+
+  return null;
+}
+
+/* ================= BOTTOM TABS ================= */
+function TabNavigator() {
+  const theme = useTheme();
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false, // 👈 header géré par les stacks
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+        tabBarStyle: { backgroundColor: theme.colors.background },
+        tabBarIcon: ({ color, size }) => {
+          const icons = {
+            Tickets: "ticket-outline",
+            Voyages: "bus",
+            "Changer mot de passe": "lock-outline",
+            Déconnexion: "logout",
+          };
+          return <Icon name={icons[route.name]} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="Tickets" component={TicketsStack} />
+      <Tab.Screen name="Voyages" component={VoyagesStack} />
+      <Tab.Screen
+        name="Changer mot de passe"
+        component={PasswordStack}
+      />
+      <Tab.Screen name="Déconnexion" component={LogoutTab} />
+    </Tab.Navigator>
+  );
+}
+
+/* ================= AUTH STACK ================= */
+function AuthStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Auth" component={Auth} />
+      <Stack.Screen name="Register" component={Register} />
+    </Stack.Navigator>
+  );
+}
+
+/* ================= APP CONTENT ================= */
+function AppContent() {
   const { user, loading } = useAuth();
   const theme = useTheme();
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          styles.loading,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         <Text style={{ color: theme.colors.onSurface }}>Chargement...</Text>
       </View>
     );
   }
 
-  return user ? <DrawerNavigator user={user} /> : <AuthStack />;
-};
+  return user ? <TabNavigator /> : <AuthStack />;
+}
 
-/* ================= Export App ================= */
+/* ================= APP ROOT ================= */
 export default function App() {
-  const scheme = useColorScheme(); // "dark" ou "light"
+  const scheme = useColorScheme();
   const theme = scheme === "dark" ? MD3DarkTheme : MD3LightTheme;
 
   return (
@@ -167,7 +196,11 @@ export default function App() {
   );
 }
 
-/* ================= Styles ================= */
+/* ================= STYLES ================= */
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
