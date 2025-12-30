@@ -87,13 +87,13 @@ export default function TripTicketsScreen({ route }) {
               </View>
             </View>
 
+           
             <Chip 
-              icon={status.icon} 
-              textStyle={{ color: '#fff', fontSize: 10 }} 
-              style={{ backgroundColor: status.color, height: 28 }}
-            >
-              {status.label}
-            </Chip>
+  textStyle={[styles.chipText, { fontSize: 14 }]} // On surcharge ici
+  style={[styles.statusChip, { backgroundColor: statusInfo.color, height: 32 }]}
+>
+  {status.label}
+</Chip>
           </View>
 
           <Divider style={styles.divider} />

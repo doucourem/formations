@@ -97,7 +97,7 @@ export default function TicketListScreen() {
     Linking.openURL(url).catch(() => Alert.alert("Erreur", "Impossible d'ouvrir le PDF"));
   };
 
-  const renderTicket = ({ item }) => {
+ const renderTicket = ({ item }) => {
     const statusInfo = getStatusInfo(item.status);
     
     return (
@@ -107,15 +107,15 @@ export default function TicketListScreen() {
             <View style={{ flex: 1 }}>
               <Text variant="titleMedium" style={styles.clientName}>{item.client_name}</Text>
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                ID: #{item.id} • Siège: {item.seat_number ?? "N/A"}
+                {`ID: #${item.id} • Siège: ${item.seat_number ?? "N/A"}`}
               </Text>
             </View>
             <Chip 
-              textStyle={styles.chipText} 
-              style={[styles.statusChip, { backgroundColor: statusInfo.color }]}
-            >
-              {statusInfo.label}
-            </Chip>
+  textStyle={[styles.chipText, { fontSize: 14 }]} // On surcharge ici
+  style={[styles.statusChip, { backgroundColor: statusInfo.color, height: 32 }]}
+>
+  {statusInfo.label}
+</Chip>
           </View>
 
           <Divider style={styles.divider} />
@@ -123,7 +123,8 @@ export default function TicketListScreen() {
           <View style={styles.routeBox}>
             <Icon name="bus-side" size={16} color={theme.colors.primary} />
             <Text style={styles.routeText}>
-               {item.trip?.departureCity || "-"} → {item.trip?.arrivalCity || "-"}
+              {/* Utilisation d'une template string pour éviter les espaces entre nœuds */}
+              {`${item.trip?.departureCity || "-"} → ${item.trip?.arrivalCity || "-"}`}
             </Text>
           </View>
 
@@ -144,7 +145,6 @@ export default function TicketListScreen() {
       </Card>
     );
   };
-
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       
@@ -257,6 +257,7 @@ export default function TicketListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
   filterSurface: { 
     padding: 10, 
     borderBottomLeftRadius: 20, 
