@@ -1,39 +1,62 @@
-import React, { useEffect, useState } from "react";
-import { View, FlatList, StyleSheet, Alert } from "react-native";
-import { Button, TextInput, Text, ActivityIndicator } from "react-native-paper";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, FlatList, StyleSheet, Alert, ScrollView } from "react-native";
+import { 
+  Button, 
+  TextInput, 
+  Text, 
+  ActivityIndicator, 
+  useTheme, 
+  Surface,
+  Divider
+} from "react-native-paper";
+import { useFocusEffect } from "@react-navigation/native";
 import api, { createTicket } from "../services/ticketApi";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 export default function CreateTicketScreen({ navigation, route }) {
   const { tripId } = route.params;
+  const theme = useTheme();
+
+  // États
   const [clientName, setClientName] = useState("");
   const [seats, setSeats] = useState([]);
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [paying, setPaying] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
-  const loadSeats = async () => {
+  // Charger les sièges depuis l'API
+  const loadSeats = async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     try {
       const res = await api.get(`/trips/${tripId}/seats`);
       setSeats(res.data);
     } catch (e) {
-      Alert.alert("Erreur", "Impossible de charger les sièges");
+      console.error("Erreur chargement sièges:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadSeats();
-    const interval = setInterval(loadSeats, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  // Polling intelligent : s'arrête quand on quitte l'écran
+  useFocusEffect(
+    useCallback(() => {
+      loadSeats(true);
+      const interval = setInterval(() => loadSeats(false), 5000);
+      return () => clearInterval(interval);
+    }, [tripId])
+  );
 
-  const reserveSeat = async (seat) => {
-    if (!clientName) {
-      Alert.alert("Erreur", "Veuillez entrer le nom du client avant de choisir un siège.");
+  // Logique de sélection/réservation temporaire
+  const handleSeatSelection = async (seat) => {
+    if (!clientName.trim()) {
+      Alert.alert("Nom requis", "Entrez le nom du client avant de choisir un siège.");
       return;
     }
+
+    if (seat.status !== "available" && seat.seat_number !== selectedSeat) {
+      return; // Siège déjà pris
+    }
+
     try {
       await api.post("/seats/reserve", {
         trip_id: tripId,
@@ -41,120 +64,137 @@ export default function CreateTicketScreen({ navigation, route }) {
         client_name: clientName,
       });
       setSelectedSeat(seat.seat_number);
-      loadSeats();
-    } catch {
-      Alert.alert("Indisponible", "Ce siège vient d’être pris");
-      loadSeats();
+      loadSeats(false);
+    } catch (err) {
+      Alert.alert("Indisponible", "Ce siège vient d'être réservé par quelqu'un d'autre.");
+      loadSeats(false);
     }
   };
 
-  const saveTicket = async () => {
+  // Validation finale (Réservation ou Paiement)
+  const handleAction = async (status) => {
     if (!clientName || !selectedSeat) {
-      Alert.alert("Erreur", "Nom du client et siège obligatoires");
+      Alert.alert("Incomplet", "Veuillez remplir le nom et choisir un siège.");
       return;
     }
-    setSaving(true);
+
+    setProcessing(true);
     try {
       await createTicket({
         trip_id: tripId,
         client_name: clientName,
         seat_number: selectedSeat,
-        status: "reserved",
+        status: status, // "reserved" ou "paid"
       });
-      Alert.alert("Succès", "Réservation enregistrée");
+      Alert.alert("Succès", status === "paid" ? "Billet vendu !" : "Réservation confirmée");
       navigation.goBack();
     } catch (e) {
-      Alert.alert("Erreur", "Échec de la réservation");
+      Alert.alert("Erreur", "Impossible de finaliser l'opération.");
     } finally {
-      setSaving(false);
+      setProcessing(false);
     }
   };
 
-  const payTicket = async () => {
-    if (!selectedSeat) {
-      Alert.alert("Erreur", "Veuillez sélectionner un siège avant de payer");
-      return;
+  // Rendu d'un siège individuel
+  const renderSeat = ({ item }) => {
+    const isSelected = selectedSeat === item.seat_number;
+    const isSold = item.status === "sold";
+    const isReserved = item.status === "reserved";
+
+    // Couleurs basées sur le thème
+    let seatColor = theme.colors.outline; 
+    let textColor = theme.colors.onSurface;
+
+    if (isSold) {
+      seatColor = "#E57373"; // Rouge
+      textColor = "#fff";
+    } else if (isReserved) {
+      seatColor = theme.colors.secondary; // Orange
+      textColor = "#fff";
+    } else if (isSelected) {
+      seatColor = theme.colors.primary; // Votre vert #4CAF50
+      textColor = "#fff";
     }
-    setPaying(true);
-    try {
-      // Ici, tu peux appeler ton API de paiement
-      await createTicket({
-        trip_id: tripId,
-        client_name: clientName,
-        seat_number: selectedSeat,
-        status: "paid",
-      });
-      Alert.alert("Succès", "Paiement effectué");
-      loadSeats();
-    } catch (e) {
-      Alert.alert("Erreur", "Échec du paiement");
-    } finally {
-      setPaying(false);
-    }
+
+    return (
+      <Surface style={[styles.seatWrapper, { borderRadius: theme.roundness }]}>
+        <Button
+          mode={isSelected ? "contained" : "outlined"}
+          onPress={() => handleSeatSelection(item)}
+          disabled={isSold || (isReserved && !isSelected)}
+          style={[styles.seat, { backgroundColor: isSelected || isSold || isReserved ? seatColor : "transparent" }]}
+          labelStyle={{ color: isSelected || isSold || isReserved ? "#fff" : theme.colors.primary }}
+          contentStyle={{ height: 50 }}
+        >
+          {item.seat_number}
+        </Button>
+      </Surface>
+    );
   };
 
-  if (loading) return <ActivityIndicator style={{ marginTop: 40 }} />;
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={{ marginTop: 10 }}>Chargement du bus...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        label="Nom du client"
-        value={clientName}
-        onChangeText={setClientName}
-        style={styles.input}
-      />
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* SECTION CLIENT */}
+      <Surface style={styles.headerCard}>
+        <TextInput
+          label="Nom du passager"
+          value={clientName}
+          onChangeText={setClientName}
+          mode="outlined"
+          placeholder="Ex: Jean Dupont"
+          outlineColor={theme.colors.outline}
+          activeOutlineColor={theme.colors.primary}
+          style={{ backgroundColor: theme.colors.surface }}
+          left={<TextInput.Icon icon="account" />}
+        />
+      </Surface>
 
-      <Text style={styles.title}>Choisir un siège</Text>
+      {/* SECTION BUS */}
+      <Surface style={styles.busContainer}>
+        <View style={styles.busHeader}>
+          <Icon name="steering" size={30} color={theme.colors.onSurfaceVariant} />
+          <Text style={styles.busTitle}>PLAN DU VÉHICULE</Text>
+        </View>
+        <Divider style={{ marginBottom: 15 }} />
 
-      <FlatList
-        data={seats}
-        numColumns={4}
-        keyExtractor={(item) => item.seat_number.toString()}
-        renderItem={({ item }) => {
-          let bgColor;
-          switch (item.status) {
-            case "sold":
-              bgColor = "#F44336";
-              break;
-            case "reserved":
-              bgColor = "#FF9800";
-              break;
-            default:
-              bgColor = "#4CAF50";
-          }
-          if (selectedSeat === item.seat_number) bgColor = "#1976D2";
+        
 
-          return (
-            <Button
-              mode={selectedSeat === item.seat_number ? "contained" : "outlined"}
-              onPress={() => reserveSeat(item)}
-              disabled={item.status === "sold"}
-              style={[styles.seat, { backgroundColor: bgColor }]}
-              textColor="#fff"
-            >
-              {item.seat_number}
-            </Button>
-          );
-        }}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
+        <FlatList
+          data={seats}
+          numColumns={4}
+          renderItem={renderSeat}
+          keyExtractor={(item) => item.seat_number.toString()}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
+      </Surface>
 
-      <View style={styles.actions}>
+      {/* SECTION ACTIONS */}
+      <View style={styles.footer}>
         <Button
-          mode="contained"
-          onPress={saveTicket}
-          loading={saving}
-          disabled={!selectedSeat || saving || paying}
-          style={{ flex: 1, marginRight: 5 }}
+          mode="outlined"
+          onPress={() => handleAction("reserved")}
+          style={[styles.btn, { borderColor: theme.colors.primary }]}
+          disabled={processing || !selectedSeat}
+          loading={processing && !selectedSeat}
         >
-          Confirmer la réservation
+          Réserver
         </Button>
         <Button
           mode="contained"
-          onPress={payTicket}
-          loading={paying}
-          disabled={!selectedSeat || saving || paying}
-          style={{ flex: 1, marginLeft: 5, backgroundColor: "#FF9800" }}
+          onPress={() => handleAction("paid")}
+          style={[styles.btn, { backgroundColor: theme.colors.primary }]}
+          disabled={processing || !selectedSeat}
+          loading={processing}
         >
           Payer
         </Button>
@@ -164,9 +204,51 @@ export default function CreateTicketScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  input: { marginBottom: 20 },
-  title: { marginBottom: 10, fontWeight: "bold", fontSize: 16 },
-  seat: { margin: 4, minWidth: 60, minHeight: 50, justifyContent: "center" },
-  actions: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
+  container: { flex: 1, padding: 15 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  headerCard: {
+    padding: 15,
+    elevation: 2,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+  busContainer: {
+    flex: 1,
+    elevation: 1,
+    borderRadius: 15,
+    padding: 10,
+  },
+  busHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    marginBottom: 5,
+  },
+  busTitle: {
+    fontWeight: "bold",
+    letterSpacing: 1,
+    fontSize: 12,
+    color: "#777",
+  },
+  row: {
+    justifyContent: "space-around",
+  },
+  seatWrapper: {
+    width: "22%",
+    marginVertical: 5,
+    elevation: 1,
+  },
+  seat: {
+    width: "100%",
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 15,
+  },
+  btn: {
+    flex: 0.48,
+    borderRadius: 8,
+  },
 });

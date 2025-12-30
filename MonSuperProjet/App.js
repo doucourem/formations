@@ -30,7 +30,9 @@ import EditCashScreen from "./components/EditCashScreen";
 import TransactionsListCaisse from "./components/TransactionsListCaisse";
 import SendMessageScreen from "./components/SendMessageScreen";
 import ChangePasswordScreen from "./components/ChangePasswordScreen";
-
+import CourierPaymentsScreen from "./components/CourierPaymentsScreen";
+import { Image } from "react-native";
+import logo from "./assets/logo.png";
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -176,7 +178,7 @@ function DrawerNavigator({ user }) {
       { name: "BOUTIQUE", component: CashStack },
        { name: "Clients", component: KiosksList },
       { name: "Fournisseurs", component: WholesalersList },
-     
+     { name: "Rapport", component: CourierPaymentsScreen },
        { name: "Opérateurs", component: OperatorsList },
       { name: "Utilisateurs", component: UsersList },
       { name: "Changer mot de passe", component: ChangePasswordScreen },

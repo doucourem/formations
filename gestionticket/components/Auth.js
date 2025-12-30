@@ -1,63 +1,157 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Alert } from "react-native";
-import { Text, TextInput, Button, Card, useTheme } from "react-native-paper";
+import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Text, TextInput, Button, Card, useTheme, ActivityIndicator } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useAuth } from "../contexts/AuthContext";
 import { login } from "../services/authApi";
 
 export default function Auth() {
   const { loginUser } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const theme = useTheme();
 
+  // États
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [secureText, setSecureText] = useState(true);
+
   const signIn = async () => {
+    if (!email || !password) {
+      Alert.alert("Champs requis", "Veuillez remplir l'email et le mot de passe.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      const data = await login(email, password); // Laravel API
-      await loginUser(data.user, data.token);   // Met à jour le contexte et AsyncStorage
+      const data = await login(email, password); // Appel API Laravel
+      await loginUser(data.user, data.token);   // Update Context + Storage
     } catch (err) {
-      Alert.alert("Erreur", err.response?.data?.message || err.message);
+      console.error(err);
+      Alert.alert(
+        "Échec de connexion", 
+        err.response?.data?.message || "Identifiants incorrects ou problème réseau."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface, elevation: 8 }]}>
-        <View style={styles.iconContainer}>
-          <Icon name="account" size={60} color={theme.colors.primary} />
-        </View>
-        <Text style={styles.title}>Bienvenue</Text>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+        <Card style={styles.card} elevation={4}>
+          <View style={styles.header}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.colors.primaryContainer }]}>
+              <Icon name="bus" size={40} color={theme.colors.primary} />
+            </View>
+            <Text variant="headlineMedium" style={styles.title}>
+              Gestion Voyages
+            </Text>
+            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+              Connectez-vous pour continuer
+            </Text>
+          </View>
 
-        <TextInput
-          label="Adresse Email"
-          mode="outlined"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          label="Mot de passe"
-          mode="outlined"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
-        <Button mode="contained" onPress={signIn} style={[styles.button, { backgroundColor: theme.colors.primary }]} labelStyle={styles.buttonLabel}>
-          Se Connecter
-        </Button>
-      </Card>
-    </View>
+          <Card.Content style={styles.content}>
+            <TextInput
+              label="Adresse Email"
+              mode="outlined"
+              value={email}
+              onChangeText={setEmail}
+              style={styles.input}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              left={<TextInput.Icon icon="email-outline" />}
+              disabled={loading}
+            />
+
+            <TextInput
+              label="Mot de passe"
+              mode="outlined"
+              secureTextEntry={secureText}
+              value={password}
+              onChangeText={setPassword}
+              style={styles.input}
+              disabled={loading}
+              left={<TextInput.Icon icon="lock-outline" />}
+              right={
+                <TextInput.Icon 
+                  icon={secureText ? "eye-off" : "eye"} 
+                  onPress={() => setSecureText(!secureText)} 
+                />
+              }
+            />
+
+            <Button
+              mode="contained"
+              onPress={signIn}
+              loading={loading}
+              disabled={loading}
+              style={styles.button}
+              contentStyle={styles.buttonContent}
+            >
+              {loading ? "Connexion..." : "Se Connecter"}
+            </Button>
+          </Card.Content>
+        </Card>
+        
+        <Text style={styles.footerText}>Version 1.0.0</Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
-  card: { padding: 24, width: "100%", maxWidth: 400, borderRadius: 12 },
-  iconContainer: { alignItems: "center", marginBottom: 10 },
-  title: { fontSize: 24, fontWeight: "600", textAlign: "center", marginBottom: 20, color: "#F8FAFC" },
-  input: { marginBottom: 16 },
-  button: { borderRadius: 12 },
-  buttonLabel: { fontWeight: "600" },
+  container: { 
+    flex: 1 
+  },
+  scrollContainer: { 
+    flexGrow: 1, 
+    justifyContent: "center", 
+    padding: 20 
+  },
+  card: { 
+    borderRadius: 20,
+    paddingVertical: 10
+  },
+  header: {
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 10
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15
+  },
+  title: { 
+    fontWeight: "bold",
+    textAlign: "center"
+  },
+  content: {
+    marginTop: 10
+  },
+  input: { 
+    marginBottom: 16 
+  },
+  button: { 
+    marginTop: 10,
+    borderRadius: 10 
+  },
+  buttonContent: {
+    height: 48
+  },
+  footerText: {
+    textAlign: "center",
+    marginTop: 20,
+    
+    opacity: 0.5,
+    fontSize: 12
+  }
 });

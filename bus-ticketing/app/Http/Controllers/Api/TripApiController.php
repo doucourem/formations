@@ -12,13 +12,19 @@ class TripApiController extends Controller
      * Liste des voyages
      */
     public function index(Request $request)
-    {
-        $trips = Trip::with(['route.departureCity', 'route.arrivalCity', 'bus'])
-            ->orderBy('departure_at', 'asc')
-            ->paginate(20); // pagination, 20 par page
+{
+    $trips = Trip::with([
+        'route.departureCity',
+        'route.arrivalCity',
+        'bus',
+        'tickets' // ← inclut les tickets du voyage
+    ])
+    ->orderBy('departure_at', 'desc')
+    ->paginate(20);
 
-        return response()->json($trips);
-    }
+    return response()->json($trips);
+}
+
 
     /**
      * Détails d’un voyage

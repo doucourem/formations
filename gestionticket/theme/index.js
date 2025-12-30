@@ -8,11 +8,11 @@ export const DarkTheme = {
     primary: "#4CAF50",
     secondary: "#FF9800",
     error: "#F44336",
-    background: "#121212",
-    surface: "#1E1E1E",
-    onSurface: "#FFFFFF",
-    onSurfaceVariant: "#BDBDBD",
-    outline: "#333",
+    background: "#181818", // un peu plus clair que 121212
+    surface: "#242424",    // un peu plus clair que 1E1E1E
+    onSurface: "#E0E0E0",  // moins contrasté que #FFFFFF
+    onSurfaceVariant: "#B0B0B0",
+    outline: "#444",        // légèrement plus clair que 333
   },
 };
 
@@ -22,5 +22,10 @@ export const LightTheme = {
   colors: {
     ...MD3LightTheme.colors,
     primary: "#4CAF50",
+    secondary: "#FF9800",
+    background: "#F5F5F5",
+    surface: "#FFFFFF",
+    onSurface: "#212121",
+    outline: "#E0E0E0",
   },
 };

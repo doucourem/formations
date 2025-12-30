@@ -1,36 +1,29 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  StyleSheet
-} from "react-native";
+import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { 
+  Text, 
+  TextInput, 
+  Button, 
+  useTheme, 
+  Surface, 
+  Avatar 
+} from "react-native-paper";
 import supabase from "../supabaseClient";
-import { MD3DarkTheme } from "react-native-paper";
-
-const theme = {
-  ...MD3DarkTheme,
-  colors: {
-    ...MD3DarkTheme.colors,
-    primary: "#4F46E5",
-    background: "#111827",
-    surface: "#1F2937",
-    onSurface: "#FCFBF8",
-    textInputBorder: "#374151",
-  },
-};
 
 export default function ChangePasswordScreen() {
+  const theme = useTheme();
+
+  // États
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleChangePassword = async () => {
+    // Validations
     if (!password || !confirm) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs.");
+      Alert.alert("Champs requis", "Veuillez remplir tous les champs.");
       return;
     }
 
@@ -40,101 +33,152 @@ export default function ChangePasswordScreen() {
     }
 
     if (password.length < 6) {
-      Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères.");
+      Alert.alert("Sécurité", "Le mot de passe doit contenir au moins 6 caractères.");
       return;
     }
 
     setLoading(true);
 
-    const { error } = await supabase.auth.updateUser({ password });
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      
+      if (error) throw error;
 
-    setLoading(false);
-
-    if (error) {
-      Alert.alert("Erreur", error.message);
-    } else {
-      Alert.alert("Succès", "Mot de passe modifié avec succès !");
+      Alert.alert("Succès", "Votre mot de passe a été mis à jour avec succès !");
       setPassword("");
       setConfirm("");
+    } catch (error) {
+      Alert.alert("Erreur", error.message || "Une erreur est survenue lors de la mise à jour.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Modifier le mot de passe</Text>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+        
+        <View style={styles.header}>
+          <Avatar.Icon 
+            size={80} 
+            icon="lock-reset" 
+            style={{ backgroundColor: theme.colors.primaryContainer }}
+            color={theme.colors.primary}
+          />
+          <Text variant="headlineSmall" style={styles.title}>
+            Sécurité du compte
+          </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Choisissez un mot de passe robuste pour protéger vos accès.
+          </Text>
+        </View>
 
-      <Text style={styles.label}>Nouveau mot de passe</Text>
-      <TextInput
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        placeholder="********"
-        placeholderTextColor="#6B7280"
-      />
+        <Surface style={styles.formCard} elevation={1}>
+          <TextInput
+            label="Nouveau mot de passe"
+            mode="outlined"
+            secureTextEntry={!showPass}
+            value={password}
+            onChangeText={setPassword}
+            style={styles.input}
+            placeholder="Min. 6 caractères"
+            disabled={loading}
+            left={<TextInput.Icon icon="key-variant" />}
+            right={
+              <TextInput.Icon 
+                icon={showPass ? "eye-off" : "eye"} 
+                onPress={() => setShowPass(!showPass)} 
+              />
+            }
+          />
 
-      <Text style={styles.label}>Confirmer le mot de passe</Text>
-      <TextInput
-        secureTextEntry
-        value={confirm}
-        onChangeText={setConfirm}
-        style={styles.input}
-        placeholder="********"
-        placeholderTextColor="#6B7280"
-      />
+          <TextInput
+            label="Confirmer le mot de passe"
+            mode="outlined"
+            secureTextEntry={!showConfirm}
+            value={confirm}
+            onChangeText={setConfirm}
+            style={styles.input}
+            placeholder="Répétez le mot de passe"
+            disabled={loading}
+            left={<TextInput.Icon icon="shield-check-outline" />}
+            right={
+              <TextInput.Icon 
+                icon={showConfirm ? "eye-off" : "eye"} 
+                onPress={() => setShowConfirm(!showConfirm)} 
+              />
+            }
+          />
 
-      <TouchableOpacity
-        onPress={handleChangePassword}
-        disabled={loading}
-        style={styles.button}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Mettre à jour</Text>
-        )}
-      </TouchableOpacity>
-    </View>
+          <Button
+            mode="contained"
+            onPress={handleChangePassword}
+            loading={loading}
+            disabled={loading}
+            style={styles.button}
+            contentStyle={styles.buttonContent}
+            icon="shield-sync"
+          >
+            Mettre à jour
+          </Button>
+        </Surface>
+
+        <Text style={styles.tipText}>
+          Note : Vous serez peut-être invité à vous reconnecter après le changement.
+        </Text>
+
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-// === STYLES AVEC TON THÈME ===
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+  },
+  scrollContainer: {
+    flexGrow: 1,
     padding: 20,
     justifyContent: "center",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: theme.colors.onSurface,
-    marginBottom: 25,
+  header: {
+    alignItems: "center",
+    marginBottom: 30,
   },
-  label: {
-    color: theme.colors.onSurface,
-    marginBottom: 6,
-    fontSize: 14,
+  title: {
+    fontWeight: "bold",
+    marginTop: 15,
+    textAlign: "center",
+  },
+  subtitle: {
+    textAlign: "center",
+    opacity: 0.7,
+    marginTop: 5,
+    paddingHorizontal: 20,
+  },
+  formCard: {
+    padding: 20,
+    borderRadius: 15,
+    backgroundColor: 'transparent', // Ou utilisez theme.colors.surface si vous voulez un fond distinct
   },
   input: {
-    borderWidth: 1,
-    borderColor: theme.colors.textInputBorder,
-    backgroundColor: theme.colors.surface,
-    color: theme.colors.onSurface,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   button: {
-    backgroundColor: theme.colors.primary,
-    padding: 15,
+    marginTop: 10,
     borderRadius: 10,
-    alignItems: "center",
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+  buttonContent: {
+    height: 50,
   },
+  tipText: {
+    textAlign: "center",
+    marginTop: 25,
+    fontSize: 12,
+    opacity: 0.5,
+    fontStyle: 'italic'
+  }
 });

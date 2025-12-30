@@ -1,17 +1,24 @@
 import React from "react";
-import { View, Text, StyleSheet, useColorScheme } from "react-native";
+import { View, Image, StyleSheet, useColorScheme } from "react-native";
 import {
   Provider as PaperProvider,
   MD3DarkTheme,
   MD3LightTheme,
   useTheme,
+  ActivityIndicator,
+  Text,
+  IconButton // Ajouté par sécurité
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
+// Contextes et API
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { logout } from "./services/authApi";
+
+// Écrans
 import Auth from "./components/Auth";
 import Register from "./components/Register";
 import TicketListScreen from "./screens/TicketListScreen";
@@ -19,137 +26,178 @@ import CreateTicketScreen from "./screens/CreateTicketScreen";
 import TripListScreen from "./screens/TripListScreen";
 import TripTicketsScreen from "./screens/TripTicketsScreen";
 import ChangePasswordScreen from "./components/ChangePasswordScreen";
-import { logout } from "./services/authApi";
 
-/* ================= NAVIGATORS ================= */
+// Assets
+import logo from "./assets/logo.png";
+
+/* ================= THÈMES PERSONNALISÉS ================= */
+const commonTheme = { roundness: 10 };
+
+const LightThemeCustom = {
+  ...MD3LightTheme,
+  ...commonTheme,
+  colors: { 
+    ...MD3LightTheme.colors, 
+    primary: "#4CAF50", 
+    secondary: "#FF9800", 
+    background: "#F8F9FA", 
+    surface: "#FFFFFF",
+    outline: "#E0E0E0"
+  },
+};
+
+const DarkThemeCustom = {
+  ...MD3DarkTheme,
+  ...commonTheme,
+  colors: { 
+    ...MD3DarkTheme.colors, 
+    primary: "#4CAF50", 
+    secondary: "#FF9800", 
+    background: "#121212", 
+    surface: "#1E1E1E",
+    outline: "#333333"
+  },
+};
+
+/* ================= COMPOSANTS UI ================= */
+
+const HeaderLogo = () => (
+  <Image source={logo} style={styles.logo} />
+);
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-/* ================= TICKETS STACK ================= */
+/* ================= CONFIGURATION NAVIGATION ================= */
+
+const getScreenOptions = (theme) => ({
+  headerStyle: { backgroundColor: theme.colors.surface },
+  headerTintColor: theme.colors.primary,
+  headerTitleAlign: "center",
+  headerTitleStyle: { fontWeight: "bold", fontSize: 17 },
+  headerShadowVisible: false,
+});
+
+/* ================= STACKS DE NAVIGATION ================= */
+
 function TicketsStack() {
   const theme = useTheme();
-
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.colors.surface },
-        headerTintColor: theme.colors.onSurface,
-      }}
-    >
-      <Stack.Screen
-        name="Tickets"
-        component={TicketListScreen}
-        options={{ title: "Tickets" }}
+    <Stack.Navigator screenOptions={getScreenOptions(theme)}>
+      <Stack.Screen 
+        name="TicketList" 
+        component={TicketListScreen} 
+        options={{ title: "Mes Tickets", headerLeft: () => <HeaderLogo /> }} 
       />
     </Stack.Navigator>
   );
 }
 
-/* ================= VOYAGES STACK ================= */
 function VoyagesStack() {
   const theme = useTheme();
-
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.colors.surface },
-        headerTintColor: theme.colors.onSurface,
-      }}
-    >
-      <Stack.Screen
-        name="TripListScreen"
-        component={TripListScreen}
-        options={{ title: "Voyages" }}
+    <Stack.Navigator screenOptions={({ navigation }) => ({
+      ...getScreenOptions(theme),
+      headerLeft: () => (
+        navigation.canGoBack() ? (
+          <IconButton 
+            icon="arrow-left" 
+            onPress={() => navigation.goBack()} 
+            iconColor={theme.colors.primary}
+          />
+        ) : <HeaderLogo />
+      )
+    })}>
+      <Stack.Screen 
+        name="TripListScreen" 
+        component={TripListScreen} 
+        options={{ title: "Voyages Disponibles" }} 
       />
-      <Stack.Screen
-        name="AddTicket"
-        component={CreateTicketScreen}
-        options={{ title: "Créer Ticket" }}
+      <Stack.Screen 
+        name="AddTicket" 
+        component={CreateTicketScreen} 
+        options={{ title: "Vendre un Billet" }} 
       />
-      <Stack.Screen
-        name="TripTicketsScreen"
-        component={TripTicketsScreen}
-        options={{ title: "Tickets du voyage" }}
+      <Stack.Screen 
+        name="TripTicketsScreen" 
+        component={TripTicketsScreen} 
+        options={{ title: "Liste des Passagers" }} 
       />
     </Stack.Navigator>
   );
 }
 
-/* ================= PASSWORD STACK ================= */
 function PasswordStack() {
   const theme = useTheme();
-
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.colors.surface },
-        headerTintColor: theme.colors.onSurface,
-      }}
-    >
-      <Stack.Screen
-        name="Changer mot de passe"
-        component={ChangePasswordScreen}
-        options={{ title: "Changer mot de passe" }}
+    <Stack.Navigator screenOptions={getScreenOptions(theme)}>
+      <Stack.Screen 
+        name="ChangePassword" 
+        component={ChangePasswordScreen} 
+        options={{ title: "Sécurité", headerLeft: () => <HeaderLogo /> }} 
       />
     </Stack.Navigator>
   );
 }
 
-/* ================= LOGOUT TAB ================= */
+/* ================= GESTION DÉCONNEXION ================= */
+
 function LogoutTab() {
   const { token, setUser, setToken } = useAuth();
+  const theme = useTheme();
 
   React.useEffect(() => {
     const doLogout = async () => {
-      try {
-        await logout(token);
-      } catch (e) {
-        console.log("Erreur logout", e);
-      } finally {
-        setUser(null);
-        setToken(null);
-      }
+      try { await logout(token); } catch (e) { console.error("Logout error", e); }
+      finally { setUser(null); setToken(null); }
     };
     doLogout();
   }, []);
 
-  return null;
+  return (
+    <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+      <Text style={{ marginTop: 15 }}>Fermeture de session...</Text>
+    </View>
+  );
 }
 
-/* ================= BOTTOM TABS ================= */
+/* ================= NAVIGATEURS PRINCIPAUX ================= */
+
 function TabNavigator() {
   const theme = useTheme();
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false, // 👈 header géré par les stacks
+        headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarStyle: { backgroundColor: theme.colors.background },
-        tabBarIcon: ({ color, size }) => {
-          const icons = {
-            Tickets: "ticket-outline",
-            Voyages: "bus",
-            "Changer mot de passe": "lock-outline",
-            Déconnexion: "logout",
-          };
-          return <Icon name={icons[route.name]} size={size} color={color} />;
+        tabBarStyle: { 
+          backgroundColor: theme.colors.surface, 
+          height: 65, 
+          paddingBottom: 10,
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.outline
+        },
+        tabBarIcon: ({ color, size, focused }) => {
+          let iconName;
+          if (route.name === "Tickets") iconName = focused ? "ticket" : "ticket-outline";
+          else if (route.name === "Voyages") iconName = focused ? "bus-clock" : "bus";
+          else if (route.name === "Profil") iconName = focused ? "shield-check" : "shield-check-outline";
+          else if (route.name === "Quitter") iconName = "logout";
+
+          return <Icon name={iconName} size={size} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Tickets" component={TicketsStack} />
       <Tab.Screen name="Voyages" component={VoyagesStack} />
-      <Tab.Screen
-        name="Changer mot de passe"
-        component={PasswordStack}
-      />
-      <Tab.Screen name="Déconnexion" component={LogoutTab} />
+      <Tab.Screen name="Tickets" component={TicketsStack} />
+      <Tab.Screen name="Profil" component={PasswordStack} />
+      <Tab.Screen name="Quitter" component={LogoutTab} />
     </Tab.Navigator>
   );
 }
 
-/* ================= AUTH STACK ================= */
 function AuthStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -159,20 +207,16 @@ function AuthStack() {
   );
 }
 
-/* ================= APP CONTENT ================= */
+/* ================= LOGIQUE ROOT ================= */
+
 function AppContent() {
   const { user, loading } = useAuth();
   const theme = useTheme();
 
   if (loading) {
     return (
-      <View
-        style={[
-          styles.loading,
-          { backgroundColor: theme.colors.background },
-        ]}
-      >
-        <Text style={{ color: theme.colors.onSurface }}>Chargement...</Text>
+      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -180,10 +224,9 @@ function AppContent() {
   return user ? <TabNavigator /> : <AuthStack />;
 }
 
-/* ================= APP ROOT ================= */
 export default function App() {
   const scheme = useColorScheme();
-  const theme = scheme === "dark" ? MD3DarkTheme : MD3LightTheme;
+  const theme = scheme === "dark" ? DarkThemeCustom : LightThemeCustom;
 
   return (
     <PaperProvider theme={theme}>
@@ -196,11 +239,7 @@ export default function App() {
   );
 }
 
-/* ================= STYLES ================= */
 const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  logo: { width: 32, height: 32, resizeMode: "contain", marginLeft: 15 },
 });
