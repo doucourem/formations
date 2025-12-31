@@ -31,8 +31,6 @@ import TransactionsListCaisse from "./components/TransactionsListCaisse";
 import SendMessageScreen from "./components/SendMessageScreen";
 import ChangePasswordScreen from "./components/ChangePasswordScreen";
 import CourierPaymentsScreen from "./components/CourierPaymentsScreen";
-import { Image } from "react-native";
-import logo from "./assets/logo.png";
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
