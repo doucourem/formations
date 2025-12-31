@@ -90,7 +90,7 @@ export default function TripTicketsScreen({ route }) {
            
             <Chip 
   textStyle={[styles.chipText, { fontSize: 14 }]} // On surcharge ici
-  style={[styles.statusChip, { backgroundColor: statusInfo.color, height: 32 }]}
+  style={[styles.statusChip, { backgroundColor: status.color, height: 32 }]}
 >
   {status.label}
 </Chip>
@@ -209,5 +209,6 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateBlock: { flexDirection: 'row', alignItems: 'center' },
   dateText: { marginLeft: 6, color: '#999' },
-  emptyState: { alignItems: 'center', marginTop: 50, opacity: 0.5 }
+  emptyState: { alignItems: 'center', marginTop: 50, opacity: 0.5 },
+  chipText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
 });
