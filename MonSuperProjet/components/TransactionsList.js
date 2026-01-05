@@ -112,45 +112,48 @@ const fetchCashesAndTransactions = useCallback(async () => {
   setLoading(true);
 
   try {
-    // Récupérer le rôle de l'utilisateur
-    const { data: profile, error: profileError } = await supabase
+    // 1️⃣ Récupérer le rôle de l'utilisateur
+    const { data: profileData, error: profileError } = await supabase
       .from("users")
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
     if (profileError) throw profileError;
-    setProfile(profile); // ← Corrigé ici
-    setTransactionTypes(getTransactionTypes(profile?.role));
+    setProfile(profileData);
 
+    // Déterminer le type par défaut
+    const defaultType = profileData?.role?.toLowerCase() === "kiosque" ? "DEBIT" : "CREDIT";
+    setTransactionTypes(getTransactionTypes(profileData?.role));
+
+    // 2️⃣ Récupérer les kiosks
     const { data: kiosksData } = await supabase.from("kiosks").select("id, name");
 
+    // 3️⃣ Récupérer les caisses selon le rôle
     let cashesData;
+    if (profileData?.role === "kiosque" || profileData?.role === "grossiste") {
+      const { data, error } = await supabase
+        .from("cashes")
+        .select("id, name, kiosk_id, balance, min_balance, cashier_id, seller_id")
+        .or(`cashier_id.eq.${user.id},seller_id.eq.${user.id}`);
+      if (error) throw error;
+      cashesData = data;
+    } else {
+      const { data, error } = await supabase
+        .from("cashes")
+        .select("id, name, kiosk_id, balance, min_balance");
+      if (error) throw error;
+      cashesData = data;
+    }
 
-if (profile?.role === "kiosque" || profile?.role === "grossiste") {
-  const { data, error } = await supabase
-    .from("cashes")
-    .select("id, name, kiosk_id, balance, min_balance")
-    .or(`cashier_id.eq.${user.id},seller_id.eq.${user.id}`); // récupère les caisses liées à l'id de l'utilisateur, qu'il soit kiosque ou grossiste
-if (error) {
-  console.error("Supabase error:", error);
-  throw error;
-}
-  cashesData = data;
-} else {
-  const { data, error } = await supabase
-    .from("cashes")
-    .select("id, name, kiosk_id, balance, min_balance");
-  if (error) throw error;
-  cashesData = data;
-}
-
-    const cashIds = cashesData.map((c) => c.id);
+    // 4️⃣ Récupérer les transactions
+    const cashIds = cashesData.map(c => c.id);
     const { data: txData } = await supabase
       .from("transactions")
       .select("*")
       .in("cash_id", cashIds)
       .order("created_at", { ascending: false });
 
+    // 5️⃣ Calcul des soldes et enrichissement
     const cashBalances = {};
     const enriched = txData.map((t) => {
       const isCredit = t.type === "CREDIT";
@@ -158,8 +161,8 @@ if (error) {
       const newBal = isCredit ? prev + t.amount : prev - t.amount;
       cashBalances[t.cash_id] = newBal;
 
-      const cash = cashesData.find((c) => c.id === t.cash_id);
-      const kiosk = kiosksData.find((k) => k.id === cash?.kiosk_id);
+      const cash = cashesData.find(c => c.id === t.cash_id);
+      const kiosk = kiosksData.find(k => k.id === cash?.kiosk_id);
 
       return {
         ...t,
@@ -170,37 +173,35 @@ if (error) {
       };
     });
 
-// Pré-sélection automatique si une seule caisse existe
-// Mise à jour des données principales
-setTransactions(enriched);
-setCashes(cashesData);
-setKiosks(kiosksData);
-console.log(cashesData)
-// Pré-sélection automatique
-if (cashesData.length === 1) {
-  const uniqueCash = cashesData[0];
-  console.log(uniqueCash.id)
-  setForm((prev) => {
-    if (prev.cashId === uniqueCash.id) return prev;
-    return {
-      ...prev,
-      cashId: uniqueCash.id,
-      cashQuery: uniqueCash.name,
-    };
-  });
- 
-} else if (profile?.role === "kiosque" || profile?.role === "grossiste") {
-  // Si plusieurs caisses mais que l'utilisateur est un vendeur, on peut pré-sélectionner la première
-  const userCash = cashesData.find(c => c.cashier_id === user.id || c.seller_id === user.id);
-  if (userCash) {
-    setForm((prev) => ({
-      ...prev,
-      cashId: userCash.id,
-      cashQuery: userCash.name,
-    }));
-  }
-}
+    // 6️⃣ Déterminer la caisse par défaut
+    let defaultCashId = null;
+    let defaultCashQuery = "";
 
+    if (cashesData.length === 1) {
+      defaultCashId = cashesData[0].id;
+      defaultCashQuery = cashesData[0].name;
+    } else if (profileData?.role === "kiosque" || profileData?.role === "grossiste") {
+      const userCash = cashesData.find(c => c.cashier_id === user.id || c.seller_id === user.id);
+      if (userCash) {
+        defaultCashId = userCash.id;
+        defaultCashQuery = userCash.name;
+      }
+    }
+
+    // 7️⃣ Mettre à jour les états principaux
+    setTransactions(enriched);
+    setCashes(cashesData);
+    setKiosks(kiosksData);
+
+    // 8️⃣ Initialiser le formulaire
+    setForm({
+      cashId: defaultCashId,
+      cashQuery: defaultCashQuery,
+      amount: "",
+      type: defaultType,
+      transactionType: "Vente UV",
+      otherType: "",
+    });
 
     setLoading(false);
   } catch (err) {
@@ -208,6 +209,7 @@ if (cashesData.length === 1) {
     setLoading(false);
   }
 }, [user]);
+
 
 
   useEffect(() => {

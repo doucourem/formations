@@ -7,11 +7,13 @@ import {
   ActivityIndicator,
   Provider as PaperProvider,
   MD3DarkTheme,
+  Button,
 } from "react-native-paper";
 import supabase from "../supabaseClient";
 
 const { width, height } = Dimensions.get("window");
 
+/* ===== THEME ===== */
 const theme = {
   ...MD3DarkTheme,
   colors: {
@@ -40,8 +42,11 @@ export default function CourierPaymentsScreen() {
     init();
   }, []);
 
+  /* ===== INIT ===== */
   const init = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const { data: profileData, error } = await supabase
@@ -50,23 +55,29 @@ export default function CourierPaymentsScreen() {
       .eq("id", user.id)
       .single();
 
-    if (error) return Alert.alert("Erreur", error.message);
+    if (error) {
+      Alert.alert("Erreur", error.message);
+      return;
+    }
 
     setProfile(profileData);
     fetchPayments(profileData);
   };
 
+  /* ===== FETCH PAYMENTS ===== */
   const fetchPayments = async (profileData) => {
     setLoading(true);
-
     try {
       let query = supabase
-        .from("transactions_view") // vue recommandée
+        .from("transactions_view")
         .select("*")
         .eq("type", "DEBIT")
         .order("created_at", { ascending: false });
 
-      if (profileData.role === "kiosque") query = query.eq("cashier_id", profileData.id);
+      // kiosque voit seulement ses paiements
+      if (profileData.role === "kiosque") {
+        query = query.eq("cashier_id", profileData.id);
+      }
 
       const { data, error } = await query;
 
@@ -77,6 +88,33 @@ export default function CourierPaymentsScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  /* ===== VALIDATION ADMIN ===== */
+  const validatePayment = async (transactionId) => {
+    Alert.alert(
+      "Validation du paiement",
+      "Confirmer la validation de ce paiement ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Valider",
+          onPress: async () => {
+            const { error } = await supabase
+              .from("transactions")
+              .update({ status: "APPROVED" })
+              .eq("id", transactionId);
+
+            if (error) {
+              Alert.alert("Erreur", error.message);
+            } else {
+              Alert.alert("Succès", "Paiement validé ✅");
+              fetchPayments(profile);
+            }
+          },
+        },
+      ]
+    );
   };
 
   /* ===== SEARCH ===== */
@@ -105,15 +143,17 @@ export default function CourierPaymentsScreen() {
   return (
     <PaperProvider theme={theme}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* SEARCH */}
         <TextInput
           placeholder="Rechercher coursier ou boutique..."
           placeholderTextColor={theme.colors.placeholder}
           value={search}
           onChangeText={setSearch}
-          style={[styles.search, { backgroundColor: theme.colors.surface, color: theme.colors.onSurface }]}
+          style={[styles.search, { backgroundColor: theme.colors.surface }]}
           mode="outlined"
         />
 
+        {/* TOTAL */}
         <Card style={[styles.totalCard, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
             <Text style={[styles.totalText, { color: theme.colors.success }]}>
@@ -122,25 +162,59 @@ export default function CourierPaymentsScreen() {
           </Card.Content>
         </Card>
 
+        {/* LIST */}
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={{ paddingBottom: height * 0.12 }}
           renderItem={({ item }) => (
             <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
               <Card.Content>
                 <Text style={[styles.amount, { color: theme.colors.primary }]}>
                   {item.amount.toLocaleString("fr-FR")} FCFA
                 </Text>
-                <Text style={{ color: theme.colors.onSurface }}>👤 {item.cashier_name || item.cashier_email}</Text>
-                <Text style={{ color: theme.colors.onSurface }}>🏪 {item.kiosk_name || "—"}</Text>
+
+                <Text style={{ color: theme.colors.onSurface }}>
+                  👤 {item.cashier_name || item.cashier_email}
+                </Text>
+
+                <Text style={{ color: theme.colors.onSurface }}>
+                  🏪 {item.kiosk_name || "—"}
+                </Text>
+
                 <Text style={{ color: theme.colors.onSurface }}>
                   📅 {new Date(item.created_at).toLocaleDateString("fr-FR")}
                 </Text>
-                {item.note && <Text style={{ color: theme.colors.placeholder }}>📝 {item.note}</Text>}
+
+                <Text
+                  style={{
+                    marginTop: 6,
+                    fontWeight: "bold",
+                    color:
+                      item.transaction_status === "APPROVED"
+                        ? theme.colors.success
+                        : item.transaction_status === "REJECTED"
+                        ? theme.colors.error
+                        : theme.colors.accent,
+                  }}
+                >
+                  Statut : {item.status}
+                </Text>
+
+                {/* ===== BOUTON ADMIN ===== */}
+                {profile?.role === "admin" && item.transaction_status === "PENDING" && (
+                  <Button
+                    mode="contained"
+                    style={{ marginTop: 10 }}
+                    buttonColor={theme.colors.success}
+                    onPress={() => validatePayment(item.id)}
+                  >
+                    Valider le paiement
+                  </Button>
+                )}
               </Card.Content>
             </Card>
           )}
-          contentContainerStyle={{ paddingBottom: height * 0.12 }}
           ListEmptyComponent={
             <Text style={{ color: theme.colors.onSurface, textAlign: "center", marginTop: 20 }}>
               Aucune transaction trouvée.
@@ -154,10 +228,14 @@ export default function CourierPaymentsScreen() {
 
 /* ===== STYLES ===== */
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: width * 0.04 },
-  search: { marginBottom: height * 0.015 },
+  container: {
+    flex: 1,
+    padding: width * 0.04,
+  },
+  search: {
+    marginBottom: height * 0.015,
+  },
   totalCard: {
-    marginHorizontal: 0,
     marginBottom: 10,
     borderRadius: 12,
   },
