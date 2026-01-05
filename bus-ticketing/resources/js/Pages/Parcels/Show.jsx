@@ -22,17 +22,20 @@ export default function ParcelDetail({ parcel }) {
                 component="img"
                 src={parcel.image_url}
                 alt={`Colis #${parcel.id}`}
-                sx={{
-                  width: '100%',
-                  maxWidth: 300,
-                  borderRadius: 2,
-                  mb: 2,
-                }}
+                sx={{ width: '100%', maxWidth: 300, borderRadius: 2, mb: 2 }}
               />
             )}
 
             <Typography><strong>Expéditeur :</strong> {parcel.sender_name || "-"}</Typography>
+            <Typography>
+              <strong>Agence expéditeur :</strong> {parcel.senderAgency?.name || "-"}
+            </Typography>
+
             <Typography><strong>Destinataire :</strong> {parcel.recipient_name || "-"}</Typography>
+            <Typography>
+              <strong>Agence destinataire :</strong> {parcel.recipientAgency?.name || "-"}
+            </Typography>
+
             <Typography><strong>Poids :</strong> {parcel.weight_kg ?? "-"} kg</Typography>
             <Typography>
               <strong>Montant :</strong> {(parcel.price ?? 0).toLocaleString()} FCFA
@@ -53,6 +56,7 @@ export default function ParcelDetail({ parcel }) {
                 </Typography>
               </Box>
             )}
+
           </CardContent>
         </Card>
       </Box>

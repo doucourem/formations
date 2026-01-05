@@ -11,8 +11,11 @@ class Delivery extends Model
     protected $fillable = [
         'vehicle_id', 'driver_id', 'product_name', 'product_lot',
         'quantity_loaded', 'quantity_delivered', 'departure_at',
-        'arrival_at', 'status',
+        'arrival_at', 'status','price', 'distance_km',
+        
     ];
+
+   
 
     public function bus()
 {

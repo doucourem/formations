@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 
-export default function Create({ trips }) {
+export default function Create({ trips, agencies }) {
   const generateTracking = () => {
     const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -33,19 +33,26 @@ export default function Create({ trips }) {
     price: "",
     payment_method: "",
     parcel_image: null,
-    status: "pending", // valeur par défaut
+    status: "pending",
+    departure_agency_id: "", // ajout
+    arrival_agency_id: "",   // ajout
   });
 
   const [imagePreview, setImagePreview] = useState(null);
   const PRICE_PER_KG = 12000;
 
-  useEffect(() => {
-    const weight = parseFloat(form.weight_kg) || 0;
-    setForm((prev) => ({ ...prev, price: weight * PRICE_PER_KG }));
-  }, [form.weight_kg]);
+ const handleChange = (e) => {
+  const { name, value } = e.target;
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  setForm((prev) => ({
+    ...prev,
+    // convertir automatiquement certains champs en nombre
+    [name]: ["price", "quantity_loaded", "quantity_delivered", "distance_km"].includes(name)
+      ? Number(value)
+      : value,
+  }));
+};
+
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -114,6 +121,38 @@ export default function Create({ trips }) {
                       } (Départ ${t.departure_at})`}
                     </MenuItem>
                   ))}
+              </TextField>
+
+              {/* Agence de départ */}
+              <TextField
+                select
+                label="Agence de départ"
+                name="departure_agency_id"
+                value={form.departure_agency_id}
+                onChange={handleChange}
+                required
+              >
+                {agencies.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {/* Agence d'arrivée */}
+              <TextField
+                select
+                label="Agence d'arrivée"
+                name="arrival_agency_id"
+                value={form.arrival_agency_id}
+                onChange={handleChange}
+                required
+              >
+                {agencies.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.name}
+                  </MenuItem>
+                ))}
               </TextField>
 
               {/* Numéro de tracking */}
@@ -194,7 +233,7 @@ export default function Create({ trips }) {
                 name="price"
                 type="number"
                 value={form.price}
-                InputProps={{ readOnly: true }}
+      
                 sx={{ backgroundColor: "#f5f5f5" }}
               />
 
@@ -207,7 +246,12 @@ export default function Create({ trips }) {
                   onChange={handleFileChange}
                 />
                 {imagePreview && (
-                  <Box mt={1} display="flex" flexDirection="column" alignItems="center">
+                  <Box
+                    mt={1}
+                    display="flex"
+                    flexDirection="column"
+                    alignItems="center"
+                  >
                     <img
                       src={imagePreview}
                       alt="Aperçu colis"

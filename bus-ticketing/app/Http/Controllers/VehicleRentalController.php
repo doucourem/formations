@@ -199,10 +199,18 @@ public function storeExtension(Request $request, VehicleRental $vehicleRental)
 public function show($id)
 {
     $rental = VehicleRental::findOrFail($id);
-
     return Inertia::render('VehicleRentals/show', [
-        'rental' => $rental
-    ]);
+    'rental' => [
+        'id' => $rental->id,
+        'vehicle_name' => $rental->bus->registration_number ?? '-',
+        'customer_name' => $rental->client_name,
+        'start_date' => $rental->rental_start->format('d-m-Y'),
+        'end_date' => $rental->rental_end->format('d-m-Y'),
+        'status' => $rental->status,
+    ]
+]);
+
 }
+
 
 }

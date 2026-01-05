@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
@@ -14,159 +14,183 @@ import {
 
 export default function DeliveryEdit({ delivery, buses, drivers }) {
   const [form, setForm] = useState({
-    vehicle_id: delivery.vehicle_id || "",
-    driver_id: delivery.driver_id || "",
-    product_name: delivery.product_name || "",
-    product_lot: delivery.product_lot || "",
-    quantity_loaded: delivery.quantity_loaded || 0,
-    quantity_delivered: delivery.quantity_delivered || 0,
-    distance_km: delivery.distance_km || 0,
-    price: delivery.price || 0,
-    departure_at: delivery.departure_at || "",
-    arrival_at: delivery.arrival_at || "",
-    status: delivery.status || "pending",
+    vehicle_id: delivery.vehicle_id ?? "",
+    driver_id: delivery.driver_id ?? "",
+    product_name: delivery.product_name ?? "",
+    product_lot: delivery.product_lot ?? "",
+    quantity_loaded: delivery.quantity_loaded ?? "",
+    quantity_delivered: delivery.quantity_delivered ?? "",
+    distance_km: delivery.distance_km ?? "",
+    price: delivery.price ?? "",
+    departure_at: delivery.departure_at ?? "",
+    arrival_at: delivery.arrival_at ?? "",
+    status: delivery.status ?? "pending",
   });
 
-  // Recalcul automatique du prix si tu veux
-  const PRICE_PER_KM = 1200; // exemple
-  useEffect(() => {
-    const qty = parseFloat(form.quantity_loaded) || 0;
-    const distance = parseFloat(form.distance_km) || 0;
-    setForm((prev) => ({ ...prev, price: qty * distance * PRICE_PER_KM }));
-  }, [form.quantity_loaded, form.distance_km]);
+  // ✅ Gestion du changement de champ
+ const handleChange = (e) => {
+  const { name, value } = e.target;
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  setForm((prev) => ({
+    ...prev,
+    [name]:
+      ["price","quantity_loaded","quantity_delivered","distance_km"].includes(name)
+        ? value === "" ? "" : parseFloat(value)
+        : value,
+  }));
+};
 
+
+  // ✅ Soumission du formulaire
   const handleSubmit = (e) => {
     e.preventDefault();
-    const data = new FormData();
-    Object.keys(form).forEach((key) => {
-      data.append(key, form[key]);
+
+    Inertia.post(route("deliveries.update", delivery.id), {
+      ...form,
+      _method: "PUT",
     });
-      data.append('_method', 'PUT');
-    Inertia.post(route("deliveries.update", delivery.id), data);
   };
 
   return (
     <GuestLayout>
       <Card sx={{ borderRadius: 3, p: 3 }}>
-        <CardHeader title={<Typography variant="h5">Modifier la livraison 📦</Typography>} />
+        <CardHeader
+          title={<Typography variant="h5">Modifier la livraison 📦</Typography>}
+        />
+
         <CardContent>
-          <form onSubmit={handleSubmit}>
-            <Box display="grid" gap={2}>
-              <TextField
-                select
-                label="Véhicule"
-                name="vehicle_id"
-                value={form.vehicle_id}
-                onChange={handleChange}
-                required
-              >
-                {buses.map((bus) => (
-                  <MenuItem key={bus.id} value={bus.id}>
-                    {bus.registration_number} ({bus.vehicle_type || bus.model})
-                  </MenuItem>
-                ))}
-              </TextField>
+          <Box component="form" onSubmit={handleSubmit} display="grid" gap={2}>
+            {/* Véhicule */}
+            <TextField
+              select
+              label="Véhicule"
+              name="vehicle_id"
+              value={form.vehicle_id}
+              onChange={handleChange}
+              required
+            >
+              {buses.map((bus) => (
+                <MenuItem key={bus.id} value={bus.id}>
+                  {bus.registration_number} ({bus.vehicle_type || bus.model})
+                </MenuItem>
+              ))}
+            </TextField>
 
-              <TextField
-                select
-                label="Chauffeur"
-                name="driver_id"
-                value={form.driver_id}
-                onChange={handleChange}
-                required
-              >
-                {drivers.map((driver) => (
-                  <MenuItem key={driver.id} value={driver.id}>
-                    {driver.first_name}
-                  </MenuItem>
-                ))}
-              </TextField>
+            {/* Chauffeur */}
+            <TextField
+              select
+              label="Chauffeur"
+              name="driver_id"
+              value={form.driver_id}
+              onChange={handleChange}
+              required
+            >
+              {drivers.map((driver) => (
+                <MenuItem key={driver.id} value={driver.id}>
+                  {driver.first_name} {driver.last_name}
+                </MenuItem>
+              ))}
+            </TextField>
 
-              <TextField
-                label="Produit"
-                name="product_name"
-                value={form.product_name}
-                onChange={handleChange}
-                required
-              />
+            {/* Produit */}
+            <TextField
+              label="Produit"
+              name="product_name"
+              value={form.product_name}
+              onChange={handleChange}
+              required
+            />
 
-              <TextField
-                label="Lot produit"
-                name="product_lot"
-                value={form.product_lot}
-                onChange={handleChange}
-              />
+            {/* Lot */}
+            <TextField
+              label="Lot produit"
+              name="product_lot"
+              value={form.product_lot}
+              onChange={handleChange}
+            />
 
-              <TextField
-                label="Quantité chargée"
-                type="number"
-                name="quantity_loaded"
-                value={form.quantity_loaded}
-                onChange={handleChange}
-                required
-              />
+            {/* Quantité chargée */}
+            <TextField
+              label="Quantité chargée"
+              type="number"
+              name="quantity_loaded"
+              value={form.quantity_loaded}
+              onChange={handleChange}
+              inputProps={{ min: 0 }}
+              required
+            />
 
-              <TextField
-                label="Quantité livrée"
-                type="number"
-                name="quantity_delivered"
-                value={form.quantity_delivered}
-                onChange={handleChange}
-              />
+            {/* Quantité livrée */}
+            <TextField
+              label="Quantité livrée"
+              type="number"
+              name="quantity_delivered"
+              value={form.quantity_delivered}
+              onChange={handleChange}
+              inputProps={{ min: 0 }}
+            />
 
-              <TextField
-                label="Distance (km)"
-                type="number"
-                name="distance_km"
-                value={form.distance_km}
-                onChange={handleChange}
-              />
+            {/* Distance */}
+            <TextField
+              label="Distance (km)"
+              type="number"
+              name="distance_km"
+              value={form.distance_km}
+              onChange={handleChange}
+              inputProps={{ min: 0 }}
+            />
 
-              <TextField
-                label="Prix (CFA)"
-                type="number"
-                name="price"
-                value={form.price}
-                InputProps={{ readOnly: true }}
-              />
+            {/* ✅ Prix manuel */}
+           <TextField
+  label="Prix (CFA)"
+  type="number"
+  name="price"
+  value={form.price}
+  onChange={handleChange}
+  required
+  inputProps={{ min: 0, step: 0.01 }}
+/>
 
-              <TextField
-                label="Départ"
-                type="datetime-local"
-                name="departure_at"
-                value={form.departure_at}
-                onChange={handleChange}
-                required
-              />
 
-              <TextField
-                label="Arrivée"
-                type="datetime-local"
-                name="arrival_at"
-                value={form.arrival_at}
-                onChange={handleChange}
-              />
+            {/* Départ */}
+            <TextField
+              type="datetime-local"
+              label="Départ"
+              name="departure_at"
+              value={form.departure_at}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+              required
+            />
 
-              <TextField
-                select
-                label="Statut"
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-              >
-                <MenuItem value="pending">En attente</MenuItem>
-                <MenuItem value="in_transit">En transit</MenuItem>
-                <MenuItem value="delivered">Livré</MenuItem>
-              </TextField>
+            {/* Arrivée */}
+            <TextField
+              type="datetime-local"
+              label="Arrivée"
+              name="arrival_at"
+              value={form.arrival_at}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+            />
 
-              <Button type="submit" variant="contained" color="primary">
-                Enregistrer
-              </Button>
-            </Box>
-          </form>
+            {/* Statut */}
+            <TextField
+              select
+              label="Statut"
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+            >
+              <MenuItem value="pending">En attente</MenuItem>
+              <MenuItem value="in_transit">En transit</MenuItem>
+              <MenuItem value="delivered">Livré</MenuItem>
+            </TextField>
+
+            {/* Bouton submit */}
+            <Button type="submit" variant="contained">
+              Enregistrer
+            </Button>
+          </Box>
         </CardContent>
       </Card>
     </GuestLayout>

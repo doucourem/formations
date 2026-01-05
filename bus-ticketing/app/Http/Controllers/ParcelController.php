@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Inertia\Inertia;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+ use App\Models\Agency;
 class ParcelController extends Controller
 {
     /**
@@ -22,21 +23,17 @@ class ParcelController extends Controller
         ]);
     }
 
-    /**
-     * Show create form
-     */
-    public function create()
-{
+  
 
+
+public function create()
+{
     Carbon::setLocale('fr');
     $today = Carbon::now();
 
-    // Récupération des voyages futurs avec bus, route et stops
     $trips = Trip::with([
         'route.departureCity',
         'route.arrivalCity',
-        'route.stops.city',
-        'route.stops.toCity',
         'bus',
     ])
     ->whereDate('departure_at', '>=', $today)
@@ -52,48 +49,74 @@ class ParcelController extends Controller
         'route' => [
             'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
             'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
-            'stops' => $t->route->stops->map(fn($s) => [
-                'id' => $s->id,
-                'distance_from_start' => $s->distance_from_start,
-                'price' => $s->partial_price,
-                'order' => $s->order,
-                'city' => $s->city ? ['name' => $s->city->name] : null,
-                'toCity' => $s->toCity ? ['name' => $s->toCity->name] : null,
-            ]),
         ],
     ]);
 
-    // Récupération de tous les stops pour le select
-   
+    $agencies = Agency::all(['id', 'name']); // ✅ récupérer toutes les agences
+
     return Inertia::render('Parcels/Create', [
         'trips' => $trips,
+        'agencies' => $agencies,
+    ]);
+}
+
+public function edit(Parcel $parcel)
+{
+    Carbon::setLocale('fr');
+    $today = Carbon::now();
+
+    $trips = Trip::with([
+        'route.departureCity',
+        'route.arrivalCity',
+        'bus',
+    ])
+    ->whereDate('departure_at', '>=', $today)
+    ->get()
+    ->map(fn($t) => [
+        'id' => $t->id,
+        'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
+        'bus' => [
+            'capacity' => $t->bus?->capacity ?? 0,
+            'model' => $t->bus?->model,
+            'registration_number' => $t->bus?->registration_number,
+        ],
+        'route' => [
+            'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
+            'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
+        ],
+    ]);
+
+    $agencies = Agency::all(['id', 'name']);
+
+    return Inertia::render('Parcels/Edit', [
+        'parcel' => $parcel,
+        'trips' => $trips,
+        'agencies' => $agencies,
     ]);
 }
 
 
-    /**
-     * Store a new parcel
-     */
-  public function store(Request $request)
+
+public function store(Request $request)
 {
     $validated = $request->validate([
-        'trip_id'         => 'required|exists:trips,id',
+        'trip_id' => 'required|exists:trips,id',
         'tracking_number' => 'required|string|max:255|unique:parcels,tracking_number',
-        'sender_name'     => 'required|string|max:255',
-        'sender_phone'    => 'required|string|max:50',
-        'recipient_name'  => 'required|string|max:255',
+        'sender_name' => 'required|string|max:255',
+        'sender_phone' => 'required|string|max:50',
+        'recipient_name' => 'required|string|max:255',
         'recipient_phone' => 'required|string|max:50',
-        'weight_kg'       => 'required|numeric|min:0',
-        'price'           => 'required|numeric|min:0',
-        'description'     => 'nullable|string',
-        'status'          => 'required|string|max:100',
-        'parcel_image'    => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+        'weight_kg' => 'required|numeric|min:0',
+        'price' => 'required|numeric|min:0',
+        'description' => 'nullable|string',
+        'status' => 'required|string|max:100',
+        'parcel_image' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+        'departure_agency_id' => 'required|exists:agencies,id', // ✅ nouvelle validation
+        'arrival_agency_id' => 'required|exists:agencies,id',   // ✅ nouvelle validation
     ]);
 
-    // Gestion du fichier
     if ($request->hasFile('parcel_image')) {
-        $path = $request->file('parcel_image')->store('parcels', 'public');
-        $validated['parcel_image'] = $path;
+        $validated['parcel_image'] = $request->file('parcel_image')->store('parcels', 'public');
     }
 
     Parcel::create($validated);
@@ -102,79 +125,29 @@ class ParcelController extends Controller
         ->with('success', 'Colis créé avec succès.');
 }
 
-
-
-    /**
-     * Show edit form
-     */
-    public function edit(Parcel $parcel)
-    {
- Carbon::setLocale('fr');
-        $today = Carbon::now();
-          $trips = Trip::with([
-            'route.departureCity',
-            'route.arrivalCity',
-            'route.stops.city',
-            'route.stops.toCity',
-            'bus',
-        ])
-            ->whereDate('departure_at', '>=', $today)
-            ->get()
-            ->map(fn($t) => [
-                'id' => $t->id,
-                'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
-                'bus' => [
-                    'capacity' => $t->bus?->capacity ?? 0,
-                    'model' => $t->bus?->model,
-                    'registration_number' => $t->bus?->registration_number,
-                ],
-                'route' => [
-                    'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
-                    'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
-                    'stops' => $t->route->stops->map(fn($s) => [
-                        'id' => $s->id,
-                        'distance_from_start' => $s->distance_from_start,
-                        'price' => $s->partial_price,
-                        'order' => $s->order,
-                        'city' => $s->city ? ['name' => $s->city->name] : null,
-                        'toCity' => $s->toCity ? ['name' => $s->toCity->name] : null,
-                    ]),
-                ],
-            ]);
-        return inertia('Parcels/Edit', [
-             'trips' => $trips,
-            'parcel' => $parcel
-        ]);
-    }
-
-    /**
-     * Update an existing parcel
-     */
 public function update(Request $request, Parcel $parcel)
 {
     $validated = $request->validate([
-        'trip_id'           => 'required|exists:trips,id',
-        'tracking_number'   => 'required|string|max:255|unique:parcels,tracking_number,' . $parcel->id,
-        'sender_name'       => 'required|string|max:255',
-        'sender_phone'      => 'required|string|max:50',
-        'recipient_name'    => 'required|string|max:255',
-        'recipient_phone'   => 'required|string|max:50',
-        'weight_kg'         => 'required|numeric|min:0',
-        'price'             => 'required|numeric|min:0',
-        'description'       => 'nullable|string',
-        'status'            => 'required|string|max:100',
-        'parcel_image'      => 'nullable|image|mimes:jpeg,jpg,png|max:2048', // 🔹 validation image
+        'trip_id' => 'required|exists:trips,id',
+        'tracking_number' => 'required|string|max:255|unique:parcels,tracking_number,' . $parcel->id,
+        'sender_name' => 'required|string|max:255',
+        'sender_phone' => 'required|string|max:50',
+        'recipient_name' => 'required|string|max:255',
+        'recipient_phone' => 'required|string|max:50',
+        'weight_kg' => 'required|numeric|min:0',
+        'price' => 'required|numeric|min:0',
+        'description' => 'nullable|string',
+        'status' => 'required|string|max:100',
+        'parcel_image' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+        'departure_agency_id' => 'required|exists:agencies,id',
+        'arrival_agency_id' => 'required|exists:agencies,id',
     ]);
 
-    // Gestion du fichier image
     if ($request->hasFile('parcel_image')) {
-        // Supprimer l’ancienne image si existante
         if ($parcel->parcel_image && \Storage::disk('public')->exists($parcel->parcel_image)) {
             \Storage::disk('public')->delete($parcel->parcel_image);
         }
-        // Stocker la nouvelle image
-        $path = $request->file('parcel_image')->store('parcels', 'public');
-        $validated['parcel_image'] = $path;
+        $validated['parcel_image'] = $request->file('parcel_image')->store('parcels', 'public');
     }
 
     $parcel->update($validated);
@@ -182,6 +155,7 @@ public function update(Request $request, Parcel $parcel)
     return redirect()->route('parcels.index')
         ->with('success', 'Colis mis à jour avec succès.');
 }
+
 
 
 
@@ -250,7 +224,6 @@ public function indexByTrip(Trip $trip)
         ],
     ]);
 }
-
 public function show(Parcel $parcel)
 {
     // Charger les relations nécessaires
@@ -258,6 +231,8 @@ public function show(Parcel $parcel)
         'trip.route.departureCity',
         'trip.route.arrivalCity',
         'trip.bus',
+        'departureAgency',      // ajout
+        'arrivalAgency',   // ajout
     ]);
 
     return Inertia::render('Parcels/Show', [
@@ -266,6 +241,14 @@ public function show(Parcel $parcel)
             'tracking_number' => $parcel->tracking_number,
             'sender_name' => $parcel->sender_name,
             'recipient_name' => $parcel->recipient_name,
+            'senderAgency' => $parcel->departureAgency ? [
+                'id' => $parcel->departureAgency->id,
+                'name' => $parcel->departureAgency->name,
+            ] : null,
+            'recipientAgency' => $parcel->arrivalAgency ? [
+                'id' => $parcel->arrivalAgency->id,
+                'name' => $parcel->arrivalAgency->name,
+            ] : null,
             'weight_kg' => $parcel->weight_kg,
             'price' => $parcel->price,
             'status' => $parcel->status,
@@ -287,6 +270,7 @@ public function show(Parcel $parcel)
         ],
     ]);
 }
+
 
 
 

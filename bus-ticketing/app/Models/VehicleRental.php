@@ -18,6 +18,11 @@ class VehicleRental extends Model
         'status',
     ];
 
+
+     protected $casts = [
+        'rental_start' => 'datetime',
+        'rental_end'   => 'datetime',
+    ];
     public function bus()
     {
         return $this->belongsTo(Bus::class, 'vehicle_id');

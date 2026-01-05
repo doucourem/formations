@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
@@ -12,9 +12,9 @@ import {
   Typography,
 } from "@mui/material";
 
-export default function Edit({ parcel, trips }) {
+export default function Edit({ parcel, trips, agencies }) {
   const [form, setForm] = useState({
-    _method: "put", 
+    _method: "put",
     trip_id: parcel.trip_id,
     tracking_number: parcel.tracking_number,
     sender_name: parcel.sender_name,
@@ -26,19 +26,30 @@ export default function Edit({ parcel, trips }) {
     description: parcel.description || "",
     status: parcel.status,
     parcel_image: null, // Nouveau fichier sélectionné
+    departure_agency_id: parcel.departure_agency_id || "",
+    arrival_agency_id: parcel.arrival_agency_id || "",
   });
 
-  // Aperçu image
-  const [imagePreview, setImagePreview] = useState(parcel.parcel_image ? `/storage/${parcel.parcel_image}` : null);
+  const [imagePreview, setImagePreview] = useState(
+    parcel.parcel_image ? `/storage/${parcel.parcel_image}` : null
+  );
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+const handleChange = (e) => {
+  const { name, value } = e.target;
 
-  // Gestion fichier image
+  setForm((prev) => ({
+    ...prev,
+    // convertir automatiquement certains champs en nombre
+    [name]: ["price", "quantity_loaded", "quantity_delivered", "distance_km"].includes(name)
+      ? Number(value)
+      : value,
+  }));
+};
+
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
       alert("Format non supporté (JPG/PNG seulement).");
       return;
@@ -47,9 +58,7 @@ export default function Edit({ parcel, trips }) {
       alert("Image trop lourde (max 2 Mo).");
       return;
     }
-
     setForm({ ...form, parcel_image: file });
-
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
     reader.readAsDataURL(file);
@@ -57,12 +66,10 @@ export default function Edit({ parcel, trips }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     const data = new FormData();
     Object.keys(form).forEach((key) => {
       if (form[key] !== null) data.append(key, form[key]);
     });
-
     Inertia.post(route("parcels.update", parcel.id), data);
   };
 
@@ -88,6 +95,38 @@ export default function Edit({ parcel, trips }) {
                 {trips.map((t) => (
                   <MenuItem key={t.id} value={t.id}>
                     {t.route?.departureCity?.name || 'Ville départ'} ➝ {t.route?.arrivalCity?.name || 'Ville arrivée'}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {/* Agence de départ */}
+              <TextField
+                select
+                label="Agence de départ"
+                name="departure_agency_id"
+                value={form.departure_agency_id}
+                onChange={handleChange}
+                required
+              >
+                {agencies.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {/* Agence d'arrivée */}
+              <TextField
+                select
+                label="Agence d'arrivée"
+                name="arrival_agency_id"
+                value={form.arrival_agency_id}
+                onChange={handleChange}
+                required
+              >
+                {agencies.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.name}
                   </MenuItem>
                 ))}
               </TextField>
