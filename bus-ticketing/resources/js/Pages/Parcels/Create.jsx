@@ -228,14 +228,22 @@ export default function Create({ trips, agencies }) {
               />
 
               {/* Montant calculé */}
-              <TextField
-                label="Montant (CFA)"
-                name="price"
-                type="number"
-                value={form.price}
-      
-                sx={{ backgroundColor: "#f5f5f5" }}
-              />
+             {/* Montant saisi manuellement */}
+<TextField
+  label="Montant (CFA)"
+  name="price"
+  type="number"
+  value={form.price}
+  onChange={handleChange} // L'utilisateur saisit le prix lui-même
+  required // Optionnel : oblige la saisie d'un prix
+  fullWidth
+  placeholder="Ex: 15000"
+  InputProps={{
+    inputProps: { min: 0 }
+  }}
+  error={form.price !== "" && form.price <= 0}
+  helperText={form.price !== "" && form.price <= 0 ? "Le prix doit être positif" : ""}
+/>
 
               {/* Image du colis */}
               <Box>

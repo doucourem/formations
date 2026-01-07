@@ -151,7 +151,7 @@ export default function Index({ parcels, filters }) {
             <Table>
               <TableHead>
                 <TableRow>
-                  {['ID', 'Tracking', 'Expéditeur', 'Destinataire', 'Poids (kg)', 'Statut', 'Actions'].map(
+                  {[ 'Tracking', 'Expéditeur', 'Destinataire', 'Poids (kg)', 'Statut', 'Actions'].map(
                     (col) => (
                       <TableCell
                         key={col}
@@ -168,7 +168,6 @@ export default function Index({ parcels, filters }) {
                 {parcels?.data?.length > 0 ? (
                   parcels.data.map((colis) => (
                     <TableRow key={colis.id} hover>
-                      <TableCell>{colis.id}</TableCell>
                       <TableCell>{colis.tracking_number}</TableCell>
                       <TableCell>{colis.sender_name}</TableCell>
                       <TableCell>{colis.recipient_name}</TableCell>
