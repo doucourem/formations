@@ -157,7 +157,7 @@ export default function CourierPaymentsScreen() {
         <Card style={[styles.totalCard, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
             <Text style={[styles.totalText, { color: theme.colors.success }]}>
-              💰 Total payé : {total.toLocaleString("fr-FR")} FCFA
+              💰 TOTAL DES RECOUVREMENTS: {total.toLocaleString("fr-FR")} FCFA
             </Text>
           </Card.Content>
         </Card>
