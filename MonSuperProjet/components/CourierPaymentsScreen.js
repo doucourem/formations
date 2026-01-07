@@ -169,51 +169,63 @@ export default function CourierPaymentsScreen() {
           contentContainerStyle={{ paddingBottom: height * 0.12 }}
           renderItem={({ item }) => (
             <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-              <Card.Content>
-                <Text style={[styles.amount, { color: theme.colors.primary }]}>
-                  {item.amount.toLocaleString("fr-FR")} FCFA
-                </Text>
+  <Card.Content>
+    <Text style={[styles.amount, { color: theme.colors.primary }]}>
+      {item.amount.toLocaleString("fr-FR")} FCFA
+    </Text>
 
-                <Text style={{ color: theme.colors.onSurface }}>
-                  👤 {item.cashier_name || item.cashier_email}
-                </Text>
+    <Text style={{ color: theme.colors.onSurface }}>
+      👤 {item.cashier_name || item.cashier_email}
+    </Text>
 
-                <Text style={{ color: theme.colors.onSurface }}>
-                  🏪 {item.kiosk_name || "—"}
-                </Text>
+    <Text style={{ color: theme.colors.onSurface }}>
+      🏪 {item.kiosk_name || "—"}
+    </Text>
 
-                <Text style={{ color: theme.colors.onSurface }}>
-                  📅 {new Date(item.created_at).toLocaleDateString("fr-FR")}
-                </Text>
+    <Text style={{ color: theme.colors.onSurface }}>
+      📅 {new Date(item.created_at).toLocaleDateString("fr-FR")}
+    </Text>
 
-                <Text
-                  style={{
-                    marginTop: 6,
-                    fontWeight: "bold",
-                    color:
-                      item.transaction_status === "APPROVED"
-                        ? theme.colors.success
-                        : item.transaction_status === "REJECTED"
-                        ? theme.colors.error
-                        : theme.colors.accent,
-                  }}
-                >
-                  Statut : {item.status}
-                </Text>
+    <Text style={{ color: theme.colors.onSurface }}>
+      🔄 Type :{" "}
+      <Text style={{ fontWeight: "bold" }}>
+        {item.transaction_type }
+      </Text>
+    </Text>
 
-                {/* ===== BOUTON ADMIN ===== */}
-                {profile?.role === "admin" && item.transaction_status === "PENDING" && (
-                  <Button
-                    mode="contained"
-                    style={{ marginTop: 10 }}
-                    buttonColor={theme.colors.success}
-                    onPress={() => validatePayment(item.id)}
-                  >
-                    Valider le paiement
-                  </Button>
-                )}
-              </Card.Content>
-            </Card>
+    <Text
+      style={{
+        marginTop: 6,
+        fontWeight: "bold",
+        color:
+          item.transaction_status === "APPROVED"
+            ? theme.colors.success
+            : item.transaction_status === "REJECTED"
+            ? theme.colors.error
+            : theme.colors.accent,
+      }}
+    >
+      Statut :{" "}
+      {item.transaction_status === "APPROVED"
+        ? "Approuvé"
+        : item.transaction_status === "REJECTED"
+        ? "Rejeté"
+        : "En attente"}
+    </Text>
+
+    {profile?.role === "admin" && item.transaction_status === "PENDING" && (
+      <Button
+        mode="contained"
+        style={{ marginTop: 10 }}
+        buttonColor={theme.colors.success}
+        onPress={() => validatePayment(item.id)}
+      >
+        Valider le paiement
+      </Button>
+    )}
+  </Card.Content>
+</Card>
+
           )}
           ListEmptyComponent={
             <Text style={{ color: theme.colors.onSurface, textAlign: "center", marginTop: 20 }}>

@@ -591,18 +591,25 @@ const handleDeleteTransaction = (id) => {
           />
         )}
 
-        <FAB
-          icon="plus"
-          style={[styles.fab, { bottom: height * 0.03, right: width * 0.04 }]}
-          onPress={() => {
-            setEditMode(false);
-            setEditingId(null);
-            setForm({ cashId: null, cashQuery: "", amount: "", type: "CREDIT", transactionType: "Vente UV", otherType: "" });
-            setDialogVisible(true);
-          }}
-          color="white"
-          label="Nouvelle"
-        />
+       <FAB
+  icon="plus"
+  style={[styles.fab, { bottom: height * 0.03, right: width * 0.04 }]}
+  onPress={() => {
+    setEditMode(false);
+    setEditingId(null);
+    setForm({ 
+      cashId: cashes.length === 1 ? cashes[0].id : null, 
+      cashQuery: cashes.length === 1 ? cashes[0].name : "", 
+      amount: "", 
+      // Logique de forçage ici :
+      type: profile?.role?.toLowerCase() === "kiosque" ? "DEBIT" : "CREDIT", 
+      transactionType: profile?.role?.toLowerCase() === "kiosque" ? "Autre" : "Vente UV", 
+      otherType: "" 
+    });
+    setDialogVisible(true);
+  }}
+  label="Nouvelle"
+/>
 
        <Portal>
  <Dialog
