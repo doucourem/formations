@@ -8,7 +8,8 @@ import {
   Surface, 
   Chip, 
   Divider,
-  Avatar
+  Avatar,
+  TextInput
 } from "react-native-paper";
 import { fetchTicketsByTrip } from "../services/ticketApi";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -20,6 +21,10 @@ export default function TripTicketsScreen({ route }) {
   const [trip, setTrip] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Nouveaux états pour les filtres
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [clientFilter, setClientFilter] = useState("");
 
   const loadTripData = useCallback(async () => {
     try {
@@ -57,6 +62,8 @@ export default function TripTicketsScreen({ route }) {
         return { label: "Réservé", color: "#FF9800", icon: "clock-outline" };
       case "cancelled":
         return { label: "Annulé", color: "#F44336", icon: "close-circle" };
+      case "all":
+        return { label: "Tous", color: "#888", icon: "filter" };
       default:
         return { label: status, color: "#999", icon: "help-circle" };
     }
@@ -69,7 +76,6 @@ export default function TripTicketsScreen({ route }) {
       <Card style={styles.card} elevation={1}>
         <Card.Content>
           <View style={styles.ticketRow}>
-            {/* Numéro de siège style Avatar */}
             <Avatar.Text 
               size={40} 
               label={item.seat_number?.toString() || "?"} 
@@ -87,13 +93,12 @@ export default function TripTicketsScreen({ route }) {
               </View>
             </View>
 
-           
             <Chip 
-  textStyle={[styles.chipText, { fontSize: 14 }]} // On surcharge ici
-  style={[styles.statusChip, { backgroundColor: status.color, height: 32 }]}
->
-  {status.label}
-</Chip>
+              textStyle={[styles.chipText, { fontSize: 14 }]}
+              style={[styles.statusChip, { backgroundColor: status.color, height: 32 }]}
+            >
+              {status.label}
+            </Chip>
           </View>
 
           <Divider style={styles.divider} />
@@ -102,7 +107,7 @@ export default function TripTicketsScreen({ route }) {
             <View style={styles.dateBlock}>
               <Icon name="calendar-clock" size={16} color={theme.colors.outline} />
               <Text variant="bodySmall" style={styles.dateText}>
-                        {item.created_at ?? "-"}
+                {item.created_at ?? "-"}
               </Text>
             </View>
             <Text variant="titleMedium" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
@@ -122,19 +127,23 @@ export default function TripTicketsScreen({ route }) {
     );
   }
 
+  // Filtre combiné par statut et nom du client
+  const filteredTickets = tickets.filter(ticket => {
+    const statusMatch = filterStatus === "all" ? true : ticket.status === filterStatus;
+    const clientMatch = ticket.client_name
+      ? ticket.client_name.toLowerCase().includes(clientFilter.toLowerCase())
+      : false;
+    return statusMatch && clientMatch;
+  });
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header Statique du Voyage */}
       <Surface style={styles.headerSurface} elevation={2}>
         <View style={styles.routeHeader}>
-          <Text variant="headlineSmall" style={styles.routeText}>
-            {trip.departureCity ?? "-"}
-          </Text>
+          <Text variant="headlineSmall" style={styles.routeText}>{trip.departureCity ?? "-"}</Text>
           <Icon name="arrow-right-bold" size={24} color={theme.colors.primary} />
-          <Text variant="headlineSmall" style={styles.routeText}>
-          {trip.arrivalCity ?? "-"}
-       
-          </Text>
+          <Text variant="headlineSmall" style={styles.routeText}>{trip.arrivalCity ?? "-"}</Text>
         </View>
         
         <View style={styles.subHeader}>
@@ -151,15 +160,42 @@ export default function TripTicketsScreen({ route }) {
         </View>
       </Surface>
 
+      {/* Filtres */}
+      <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 10, flexWrap: "wrap", gap: 8 }}>
+        {["all", "paid", "reserved", "cancelled"].map(status => {
+          const statusConfig = getStatusConfig(status);
+          return (
+            <Chip
+              key={status}
+              mode={filterStatus === status ? "flat" : "outlined"}
+              selected={filterStatus === status}
+              onPress={() => setFilterStatus(status)}
+              style={{ margin: 4, backgroundColor: filterStatus === status ? statusConfig.color : "#eee" }}
+              textStyle={{ color: filterStatus === status ? "#fff" : "#333" }}
+            >
+              {statusConfig.label}
+            </Chip>
+          );
+        })}
+      </View>
+
+      <TextInput
+        label="Filtrer par nom du client"
+        value={clientFilter}
+        onChangeText={setClientFilter}
+        mode="outlined"
+        style={{ marginHorizontal: 15, marginTop: 10, marginBottom: 10 }}
+      />
+
       {/* Liste des tickets */}
       <FlatList
-        data={tickets}
+        data={filteredTickets}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderTicketItem}
         contentContainerStyle={styles.listContainer}
         ListHeaderComponent={
           <Text variant="labelLarge" style={styles.listTitle}>
-            PASSAGERS ENREGISTRÉS ({tickets.length})
+            PASSAGERS ENREGISTRÉS ({filteredTickets.length})
           </Text>
         }
         ListEmptyComponent={
@@ -211,4 +247,5 @@ const styles = StyleSheet.create({
   dateText: { marginLeft: 6, color: '#999' },
   emptyState: { alignItems: 'center', marginTop: 50, opacity: 0.5 },
   chipText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  statusChip: { borderRadius: 16 },
 });

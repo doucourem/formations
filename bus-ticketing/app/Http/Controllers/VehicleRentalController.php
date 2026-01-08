@@ -6,6 +6,7 @@ use App\Models\Bus;
 use App\Models\VehicleRental;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class VehicleRentalController extends Controller
 {
@@ -196,21 +197,28 @@ public function storeExtension(Request $request, VehicleRental $vehicleRental)
                      ->with('success', 'Location prolongée avec succès.');
 }
 
+
+
 public function show($id)
 {
     $rental = VehicleRental::findOrFail($id);
-    return Inertia::render('VehicleRentals/show', [
-    'rental' => [
-        'id' => $rental->id,
-        'vehicle_name' => $rental->bus->registration_number ?? '-',
-        'customer_name' => $rental->client_name,
-        'start_date' => $rental->rental_start->format('d-m-Y'),
-        'end_date' => $rental->rental_end->format('d-m-Y'),
-        'status' => $rental->status,
-    ]
-]);
 
+    return Inertia::render('VehicleRentals/show', [
+        'rental' => [
+            'id' => $rental->id,
+            'vehicle_name' => $rental->bus->registration_number ?? '-',
+            'customer_name' => $rental->client_name,
+            'rental_start' => $rental->rental_start 
+                ? Carbon::parse($rental->rental_start)->format('Y-m-d') 
+                : null,
+            'rental_end' => $rental->rental_end 
+                ? Carbon::parse($rental->rental_end)->format('Y-m-d') 
+                : null,
+            'status' => $rental->status,
+        ]
+    ]);
 }
+
 
 
 }

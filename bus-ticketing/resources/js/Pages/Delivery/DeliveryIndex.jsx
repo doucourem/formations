@@ -77,9 +77,6 @@ export default function DeliveryIndex({ deliveries }) {
                     "Véhicule",
                     "Chauffeur",
                     "Produit",
-                    "Lot",
-                    "Quantité",
-                    "Distance (km)",
                     "Prix (CFA)",
                     "Départ",
                     "Arrivée",
@@ -100,9 +97,6 @@ export default function DeliveryIndex({ deliveries }) {
                       <TableCell>{d.bus.registration_number}</TableCell>
                       <TableCell>{d.driver.first_name}</TableCell>
                       <TableCell>{d.product_name}</TableCell>
-                      <TableCell>{d.product_lot}</TableCell>
-                      <TableCell>{d.quantity_loaded}</TableCell>
-                      <TableCell>{d.distance_km}</TableCell>
                       <TableCell>{d.price}</TableCell>
                       <TableCell>{new Date(d.departure_at).toLocaleString()}</TableCell>
                       <TableCell>{d.arrival_at ? new Date(d.arrival_at).toLocaleString() : "-"}</TableCell>

@@ -237,14 +237,16 @@ public function show(Parcel $parcel)
 
     return Inertia::render('Parcels/Show', [
         'parcel' => [
-            'id' => $parcel->id,
-            'tracking_number' => $parcel->tracking_number,
-            'sender_name' => $parcel->sender_name,
-            'recipient_name' => $parcel->recipient_name,
-            'senderAgency' => $parcel->departureAgency ? [
-                'id' => $parcel->departureAgency->id,
-                'name' => $parcel->departureAgency->name,
-            ] : null,
+        'id' => $parcel->id,
+        'tracking_number' => $parcel->tracking_number,
+        'sender_name' => $parcel->sender_name,
+        'recipient_name' => $parcel->recipient_name,
+        // Générer l'URL publique pour le frontend
+        'parcel_image' => $parcel->parcel_image ? asset('storage/' . $parcel->parcel_image) : null,
+        'senderAgency' => $parcel->departureAgency ? [
+            'id' => $parcel->departureAgency->id,
+            'name' => $parcel->departureAgency->name,
+        ] : null,
             'recipientAgency' => $parcel->arrivalAgency ? [
                 'id' => $parcel->arrivalAgency->id,
                 'name' => $parcel->arrivalAgency->name,

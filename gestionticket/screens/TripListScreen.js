@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, FlatList, StyleSheet, Alert, RefreshControl } from "react-native";
-import { Card, Text, Button, ActivityIndicator, useTheme, Chip, Divider } from "react-native-paper";
+import { Card, Text, Button, ActivityIndicator, useTheme, Chip, Divider, TextInput } from "react-native-paper";
 import { fetchTrips } from "../services/ticketApi";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
@@ -8,6 +8,8 @@ export default function TripListScreen({ navigation }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all"); // all / available / full
+  const [cityFilter, setCityFilter] = useState(""); // filtre par ville
   const theme = useTheme();
 
   const loadTrips = useCallback(async (isRefreshing = false) => {
@@ -52,6 +54,20 @@ export default function TripListScreen({ navigation }) {
     };
   };
 
+  const filteredTrips = trips.filter(trip => {
+    const { left } = getAvailableSeats(trip);
+    const statusMatch =
+      filterStatus === "all" ||
+      (filterStatus === "available" && left > 0) ||
+      (filterStatus === "full" && left <= 0);
+
+    const cityMatch =
+      trip?.route?.departure_city?.name.toLowerCase().includes(cityFilter.toLowerCase()) ||
+      trip?.route?.arrival_city?.name.toLowerCase().includes(cityFilter.toLowerCase());
+
+    return statusMatch && cityMatch;
+  });
+
   const renderTripItem = ({ item }) => {
     const { left, total } = getAvailableSeats(item);
     const isFull = left <= 0;
@@ -59,7 +75,6 @@ export default function TripListScreen({ navigation }) {
     return (
       <Card style={styles.card} elevation={2}>
         <Card.Content>
-          {/* Header du trajet */}
           <View style={styles.routeHeader}>
             <View style={styles.cityContainer}>
               <Text variant="titleLarge" style={styles.cityName}>
@@ -81,7 +96,6 @@ export default function TripListScreen({ navigation }) {
 
           <Divider style={styles.divider} />
 
-          {/* Infos Détails */}
           <View style={styles.detailsRow}>
             <View style={styles.infoBlock}>
               <Icon name="clock-outline" size={16} color={theme.colors.onSurfaceVariant} />
@@ -125,22 +139,48 @@ export default function TripListScreen({ navigation }) {
   }
 
   return (
-    <FlatList
-      data={trips}
-      keyExtractor={(item) => item.id.toString()}
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => loadTrips(true)} colors={[theme.colors.primary]} />
-      }
-      renderItem={renderTripItem}
-      ListEmptyComponent={
-        <View style={styles.center}>
-          <Icon name="bus-alert" size={60} color={theme.colors.outline} />
-          <Text style={{ marginTop: 10, color: theme.colors.onSurfaceVariant }}>Aucun voyage disponible</Text>
-          <Button onPress={() => loadTrips(true)}>Actualiser</Button>
-        </View>
-      }
-    />
+    <View style={{ flex: 1 }}>
+      {/* Filtres */}
+      <View style={{ flexDirection: "row", justifyContent: "center", flexWrap: "wrap", marginVertical: 10, gap: 8 }}>
+        {["all", "available", "full"].map(status => (
+          <Chip
+            key={status}
+            mode={filterStatus === status ? "flat" : "outlined"}
+            selected={filterStatus === status}
+            onPress={() => setFilterStatus(status)}
+            style={{ margin: 4, backgroundColor: filterStatus === status ? (status === "full" ? "#D32F2F" : "#388E3C") : "#eee" }}
+            textStyle={{ color: filterStatus === status ? "#fff" : "#333" }}
+          >
+            {status === "all" ? "Tous" : status === "available" ? "Disponible" : "Complet"}
+          </Chip>
+        ))}
+      </View>
+
+      <TextInput
+        label="Filtrer par ville"
+        value={cityFilter}
+        onChangeText={setCityFilter}
+        mode="outlined"
+        style={{ marginHorizontal: 12, marginBottom: 10 }}
+      />
+
+      <FlatList
+        data={filteredTrips}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => loadTrips(true)} colors={[theme.colors.primary]} />
+        }
+        renderItem={renderTripItem}
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <Icon name="bus-alert" size={60} color={theme.colors.outline} />
+            <Text style={{ marginTop: 10, color: theme.colors.onSurfaceVariant }}>Aucun voyage disponible</Text>
+            <Button onPress={() => loadTrips(true)}>Actualiser</Button>
+          </View>
+        }
+      />
+    </View>
   );
 }
 
@@ -165,12 +205,12 @@ const styles = StyleSheet.create({
   },
   divider: { marginVertical: 10, opacity: 0.5 },
   detailsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   infoBlock: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   infoText: {
     marginLeft: 6,
