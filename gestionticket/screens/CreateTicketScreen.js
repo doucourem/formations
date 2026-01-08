@@ -1,13 +1,13 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, FlatList, StyleSheet, Alert, ScrollView } from "react-native";
-import { 
-  Button, 
-  TextInput, 
-  Text, 
-  ActivityIndicator, 
-  useTheme, 
+import React, { useState, useCallback } from "react";
+import { View, FlatList, StyleSheet, Alert, useWindowDimensions } from "react-native";
+import {
+  Button,
+  TextInput,
+  Text,
+  ActivityIndicator,
+  useTheme,
   Surface,
-  Divider
+  Divider,
 } from "react-native-paper";
 import { useFocusEffect } from "@react-navigation/native";
 import api, { createTicket } from "../services/ticketApi";
@@ -16,65 +16,53 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 export default function CreateTicketScreen({ navigation, route }) {
   const { tripId } = route.params;
   const theme = useTheme();
+  const { width } = useWindowDimensions();
 
-  // États
+  /* ================= ÉTATS ================= */
   const [clientName, setClientName] = useState("");
   const [seats, setSeats] = useState([]);
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
-  // Charger les sièges depuis l'API
-  const loadSeats = async (showLoader = false) => {
-    if (showLoader) setLoading(true);
+  const numColumns = width > 600 ? 5 : 4;
+
+  /* ================= LOAD SEATS ================= */
+  const loadSeats = async () => {
     try {
       const res = await api.get(`/trips/${tripId}/seats`);
       setSeats(res.data);
     } catch (e) {
-      console.error("Erreur chargement sièges:", e);
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  // Polling intelligent : s'arrête quand on quitte l'écran
   useFocusEffect(
     useCallback(() => {
-      loadSeats(true);
-      const interval = setInterval(() => loadSeats(false), 5000);
+      loadSeats();
+      const interval = setInterval(loadSeats, 5000);
       return () => clearInterval(interval);
     }, [tripId])
   );
 
-  // Logique de sélection/réservation temporaire
-  const handleSeatSelection = async (seat) => {
+  /* ================= SELECTION ================= */
+  const handleSeatSelection = (seat) => {
     if (!clientName.trim()) {
-      Alert.alert("Nom requis", "Entrez le nom du client avant de choisir un siège.");
+      Alert.alert("Nom requis", "Veuillez entrer le nom du client.");
       return;
     }
 
-    if (seat.status !== "available" && seat.seat_number !== selectedSeat) {
-      return; // Siège déjà pris
-    }
+    if (seat.status !== "available") return;
 
-    try {
-      await api.post("/seats/reserve", {
-        trip_id: tripId,
-        seat_number: seat.seat_number,
-        client_name: clientName,
-      });
-      setSelectedSeat(seat.seat_number);
-      loadSeats(false);
-    } catch (err) {
-      Alert.alert("Indisponible", "Ce siège vient d'être réservé par quelqu'un d'autre.");
-      loadSeats(false);
-    }
+    setSelectedSeat(seat.seat_number);
   };
 
-  // Validation finale (Réservation ou Paiement)
-  const handleAction = async (status) => {
+  /* ================= VALIDATION UNIQUE ================= */
+  const handleValidate = async () => {
     if (!clientName || !selectedSeat) {
-      Alert.alert("Incomplet", "Veuillez remplir le nom et choisir un siège.");
+      Alert.alert("Incomplet", "Nom et siège requis.");
       return;
     }
 
@@ -84,47 +72,42 @@ export default function CreateTicketScreen({ navigation, route }) {
         trip_id: tripId,
         client_name: clientName,
         seat_number: selectedSeat,
-        status: status, // "reserved" ou "paid"
+        status: "paid", // ✅ UNE SEULE ACTION
       });
-      Alert.alert("Succès", status === "paid" ? "Billet vendu !" : "Réservation confirmée");
+
+      Alert.alert("Succès", "Billet vendu avec succès");
       navigation.goBack();
     } catch (e) {
-      Alert.alert("Erreur", "Impossible de finaliser l'opération.");
+      Alert.alert("Erreur", "Ce siège est déjà pris.");
+      loadSeats();
     } finally {
       setProcessing(false);
     }
   };
 
-  // Rendu d'un siège individuel
+  /* ================= RENDER SEAT ================= */
   const renderSeat = ({ item }) => {
     const isSelected = selectedSeat === item.seat_number;
     const isSold = item.status === "sold";
     const isReserved = item.status === "reserved";
 
-    // Couleurs basées sur le thème
-    let seatColor = theme.colors.outline; 
-    let textColor = theme.colors.onSurface;
+    let bg = "transparent";
+    let color = theme.colors.primary;
 
-    if (isSold) {
-      seatColor = "#E57373"; // Rouge
-      textColor = "#fff";
-    } else if (isReserved) {
-      seatColor = theme.colors.secondary; // Orange
-      textColor = "#fff";
-    } else if (isSelected) {
-      seatColor = theme.colors.primary; // Votre vert #4CAF50
-      textColor = "#fff";
-    }
+    if (isSold) bg = "#E57373";
+    else if (isReserved) bg = theme.colors.secondary;
+    else if (isSelected) bg = theme.colors.primary;
+
+    if (isSold || isReserved || isSelected) color = "#fff";
 
     return (
-      <Surface style={[styles.seatWrapper, { borderRadius: theme.roundness }]}>
+      <Surface style={styles.seatWrapper}>
         <Button
           mode={isSelected ? "contained" : "outlined"}
+          disabled={isSold || isReserved}
           onPress={() => handleSeatSelection(item)}
-          disabled={isSold || (isReserved && !isSelected)}
-          style={[styles.seat, { backgroundColor: isSelected || isSold || isReserved ? seatColor : "transparent" }]}
-          labelStyle={{ color: isSelected || isSold || isReserved ? "#fff" : theme.colors.primary }}
-          contentStyle={{ height: 50 }}
+          style={[styles.seat, { backgroundColor: bg }]}
+          labelStyle={{ color }}
         >
           {item.seat_number}
         </Button>
@@ -132,123 +115,106 @@ export default function CreateTicketScreen({ navigation, route }) {
     );
   };
 
+  /* ================= LOADING ================= */
   if (loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{ marginTop: 10 }}>Chargement du bus...</Text>
+        <Text>Chargement du bus…</Text>
       </View>
     );
   }
 
+  /* ================= UI ================= */
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* SECTION CLIENT */}
-      <Surface style={styles.headerCard}>
+      {/* CLIENT */}
+      <Surface style={styles.card}>
         <TextInput
           label="Nom du passager"
           value={clientName}
           onChangeText={setClientName}
           mode="outlined"
-          placeholder="Ex: Jean Dupont"
-          outlineColor={theme.colors.outline}
-          activeOutlineColor={theme.colors.primary}
-          style={{ backgroundColor: theme.colors.surface }}
           left={<TextInput.Icon icon="account" />}
         />
       </Surface>
 
-      {/* SECTION BUS */}
+      {/* BUS */}
       <Surface style={styles.busContainer}>
         <View style={styles.busHeader}>
-          <Icon name="steering" size={30} color={theme.colors.onSurfaceVariant} />
-          <Text style={styles.busTitle}>PLAN DU VÉHICULE</Text>
+          <Icon name="bus" size={28} />
+          <Text style={styles.busTitle}>PLAN DU BUS</Text>
         </View>
-        <Divider style={{ marginBottom: 15 }} />
 
-        
+        <Divider />
 
         <FlatList
           data={seats}
-          numColumns={4}
           renderItem={renderSeat}
-          keyExtractor={(item) => item.seat_number.toString()}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          keyExtractor={(i) => i.seat_number.toString()}
+          numColumns={numColumns}
+          columnWrapperStyle={{ justifyContent: "space-around" }}
+          contentContainerStyle={{ paddingVertical: 15 }}
+          showsVerticalScrollIndicator={false}
         />
       </Surface>
 
-      {/* SECTION ACTIONS */}
-      <View style={styles.footer}>
-        <Button
-          mode="outlined"
-          onPress={() => handleAction("reserved")}
-          style={[styles.btn, { borderColor: theme.colors.primary }]}
-          disabled={processing || !selectedSeat}
-          loading={processing && !selectedSeat}
-        >
-          Réserver
-        </Button>
-        <Button
-          mode="contained"
-          onPress={() => handleAction("paid")}
-          style={[styles.btn, { backgroundColor: theme.colors.primary }]}
-          disabled={processing || !selectedSeat}
-          loading={processing}
-        >
-          Payer
-        </Button>
-      </View>
+      {/* ACTION */}
+      <Button
+        mode="contained"
+        onPress={handleValidate}
+        loading={processing}
+        disabled={!selectedSeat || processing}
+        style={styles.payBtn}
+      >
+        Valider & Payer
+      </Button>
     </View>
   );
 }
 
+/* ================= STYLES ================= */
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 15 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  headerCard: {
+
+  card: {
     padding: 15,
-    elevation: 2,
     borderRadius: 12,
     marginBottom: 15,
   },
+
   busContainer: {
     flex: 1,
-    elevation: 1,
-    borderRadius: 15,
     padding: 10,
+    borderRadius: 15,
   },
+
   busHeader: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
-    marginBottom: 5,
+    alignItems: "center",
+    marginBottom: 10,
   },
+
   busTitle: {
-    fontWeight: "bold",
-    letterSpacing: 1,
     fontSize: 12,
-    color: "#777",
+    fontWeight: "bold",
+    opacity: 0.6,
   },
-  row: {
-    justifyContent: "space-around",
-  },
+
   seatWrapper: {
     width: "22%",
-    marginVertical: 5,
-    elevation: 1,
+    marginVertical: 6,
   },
+
   seat: {
     width: "100%",
   },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 15,
-  },
-  btn: {
-    flex: 0.48,
-    borderRadius: 8,
+
+  payBtn: {
+    marginTop: 10,
+    borderRadius: 10,
+    paddingVertical: 6,
   },
 });
