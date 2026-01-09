@@ -17,9 +17,10 @@ const userSchema = z.object({
   lastName: z.string().min(1, "Prénom requis"),
   username: z.string().min(1, "Nom d'utilisateur requis"),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-  role: z.enum(["user", "admin"], { required_error: "Rôle requis" }),
+  role: z.enum(["user", "manager", "admin"], { required_error: "Rôle requis" }), // ✅ ajoute manager ici
   isActive: z.boolean().default(true),
 });
+
 
 type UserForm = z.infer<typeof userSchema>;
 
@@ -186,6 +187,7 @@ export default function UserModal({ isOpen, onClose }: UserModalProps) {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="user">Utilisateur</SelectItem>
+                          <SelectItem value="manager">Manageur</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>

@@ -83,6 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
+  
   // Apply network optimization middleware globally
   app.use(networkOptimizationMiddleware);
   app.use(optimizedResponseMiddleware);
@@ -114,11 +115,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin middleware
   const requireAdmin = (req: any, res: any, next: any) => {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-    next();
-  };
+  if (
+    !req.user ||
+    !['admin', 'manager'].includes(req.user.role)
+  ) {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
+};
 
   // Force cache invalidation endpoint
   app.post("/api/cache/invalidate", requireAuth, (req, res) => {
@@ -437,8 +441,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.user!.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
-
+    console.error("User creation error:", req.body);
       const userData = insertUserSchema.parse(req.body);
+       console.error("User creation error:", userData);
       const user = await storage.createUser(userData);
       res.json(user);
     } catch (error) {
@@ -1002,6 +1007,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Route ultra-optimisée pour admin - transactions en attente INSTANTANÉES
   app.get("/api/transactions/pending", async (req, res) => {
     try {
+
+      const role = req.user?.role;
       // Optimisation pour connexions 3G lentes en Guinée
       const userAgent = req.get('User-Agent') || '';
       const isSlowConnection = userAgent.includes('Mobile') || 
@@ -1054,7 +1061,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         exchangeRate: row.exchange_rate,
         createdAt: row.created_at,
         userName: `${row.first_name || ''} ${row.last_name || ''}`.trim() || 'Utilisateur inconnu',
-        clientName: row.client_name || 'Client occasionnel'
+         clientName: row.client_name
+      ? row.client_name
+      : role === 'admin'
+        ? 'Client occasionnel'
+        : null,
       }));
       
       console.log('[PENDING FIXED] Found', pendingTransactions.length, 'total transactions (pending+seen+proof_submitted)');
@@ -1244,7 +1255,12 @@ const debtThreshold = parseFloat(user.walletGNF !== null && user.walletGNF !== u
   app.get("/api/stats/users", requireAuth, requireAdmin, async (req, res) => {
     try {
       const allUsers = await storage.getAllUsers();
-      const normalUsers = allUsers.filter(user => user.role !== 'admin');
+      const excludedRoles = ['admin', 'manager'];
+
+const normalUsers = allUsers.filter(
+  user => !excludedRoles.includes(user.role)
+);
+
       
       const userSummaries = await Promise.all(
         normalUsers.map(async (user) => {

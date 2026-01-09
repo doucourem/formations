@@ -14,10 +14,11 @@ import "@/styles/responsive-fix.css";
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("@/pages/login"));
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
+const ManagerDashboard = lazy(() => import("@/pages/manager-dashboard"));
 const UserDashboard = lazy(() => import("@/pages/user-dashboard"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
-// Centralized loading fallback
+// Loading fallback
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
     <div className="text-center">
@@ -27,30 +28,50 @@ const PageLoader = () => (
   </div>
 );
 
-// PrivateRoute component for role-based access
-const PrivateRoute = ({ role, children }: { role: string; children: JSX.Element }) => {
+// PrivateRoute supports multiple roles
+const PrivateRoute = ({
+  roles,
+  children,
+}: {
+  roles: string[];
+  children: JSX.Element;
+}) => {
   const { user } = useAuth();
-  if (!user || user.role !== role) return <NotFound />;
+  if (!user || !roles.includes(user.role.toLowerCase())) return <NotFound />;
   return children;
+};
+
+// Helper for role badge colors
+export const getRoleColor = (role: string) => {
+  switch (role.toLowerCase()) {
+    case "admin":
+      return "bg-red-100 text-red-800";
+    case "manager":
+      return "bg-yellow-100 text-yellow-800";
+    case "user":
+      return "bg-green-100 text-green-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
 };
 
 function Router() {
   const { user, isLoading, isLoggingOut } = useAuth();
 
-  // Initialize global hooks
+  // Global hooks
   useNotifications();
   useWebSocket();
   useSmartRefresh();
 
-  // Initialize push notifications
+  // Push notifications
   useEffect(() => {
     if (user) {
       pushNotificationManager.init();
-      return () => pushNotificationManager.cleanup?.(); // cleanup if defined
+      return () => pushNotificationManager.cleanup?.();
     }
   }, [user]);
 
-  // Show login page during logout or if no user
+  // Show login if not logged in
   if (isLoggingOut || !user) {
     return (
       <Suspense fallback={<PageLoader />}>
@@ -59,29 +80,45 @@ function Router() {
     );
   }
 
-  // Show loading screen while fetching user info
+  // Loading state
   if (isLoading) return <PageLoader />;
 
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
+        {/* Default route */}
         <Route path="/">
-          {user.role === "admin" ? <AdminDashboard /> : <UserDashboard />}
+          {user.role.toLowerCase() === "admin" ? (
+            <AdminDashboard />
+          ) : user.role.toLowerCase() === "manager" ? (
+            <ManagerDashboard />
+          ) : (
+            <UserDashboard />
+          )}
         </Route>
 
+        {/* Admin */}
         <Route path="/admin">
-          <PrivateRoute role="admin">
+          <PrivateRoute roles={["admin"]}>
             <AdminDashboard />
           </PrivateRoute>
         </Route>
 
+        {/* Manager */}
+        <Route path="/manager">
+          <PrivateRoute roles={["manager"]}>
+            <ManagerDashboard />
+          </PrivateRoute>
+        </Route>
+
+        {/* User */}
         <Route path="/user">
-          <PrivateRoute role="user">
+          <PrivateRoute roles={["user"]}>
             <UserDashboard />
           </PrivateRoute>
         </Route>
 
-        {/* Fallback for all other routes */}
+        {/* Fallback */}
         <Route path="*">
           <NotFound />
         </Route>
@@ -89,6 +126,21 @@ function Router() {
     </Suspense>
   );
 }
+
+// Example role badge component
+export const RoleBadge = ({ role }: { role: string }) => (
+  <span
+    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(
+      role
+    )}`}
+  >
+    {role.toLowerCase() === "admin"
+      ? "Admin"
+      : role.toLowerCase() === "manager"
+      ? "Manager"
+      : "Utilisateur"}
+  </span>
+);
 
 export default function App() {
   return (

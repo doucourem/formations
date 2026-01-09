@@ -1,25 +1,54 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, FlatList, StyleSheet, Alert, RefreshControl } from "react-native";
-import { Card, Text, Button, ActivityIndicator, useTheme, Chip, Divider, TextInput } from "react-native-paper";
-import { fetchTrips } from "../services/ticketApi";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  Alert,
+  RefreshControl,
+  Platform,
+  useWindowDimensions,
+} from "react-native";
+import {
+  Card,
+  Text,
+  Button,
+  ActivityIndicator,
+  useTheme,
+  Chip,
+  Divider,
+  TextInput,
+} from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { fetchTrips } from "../services/ticketApi";
 
 export default function TripListScreen({ navigation }) {
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
+
+  const isSmallScreen = width < 360;
+  const isIOS = Platform.OS === "ios";
+
+  const fontFamily = Platform.select({
+    ios: "System",
+    android: "Roboto",
+  });
+
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filterStatus, setFilterStatus] = useState("all"); // all / available / full
-  const [cityFilter, setCityFilter] = useState(""); // filtre par ville
-  const theme = useTheme();
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [cityFilter, setCityFilter] = useState("");
 
+  /* ========================
+        CHARGEMENT
+     ======================== */
   const loadTrips = useCallback(async (isRefreshing = false) => {
     if (isRefreshing) setRefreshing(true);
     try {
       const res = await fetchTrips();
       const data = res.data?.data ?? res.data ?? [];
       setTrips(data);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
       Alert.alert("Erreur", "Impossible de charger les voyages");
     } finally {
       setLoading(false);
@@ -31,6 +60,9 @@ export default function TripListScreen({ navigation }) {
     loadTrips();
   }, [loadTrips]);
 
+  /* ========================
+        UTILS
+     ======================== */
   const formatDateTime = (datetime) => {
     if (!datetime) return "-";
     const d = new Date(datetime);
@@ -44,51 +76,91 @@ export default function TripListScreen({ navigation }) {
 
   const getAvailableSeats = (trip) => {
     const capacity = trip?.bus?.capacity ?? 0;
-    const reservedSeats =
+    const reserved =
       trip?.tickets?.filter(
         (t) => t.status === "reserved" || t.status === "paid"
       ).length ?? 0;
-    return {
-      left: Math.max(capacity - reservedSeats, 0),
-      total: capacity
-    };
+
+    return Math.max(capacity - reserved, 0);
   };
 
-  const filteredTrips = trips.filter(trip => {
-    const { left } = getAvailableSeats(trip);
-    const statusMatch =
-      filterStatus === "all" ||
-      (filterStatus === "available" && left > 0) ||
-      (filterStatus === "full" && left <= 0);
+  /* ========================
+        FILTRES
+     ======================== */
+  const filteredTrips = useMemo(() => {
+    return trips.filter((trip) => {
+      const left = getAvailableSeats(trip);
 
-    const cityMatch =
-      trip?.route?.departure_city?.name.toLowerCase().includes(cityFilter.toLowerCase()) ||
-      trip?.route?.arrival_city?.name.toLowerCase().includes(cityFilter.toLowerCase());
+      const statusMatch =
+        filterStatus === "all" ||
+        (filterStatus === "available" && left > 0) ||
+        (filterStatus === "full" && left <= 0);
 
-    return statusMatch && cityMatch;
-  });
+      const cityMatch =
+        trip?.route?.departure_city?.name
+          ?.toLowerCase()
+          .includes(cityFilter.toLowerCase()) ||
+        trip?.route?.arrival_city?.name
+          ?.toLowerCase()
+          .includes(cityFilter.toLowerCase());
 
+      return statusMatch && cityMatch;
+    });
+  }, [trips, filterStatus, cityFilter]);
+
+  /* ========================
+        ITEM
+     ======================== */
   const renderTripItem = ({ item }) => {
-    const { left, total } = getAvailableSeats(item);
+    const left = getAvailableSeats(item);
     const isFull = left <= 0;
 
     return (
-      <Card style={styles.card} elevation={2}>
+      <Card style={styles.card} elevation={3}>
         <Card.Content>
+          {/* Trajet */}
           <View style={styles.routeHeader}>
             <View style={styles.cityContainer}>
-              <Text variant="titleLarge" style={styles.cityName}>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[
+                  styles.cityName,
+                  { fontFamily },
+                ]}
+              >
                 {item?.route?.departure_city?.name}
               </Text>
-              <Icon name="arrow-right" size={20} color={theme.colors.primary} />
-              <Text variant="titleLarge" style={styles.cityName}>
+
+              <Icon
+                name="arrow-right"
+                size={isSmallScreen ? 16 : 18}
+                color={theme.colors.primary}
+              />
+
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[
+                  styles.cityName,
+                  { fontFamily },
+                ]}
+              >
                 {item?.route?.arrival_city?.name}
               </Text>
             </View>
-            <Chip 
-              icon="bus" 
-              style={{ backgroundColor: isFull ? "#FFEBEE" : "#E8F5E9" }}
-              textStyle={{ color: isFull ? "#D32F2F" : "#388E3C", fontSize: 11 }}
+
+            <Chip
+              compact
+              style={[
+                styles.chip,
+                { backgroundColor: isFull ? "#FFEBEE" : "#E8F5E9" },
+              ]}
+              textStyle={{
+                fontFamily,
+                fontSize: isSmallScreen ? 10 : 11,
+                color: isFull ? "#D32F2F" : "#388E3C",
+              }}
             >
               {isFull ? "COMPLET" : `${left} places`}
             </Chip>
@@ -96,32 +168,53 @@ export default function TripListScreen({ navigation }) {
 
           <Divider style={styles.divider} />
 
+          {/* Infos */}
           <View style={styles.detailsRow}>
             <View style={styles.infoBlock}>
-              <Icon name="clock-outline" size={16} color={theme.colors.onSurfaceVariant} />
-              <Text style={styles.infoText}>{formatDateTime(item.departure_at)}</Text>
+              <Icon
+                name="clock-outline"
+                size={isSmallScreen ? 14 : 16}
+                color={theme.colors.onSurfaceVariant}
+              />
+              <Text style={[styles.infoText, { fontFamily }]}>
+                {formatDateTime(item.departure_at)}
+              </Text>
             </View>
+
             <View style={styles.infoBlock}>
-              <Icon name="identifier" size={16} color={theme.colors.onSurfaceVariant} />
-              <Text style={styles.infoText}>{item?.bus?.registration_number}</Text>
+              <Icon
+                name="bus"
+                size={isSmallScreen ? 14 : 16}
+                color={theme.colors.onSurfaceVariant}
+              />
+              <Text style={[styles.infoText, { fontFamily }]}>
+                {item?.bus?.registration_number || "-"}
+              </Text>
             </View>
           </View>
         </Card.Content>
 
+        {/* Actions */}
         <Card.Actions style={styles.actions}>
           <Button
+            compact
             mode="text"
-            icon="ticket-multiple"
-            onPress={() => navigation.navigate("TripTicketsScreen", { tripId: item.id })}
+            labelStyle={{ fontFamily, fontSize: 12 }}
+            onPress={() =>
+              navigation.navigate("TripTicketsScreen", { tripId: item.id })
+            }
           >
             Détails
           </Button>
+
           <Button
+            compact
             mode="contained"
             disabled={isFull}
-            icon={isFull ? "close-circle" : "cart-plus"}
-            onPress={() => navigation.navigate("AddTicket", { tripId: item.id })}
-            style={{ borderRadius: 8 }}
+            labelStyle={{ fontFamily, fontSize: 12 }}
+            onPress={() =>
+              navigation.navigate("AddTicket", { tripId: item.id })
+            }
           >
             {isFull ? "Complet" : "Réserver"}
           </Button>
@@ -130,6 +223,9 @@ export default function TripListScreen({ navigation }) {
     );
   };
 
+  /* ========================
+        LOADING
+     ======================== */
   if (loading && !refreshing) {
     return (
       <View style={styles.center}>
@@ -138,20 +234,26 @@ export default function TripListScreen({ navigation }) {
     );
   }
 
+  /* ========================
+        RENDER
+     ======================== */
   return (
     <View style={{ flex: 1 }}>
       {/* Filtres */}
-      <View style={{ flexDirection: "row", justifyContent: "center", flexWrap: "wrap", marginVertical: 10, gap: 8 }}>
-        {["all", "available", "full"].map(status => (
+      <View style={styles.filters}>
+        {["all", "available", "full"].map((status) => (
           <Chip
             key={status}
-            mode={filterStatus === status ? "flat" : "outlined"}
+            compact
             selected={filterStatus === status}
             onPress={() => setFilterStatus(status)}
-            style={{ margin: 4, backgroundColor: filterStatus === status ? (status === "full" ? "#D32F2F" : "#388E3C") : "#eee" }}
-            textStyle={{ color: filterStatus === status ? "#fff" : "#333" }}
+            style={styles.filterChip}
           >
-            {status === "all" ? "Tous" : status === "available" ? "Disponible" : "Complet"}
+            {status === "all"
+              ? "Tous"
+              : status === "available"
+              ? "Disponible"
+              : "Complet"}
           </Chip>
         ))}
       </View>
@@ -161,22 +263,25 @@ export default function TripListScreen({ navigation }) {
         value={cityFilter}
         onChangeText={setCityFilter}
         mode="outlined"
-        style={{ marginHorizontal: 12, marginBottom: 10 }}
+        style={styles.input}
       />
 
       <FlatList
         data={filteredTrips}
         keyExtractor={(item) => item.id.toString()}
+        renderItem={renderTripItem}
+        numColumns={1}
         contentContainerStyle={styles.container}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => loadTrips(true)} colors={[theme.colors.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadTrips(true)}
+          />
         }
-        renderItem={renderTripItem}
         ListEmptyComponent={
           <View style={styles.center}>
-            <Icon name="bus-alert" size={60} color={theme.colors.outline} />
-            <Text style={{ marginTop: 10, color: theme.colors.onSurfaceVariant }}>Aucun voyage disponible</Text>
-            <Button onPress={() => loadTrips(true)}>Actualiser</Button>
+            <Icon name="bus-alert" size={56} color={theme.colors.outline} />
+            <Text style={{ marginTop: 10 }}>Aucun voyage disponible</Text>
           </View>
         }
       />
@@ -184,15 +289,39 @@ export default function TripListScreen({ navigation }) {
   );
 }
 
+/* ========================
+        STYLES
+   ======================== */
 const styles = StyleSheet.create({
-  container: { padding: 12, paddingBottom: 30 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-  card: { marginBottom: 16, borderRadius: 12 },
+  container: {
+    padding: 12,
+    paddingBottom: 28,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  card: {
+    marginBottom: 14,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
   routeHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    justifyContent: "space-between",
   },
   cityContainer: {
     flexDirection: "row",
@@ -200,26 +329,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cityName: {
-    fontWeight: "bold",
-    marginHorizontal: 5,
+    fontSize: 14,
+    fontWeight: "600",
+    marginHorizontal: 4,
+    flexShrink: 1,
+    color: "#222",
   },
-  divider: { marginVertical: 10, opacity: 0.5 },
+  chip: {
+    height: 28,
+  },
+  divider: {
+    marginVertical: 8,
+  },
   detailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   infoBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   infoText: {
     marginLeft: 6,
-    fontSize: 13,
-    color: "#555",
+    fontSize: 12,
+    color: "#666",
   },
   actions: {
+    justifyContent: "space-between",
     paddingHorizontal: 8,
     paddingBottom: 8,
-    justifyContent: "space-between",
+  },
+  filters: {
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    marginVertical: 8,
+  },
+  filterChip: {
+    margin: 4,
+    height: 30,
+  },
+  input: {
+    marginHorizontal: 12,
+    marginBottom: 8,
   },
 });

@@ -257,14 +257,21 @@ export default function UsersTab({ onOpenUserModal }: UsersTabProps) {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manageur">Manageur</SelectItem>
+                          <SelectItem value="manager">Manageur</SelectItem>
                           <SelectItem value="user">Utilisateur</SelectItem>
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                        {user.role === "admin" ? "Admin" : "Utilisateur"}
-                      </span>
+                     <span
+  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}
+>
+  {user.role === "admin" 
+    ? "Admin" 
+    : user.role === "manager"
+      ? "Manageur"
+      : "Utilisateur"}
+</span>
+
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

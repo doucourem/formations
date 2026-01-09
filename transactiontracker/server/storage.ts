@@ -170,20 +170,27 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { 
-      ...insertUser, 
-      id,
-      role: insertUser.role || "user",
-      isActive: insertUser.isActive ?? true,
-      personalDebtThresholdFCFA: insertUser.personalDebtThresholdFCFA || (insertUser.role === "admin" ? "1000000.00" : "100000.00"),
-      personalFeePercentage: insertUser.personalFeePercentage || "10",
-      createdAt: new Date(),
-    };
-    this.users.set(id, user);
-    return user;
-  }
+
+async createUser(insertUser: InsertUser): Promise<User> {
+  const id = this.currentId++;
+
+  const role = insertUser.role || "user";
+
+  const user: User = {
+    ...insertUser,
+    id,
+    role, // accepte maintenant "user" | "admin" | "manager"
+    isActive: insertUser.isActive ?? true,
+    personalDebtThresholdFCFA:
+      insertUser.personalDebtThresholdFCFA ??
+      (role === "admin" ? 1_000_000.0 : 100_000.0),
+    personalFeePercentage: insertUser.personalFeePercentage ?? 10.0,
+    createdAt: new Date(),
+  };
+
+  this.users.set(id, user);
+  return user;
+}
 
   async updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined> {
     const user = this.users.get(id);

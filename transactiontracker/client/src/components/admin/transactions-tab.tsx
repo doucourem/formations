@@ -20,21 +20,22 @@ declare global {
 interface Transaction {
   id: number;
   userId: number;
-  clientId: number;
-  phoneNumber: string;
+  clientId: number | null;
+  phoneNumber: string | null;
   amountFCFA: string;
-  amountGNF: string;
-  amountToPay: string;
+  amountGNF: string | null;
+  amountToPay: string | null;
   status: string;
   proof: string | null;
   proofType: string | null;
   externalProofUrl: string | null;
   isArchived: boolean;
-  exchangeRate: string;
+  exchangeRate: string | null;
   createdAt: string;
   userName: string;
-  clientName: string;
+  clientName: string | null; // 🔥 CRITIQUE
 }
+
 
 interface TransactionsTabProps {
   onOpenProofModal: (transactionId: number) => void;
@@ -150,6 +151,16 @@ export default function TransactionsTab({ onOpenProofModal }: TransactionsTabPro
     };
   }, [refetchPending]);
 
+  useEffect(() => {
+  if (pendingTransactions) {
+    console.log(
+      '[FRONT DEBUG]',
+      pendingTransactions.filter(t => t.clientId === null).length,
+      'transactions sans client'
+    );
+  }
+}, [pendingTransactions]);
+
   // Optimize sorting and filtering with useMemo for better performance
   const { sortedTransactions, filteredTransactions } = useMemo(() => {
     console.log('🔧 [FILTER DEBUG] Processing transactions:', pendingTransactions?.length || 0);
@@ -158,27 +169,31 @@ export default function TransactionsTab({ onOpenProofModal }: TransactionsTabPro
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
-    const filtered = sorted.filter((transaction: Transaction) => {
-      // Filter by user
-      if (searchUser.trim()) {
-        const userName = transaction.userName?.toLowerCase() || '';
-        const clientName = transaction.clientName?.toLowerCase() || '';
-        const searchTerm = searchUser.toLowerCase();
-        if (!userName.includes(searchTerm) && !clientName.includes(searchTerm)) {
-          return false;
-        }
-      }
-      
-      // Filter by date only if a specific date is selected
-      if (selectedDate) {
-        const transactionDate = new Date(transaction.createdAt).toISOString().split('T')[0];
-        if (transactionDate !== selectedDate) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
+   const filtered = sorted.filter((transaction: Transaction) => {
+  // 🔹 Ne garder que les transactions avec un client valide
+  if (transaction.clientName === null) return false;
+
+  // Filtre par utilisateur
+  if (searchUser.trim()) {
+    const userName = transaction.userName?.toLowerCase() || '';
+    const clientName = transaction.clientName?.toLowerCase() || '';
+    const searchTerm = searchUser.toLowerCase();
+    if (!userName.includes(searchTerm) && !clientName.includes(searchTerm)) {
+      return false;
+    }
+  }
+
+  // Filtre par date
+  if (selectedDate) {
+    const transactionDate = new Date(transaction.createdAt).toISOString().split('T')[0];
+    if (transactionDate !== selectedDate) {
+      return false;
+    }
+  }
+
+  return true; // ✅ Garde seulement les transactions avec clientId
+});
+
 
     return { sortedTransactions: sorted, filteredTransactions: filtered };
   }, [transactions, searchUser, selectedDate]);

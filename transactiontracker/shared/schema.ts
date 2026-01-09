@@ -9,7 +9,8 @@ export const users = pgTable("users", {
   lastName: text("last_name").notNull(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().default("user"), // 'admin' or 'user'
+  role: text("role").notNull().default("user"), // admin | manager | user
+  
   isActive: boolean("is_active").notNull().default(true),
   personalDebtThresholdFCFA: decimal("personal_debt_threshold_fcfa", { precision: 15, scale: 2 }).default("100000.00"),
   personalFeePercentage: decimal("personal_fee_percentage", { precision: 5, scale: 2 }).default("10.00"),
@@ -95,11 +96,14 @@ export const balanceHistory = pgTable("balance_history", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-});
 
+const roleEnum = z.enum(["admin", "manager", "user"]);
+
+export const insertUserSchema = createInsertSchema(users)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    role: roleEnum.default("user"),
+  });
 
 
 

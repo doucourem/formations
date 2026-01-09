@@ -7,6 +7,7 @@ async function initializeDatabase() {
     // Vérifier si des utilisateurs existent déjà
     const existingUsers = await db.select().from(users);
     
+    
     if (existingUsers.length === 0) {
       console.log("Initialisation des données de base...");
       
