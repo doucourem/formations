@@ -56,9 +56,9 @@ export default function Show({ driver }) {
           {/* Infos du chauffeur */}
           <Box display="flex" gap={3} mb={4}>
             <Avatar
-              src={driver.photo}
-              sx={{ width: 120, height: 120, borderRadius: 2 }}
-            />
+  src={driver.photo_url || '/default-avatar.png'}
+  sx={{ width: 120, height: 120, borderRadius: 2 }}
+/>
 
             <Box>
               <Typography variant="h6">
@@ -110,7 +110,7 @@ export default function Show({ driver }) {
                   <TableCell>{doc.type}</TableCell>
                   <TableCell>{doc.expires_at ?? "—"}</TableCell>
                   <TableCell>
-                    <a href={doc.file_path} target="_blank">
+                   <a key={doc.id} href={doc.file_url} target="_blank">
                       Voir fichier
                     </a>
                   </TableCell>

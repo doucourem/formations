@@ -7,6 +7,7 @@ use App\Models\VehicleRental;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class VehicleRentalController extends Controller
 {
@@ -68,13 +69,34 @@ class VehicleRentalController extends Controller
         }
 
         $data['status'] = $data['status'] ?? 'active';
-        if ($request->hasFile('photo_before')) {
-    $data['photo_before'] = $request->file('photo_before')->store('rentals', 'public');
+     
+
+if ($request->hasFile('photo_before')) {
+
+    // suppression ancienne photo si existante
+
+    $path = Storage::disk('public_web')->putFile(
+        'rentals',
+        $request->file('photo_before')
+    );
+
+    // chemin relatif enregistré en base
+    $data['photo_before'] = $path;
 }
 
 if ($request->hasFile('photo_after')) {
-    $data['photo_after'] = $request->file('photo_after')->store('rentals', 'public');
+
+    
+
+    $path = Storage::disk('public_web')->putFile(
+        'rentals',
+        $request->file('photo_after')
+    );
+
+    $data['photo_after'] = $path;
 }
+
+
 
 VehicleRental::create($data);
 
@@ -122,6 +144,40 @@ VehicleRental::create($data);
         if ($conflict) {
             return redirect()->back()->with('error', 'Le véhicule est déjà loué sur cette période.');
         }
+
+    if ($request->hasFile('photo_before')) {
+
+    // suppression ancienne photo
+    if ($vehicleRental->photo_before) {
+        Storage::disk('public_web')->delete($vehicleRental->photo_before);
+    }
+
+    // upload
+    $path = Storage::disk('public_web')->putFile(
+        'rentals',
+        $request->file('photo_before')
+    );
+
+    // sauvegarde chemin relatif
+    $data['photo_before'] = $path;
+}
+
+
+if ($request->hasFile('photo_after')) {
+
+    // suppression ancienne photo si existante
+    if (!empty($vehicleRental->photo_after)) {
+        Storage::disk('public_web')->delete($vehicleRental->photo_after);
+    }
+
+    $path = Storage::disk('public_web')->putFile(
+        'rentals',
+        $request->file('photo_after')
+    );
+
+    // chemin relatif stocké en base
+    $data['photo_after'] = $path;
+}
 
         $vehicleRental->update($data);
 

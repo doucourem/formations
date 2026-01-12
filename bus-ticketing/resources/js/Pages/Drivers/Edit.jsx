@@ -125,7 +125,10 @@ export default function Edit({ driver, companies = [] }) {
             {/* PHOTO */}
             <Box textAlign="center">
               <Box sx={{ width: 130, height: 130, mx: "auto", borderRadius: 3, overflow: "hidden", border: "2px solid #ddd", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Avatar src={preview || "/default-avatar.png"} sx={{ width: "100%", height: "100%" }} variant="square" />
+                <Avatar
+  src={driver.photo_url || '/default-avatar.png'}
+  sx={{ width: 120, height: 120, borderRadius: 2 }}
+/>
               </Box>
               <Box display="flex" justifyContent="center" gap={1} mt={1}>
                 <Button variant="contained" component="label">Changer photo

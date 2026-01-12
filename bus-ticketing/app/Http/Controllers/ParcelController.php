@@ -10,6 +10,7 @@ use Inertia\Inertia;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  use App\Models\Agency;
+ use Illuminate\Support\Facades\Storage;
 class ParcelController extends Controller
 {
     /**
@@ -123,6 +124,19 @@ public function store(Request $request)
         $validated['parcel_image'] = $request->file('parcel_image')->store('parcels', 'public');
     }
 
+    if ($request->hasFile('parcel_image')) {
+
+
+    // upload dans le disque public_web
+    $path = Storage::disk('public_web')->putFile(
+        'parcels',
+        $request->file('parcel_image')
+    );
+
+    // stocker le chemin relatif en base
+    $validated['parcel_image'] = $path;
+}
+
     Parcel::create($validated);
 
     return redirect()->route('parcels.index')
@@ -148,11 +162,22 @@ public function update(Request $request, Parcel $parcel)
     ]);
 
     if ($request->hasFile('parcel_image')) {
-        if ($parcel->parcel_image && \Storage::disk('public')->exists($parcel->parcel_image)) {
-            \Storage::disk('public')->delete($parcel->parcel_image);
-        }
-        $validated['parcel_image'] = $request->file('parcel_image')->store('parcels', 'public');
+
+    // suppression ancienne image si existante
+    if (!empty($parcel->parcel_image)) {
+        Storage::disk('public_web')->delete($parcel->parcel_image);
     }
+
+    // upload dans le disque public_web
+    $path = Storage::disk('public_web')->putFile(
+        'parcels',
+        $request->file('parcel_image')
+    );
+
+    // stocker le chemin relatif en base
+    $validated['parcel_image'] = $path;
+}
+
 
     $parcel->update($validated);
 
