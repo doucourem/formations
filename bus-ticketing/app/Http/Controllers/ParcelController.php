@@ -15,13 +15,19 @@ class ParcelController extends Controller
     /**
      * List all parcels
      */
-    public function index()
-    {
-        $parcels = Parcel::orderBy('created_at', 'desc')->paginate(20);
-        return inertia('Parcels/Index', [
-            'parcels' => $parcels
-        ]);
-    }
+   public function index()
+{
+    $agencyId = auth()->user()->agency_id;
+
+    $parcels = Parcel::where('departure_agency_id', $agencyId)
+        ->orWhere('arrival_agency_id', $agencyId)
+        ->orderBy('created_at', 'desc')
+        ->paginate(20);
+
+    return inertia('Parcels/Index', [
+        'parcels' => $parcels
+    ]);
+}
 
   
 
@@ -36,7 +42,6 @@ public function create()
         'route.arrivalCity',
         'bus',
     ])
-    ->whereDate('departure_at', '>=', $today)
     ->get()
     ->map(fn($t) => [
         'id' => $t->id,
@@ -70,7 +75,6 @@ public function edit(Parcel $parcel)
         'route.arrivalCity',
         'bus',
     ])
-    ->whereDate('departure_at', '>=', $today)
     ->get()
     ->map(fn($t) => [
         'id' => $t->id,
@@ -100,7 +104,7 @@ public function edit(Parcel $parcel)
 public function store(Request $request)
 {
     $validated = $request->validate([
-        'trip_id' => 'required|exists:trips,id',
+        'trip_id' => 'nullable|exists:trips,id',
         'tracking_number' => 'required|string|max:255|unique:parcels,tracking_number',
         'sender_name' => 'required|string|max:255',
         'sender_phone' => 'required|string|max:50',
@@ -128,7 +132,7 @@ public function store(Request $request)
 public function update(Request $request, Parcel $parcel)
 {
     $validated = $request->validate([
-        'trip_id' => 'required|exists:trips,id',
+        'trip_id' => 'nullable|exists:trips,id',
         'tracking_number' => 'required|string|max:255|unique:parcels,tracking_number,' . $parcel->id,
         'sender_name' => 'required|string|max:255',
         'sender_phone' => 'required|string|max:50',
@@ -188,10 +192,10 @@ public function indexByTrip(Trip $trip)
         'trip' => [
             'id' => $trip->id,
             'departure_time' => $trip->departure_at
-                ? \Carbon\Carbon::parse($trip->departure_at)->format('d/m/Y H:i')
+                ? Carbon::parse($trip->departure_at)->format('d/m/Y H:i')
                 : null,
             'arrival_time' => $trip->arrival_at
-                ? \Carbon\Carbon::parse($trip->arrival_at)->format('d/m/Y H:i')
+                ? Carbon::parse($trip->arrival_at)->format('d/m/Y H:i')
                 : null,
             'bus' => $trip->bus ? [
                 'registration_number' => $trip->bus->registration_number,
@@ -260,10 +264,10 @@ public function show(Parcel $parcel)
                 'departureCity' => $parcel->trip->route->departureCity?->name,
                 'arrivalCity' => $parcel->trip->route->arrivalCity?->name,
                 'departure_at' => $parcel->trip->departure_at
-                    ? \Carbon\Carbon::parse($parcel->trip->departure_at)->format('d/m/Y H:i')
+                    ? Carbon::parse($parcel->trip->departure_at)->format('d/m/Y H:i')
                     : null,
                 'arrival_at' => $parcel->trip->arrival_at
-                    ? \Carbon\Carbon::parse($parcel->trip->arrival_at)->format('d/m/Y H:i')
+                    ? Carbon::parse($parcel->trip->arrival_at)->format('d/m/Y H:i')
                     : null,
                 'bus' => $parcel->trip->bus ? [
                     'registration_number' => $parcel->trip->bus->registration_number,

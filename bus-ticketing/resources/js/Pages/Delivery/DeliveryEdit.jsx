@@ -10,38 +10,43 @@ import {
   TextField,
   MenuItem,
   Typography,
+  Divider,
 } from "@mui/material";
 
 export default function DeliveryEdit({ delivery, buses, drivers }) {
   const [form, setForm] = useState({
     vehicle_id: delivery.vehicle_id ?? "",
     driver_id: delivery.driver_id ?? "",
+
+    client_name: delivery.client_name ?? "",
+    departure_place: delivery.departure_place ?? "",
+    arrival_place: delivery.arrival_place ?? "",
+
     product_name: delivery.product_name ?? "",
     product_lot: delivery.product_lot ?? "",
     quantity_loaded: delivery.quantity_loaded ?? "",
     quantity_delivered: delivery.quantity_delivered ?? "",
     distance_km: delivery.distance_km ?? "",
     price: delivery.price ?? "",
+
     departure_at: delivery.departure_at ?? "",
     arrival_at: delivery.arrival_at ?? "",
     status: delivery.status ?? "pending",
   });
 
-  // ✅ Gestion du changement de champ
- const handleChange = (e) => {
-  const { name, value } = e.target;
+  // ✅ Gestion propre des champs
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-  setForm((prev) => ({
-    ...prev,
-    [name]:
-      ["price","quantity_loaded","quantity_delivered","distance_km"].includes(name)
-        ? value === "" ? "" : parseFloat(value)
+    setForm((prev) => ({
+      ...prev,
+      [name]: ["price", "quantity_loaded", "quantity_delivered", "distance_km"].includes(name)
+        ? value === "" ? "" : Number(value)
         : value,
-  }));
-};
+    }));
+  };
 
-
-  // ✅ Soumission du formulaire
+  // ✅ Soumission
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -53,14 +58,15 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
 
   return (
     <GuestLayout>
-      <Card sx={{ borderRadius: 3, p: 3 }}>
+      <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
         <CardHeader
           title={<Typography variant="h5">Modifier la livraison 📦</Typography>}
         />
 
         <CardContent>
-          <Box component="form" onSubmit={handleSubmit} display="grid" gap={2}>
-            {/* Véhicule */}
+          <Box component="form" onSubmit={handleSubmit} display="grid" gap={2.5}>
+
+            {/* ================= Véhicule / Chauffeur ================= */}
             <TextField
               select
               label="Véhicule"
@@ -76,7 +82,6 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               ))}
             </TextField>
 
-            {/* Chauffeur */}
             <TextField
               select
               label="Chauffeur"
@@ -92,7 +97,36 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               ))}
             </TextField>
 
-            {/* Produit */}
+            <Divider />
+
+            {/* ================= Client / Itinéraire ================= */}
+            <TextField
+              label="Client"
+              name="client_name"
+              value={form.client_name}
+              onChange={handleChange}
+              required
+            />
+
+            <TextField
+              label="Lieu de départ"
+              name="departure_place"
+              value={form.departure_place}
+              onChange={handleChange}
+              required
+            />
+
+            <TextField
+              label="Lieu d’arrivée"
+              name="arrival_place"
+              value={form.arrival_place}
+              onChange={handleChange}
+              required
+            />
+
+            <Divider />
+
+            {/* ================= Marchandise ================= */}
             <TextField
               label="Produit"
               name="product_name"
@@ -101,7 +135,6 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               required
             />
 
-            {/* Lot */}
             <TextField
               label="Lot produit"
               name="product_lot"
@@ -109,7 +142,6 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               onChange={handleChange}
             />
 
-            {/* Quantité chargée */}
             <TextField
               label="Quantité chargée"
               type="number"
@@ -120,7 +152,6 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               required
             />
 
-            {/* Quantité livrée */}
             <TextField
               label="Quantité livrée"
               type="number"
@@ -130,7 +161,9 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               inputProps={{ min: 0 }}
             />
 
-            {/* Distance */}
+            <Divider />
+
+            {/* ================= Logistique ================= */}
             <TextField
               label="Distance (km)"
               type="number"
@@ -140,19 +173,19 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               inputProps={{ min: 0 }}
             />
 
-            {/* ✅ Prix manuel */}
-           <TextField
-  label="Prix (CFA)"
-  type="number"
-  name="price"
-  value={form.price}
-  onChange={handleChange}
-  required
-  inputProps={{ min: 0, step: 0.01 }}
-/>
+            <TextField
+              label="Prix (CFA)"
+              type="number"
+              name="price"
+              value={form.price}
+              onChange={handleChange}
+              required
+              inputProps={{ min: 0, step: 0.01 }}
+            />
 
+            <Divider />
 
-            {/* Départ */}
+            {/* ================= Dates ================= */}
             <TextField
               type="datetime-local"
               label="Départ"
@@ -163,7 +196,6 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               required
             />
 
-            {/* Arrivée */}
             <TextField
               type="datetime-local"
               label="Arrivée"
@@ -173,7 +205,7 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               InputLabelProps={{ shrink: true }}
             />
 
-            {/* Statut */}
+            {/* ================= Statut ================= */}
             <TextField
               select
               label="Statut"
@@ -186,8 +218,8 @@ export default function DeliveryEdit({ delivery, buses, drivers }) {
               <MenuItem value="delivered">Livré</MenuItem>
             </TextField>
 
-            {/* Bouton submit */}
-            <Button type="submit" variant="contained">
+            {/* ================= Action ================= */}
+            <Button type="submit" variant="contained" size="large">
               Enregistrer
             </Button>
           </Box>

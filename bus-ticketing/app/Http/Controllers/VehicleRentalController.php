@@ -68,7 +68,15 @@ class VehicleRentalController extends Controller
         }
 
         $data['status'] = $data['status'] ?? 'active';
-        VehicleRental::create($data);
+        if ($request->hasFile('photo_before')) {
+    $data['photo_before'] = $request->file('photo_before')->store('rentals', 'public');
+}
+
+if ($request->hasFile('photo_after')) {
+    $data['photo_after'] = $request->file('photo_after')->store('rentals', 'public');
+}
+
+VehicleRental::create($data);
 
         return redirect()->route('vehicle-rentals.index')
                          ->with('success', 'Location créée avec succès.');

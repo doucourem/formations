@@ -63,8 +63,8 @@ export default function Create({ trips, agencies }) {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Image trop lourde (max 2 Mo).");
+    if (file.size > 20 * 1024 * 1024) {
+      alert("Image trop lourde (max 20 Mo).");
       return;
     }
 
@@ -78,10 +78,11 @@ export default function Create({ trips, agencies }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!form.trip_id) {
-      alert("Veuillez sélectionner un voyage.");
-      return;
-    }
+    
+     if (form.departure_agency_id === form.arrival_agency_id) {
+    alert("L'agence de départ et d'arrivée doivent être différentes !");
+    return;
+  }
     if (form.weight_kg <= 0) {
       alert("Le poids doit être supérieur à 0.");
       return;
@@ -111,7 +112,7 @@ export default function Create({ trips, agencies }) {
                 name="trip_id"
                 value={form.trip_id}
                 onChange={handleChange}
-                required
+            
               >
                 {Array.isArray(trips) &&
                   trips.map((t) => (
@@ -124,36 +125,38 @@ export default function Create({ trips, agencies }) {
               </TextField>
 
               {/* Agence de départ */}
-              <TextField
-                select
-                label="Agence de départ"
-                name="departure_agency_id"
-                value={form.departure_agency_id}
-                onChange={handleChange}
-                required
-              >
-                {agencies.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+             <TextField
+  select
+  label="Agence de départ"
+  name="departure_agency_id"
+  value={form.departure_agency_id}
+  onChange={handleChange}
+  required
+>
+  {agencies.map((a) => (
+    <MenuItem key={a.id} value={a.id}>
+      {a.name}
+    </MenuItem>
+  ))}
+</TextField>
 
-              {/* Agence d'arrivée */}
-              <TextField
-                select
-                label="Agence d'arrivée"
-                name="arrival_agency_id"
-                value={form.arrival_agency_id}
-                onChange={handleChange}
-                required
-              >
-                {agencies.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+<TextField
+  select
+  label="Agence d'arrivée"
+  name="arrival_agency_id"
+  value={form.arrival_agency_id}
+  onChange={handleChange}
+  required
+>
+  {agencies
+    .filter((a) => a.id !== form.departure_agency_id) // ❌ Exclure la même que départ
+    .map((a) => (
+      <MenuItem key={a.id} value={a.id}>
+        {a.name}
+      </MenuItem>
+    ))}
+</TextField>
+
 
               {/* Numéro de tracking */}
               <Box display="flex" alignItems="center" gap={1}>

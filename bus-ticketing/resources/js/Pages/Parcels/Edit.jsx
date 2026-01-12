@@ -90,7 +90,6 @@ const handleChange = (e) => {
                 name="trip_id"
                 value={form.trip_id}
                 onChange={handleChange}
-                required
               >
                 {trips.map((t) => (
                   <MenuItem key={t.id} value={t.id}>
@@ -100,36 +99,40 @@ const handleChange = (e) => {
               </TextField>
 
               {/* Agence de départ */}
-              <TextField
-                select
-                label="Agence de départ"
-                name="departure_agency_id"
-                value={form.departure_agency_id}
-                onChange={handleChange}
-                required
-              >
-                {agencies.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+           {/* Agence de départ */}
+<TextField
+  select
+  label="Agence de départ"
+  name="departure_agency_id"
+  value={form.departure_agency_id}
+  onChange={handleChange}
+  required
+>
+  {agencies.map((a) => (
+    <MenuItem key={a.id} value={a.id}>
+      {a.name}
+    </MenuItem>
+  ))}
+</TextField>
 
-              {/* Agence d'arrivée */}
-              <TextField
-                select
-                label="Agence d'arrivée"
-                name="arrival_agency_id"
-                value={form.arrival_agency_id}
-                onChange={handleChange}
-                required
-              >
-                {agencies.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+{/* Agence d'arrivée */}
+<TextField
+  select
+  label="Agence d'arrivée"
+  name="arrival_agency_id"
+  value={form.arrival_agency_id}
+  onChange={handleChange}
+  required
+>
+  {agencies
+    .filter((a) => a.id !== form.departure_agency_id) // ❌ Exclut l’agence de départ
+    .map((a) => (
+      <MenuItem key={a.id} value={a.id}>
+        {a.name}
+      </MenuItem>
+    ))}
+</TextField>
+
 
               {/* Numéro de Tracking */}
               <TextField

@@ -10,12 +10,17 @@ import {
   MenuItem,
   Button,
   Typography,
+  Divider,
 } from "@mui/material";
 
 export default function DeliveryCreate({ vehicles, drivers }) {
   const [form, setForm] = useState({
     vehicle_id: "",
     driver_id: "",
+    payment_method: "",
+    client_name: "",
+    departure_place: "",
+    arrival_place: "",
     product_name: "",
     product_lot: "",
     quantity_loaded: "",
@@ -36,9 +41,6 @@ export default function DeliveryCreate({ vehicles, drivers }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Debug (optionnel)
-    console.log("Form envoyé :", form);
-
     Inertia.post(route("deliveries.store"), {
       ...form,
       quantity_loaded: Number(form.quantity_loaded),
@@ -49,19 +51,24 @@ export default function DeliveryCreate({ vehicles, drivers }) {
 
   return (
     <GuestLayout>
-      <Card elevation={3} sx={{ borderRadius: 3, p: 3, mb: 3 }}>
+      <Card elevation={3} sx={{ borderRadius: 3, p: 3, mb: 4 }}>
         <CardHeader
-          title={<Typography variant="h5">Créer une livraison 🚛</Typography>}
+          title={
+            <Typography variant="h5">
+              Créer une livraison 🚛
+            </Typography>
+          }
+          subheader="Informations générales de la livraison"
         />
 
         <CardContent>
           <Box
             component="form"
             display="grid"
-            gap={2}
+            gap={2.5}
             onSubmit={handleSubmit}
           >
-            {/* Véhicule */}
+            {/* ================= Véhicule & Chauffeur ================= */}
             <TextField
               select
               label="Véhicule"
@@ -77,7 +84,6 @@ export default function DeliveryCreate({ vehicles, drivers }) {
               ))}
             </TextField>
 
-            {/* Chauffeur */}
             <TextField
               select
               label="Chauffeur"
@@ -93,7 +99,36 @@ export default function DeliveryCreate({ vehicles, drivers }) {
               ))}
             </TextField>
 
-            {/* Produit */}
+            <Divider sx={{ my: 2 }} />
+
+            {/* ================= Client & Itinéraire ================= */}
+            <TextField
+              label="Client"
+              name="client_name"
+              value={form.client_name}
+              onChange={handleChange}
+              required
+            />
+
+            <TextField
+              label="Lieu de départ"
+              name="departure_place"
+              value={form.departure_place}
+              onChange={handleChange}
+              required
+            />
+
+            <TextField
+              label="Lieu d’arrivée"
+              name="arrival_place"
+              value={form.arrival_place}
+              onChange={handleChange}
+              required
+            />
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* ================= Marchandise ================= */}
             <TextField
               label="Produit"
               name="product_name"
@@ -102,7 +137,6 @@ export default function DeliveryCreate({ vehicles, drivers }) {
               required
             />
 
-            {/* Lot */}
             <TextField
               label="Lot / Référence"
               name="product_lot"
@@ -110,7 +144,6 @@ export default function DeliveryCreate({ vehicles, drivers }) {
               onChange={handleChange}
             />
 
-            {/* Quantité */}
             <TextField
               label="Quantité chargée"
               type="number"
@@ -121,7 +154,9 @@ export default function DeliveryCreate({ vehicles, drivers }) {
               inputProps={{ min: 0 }}
             />
 
-            {/* Distance */}
+            <Divider sx={{ my: 2 }} />
+
+            {/* ================= Logistique ================= */}
             <TextField
               label="Distance (km)"
               type="number"
@@ -132,7 +167,6 @@ export default function DeliveryCreate({ vehicles, drivers }) {
               inputProps={{ min: 0 }}
             />
 
-            {/* Prix */}
             <TextField
               label="Prix (CFA)"
               type="number"
@@ -143,10 +177,12 @@ export default function DeliveryCreate({ vehicles, drivers }) {
               inputProps={{ min: 0 }}
             />
 
-            {/* Départ */}
+            <Divider sx={{ my: 2 }} />
+
+            {/* ================= Dates ================= */}
             <TextField
               type="datetime-local"
-              label="Départ"
+              label="Date & heure de départ"
               name="departure_at"
               value={form.departure_at}
               onChange={handleChange}
@@ -154,17 +190,33 @@ export default function DeliveryCreate({ vehicles, drivers }) {
               InputLabelProps={{ shrink: true }}
             />
 
-            {/* Arrivée */}
             <TextField
               type="datetime-local"
-              label="Arrivée prévue"
+              label="Date & heure d’arrivée prévue"
               name="arrival_at"
               value={form.arrival_at}
               onChange={handleChange}
               InputLabelProps={{ shrink: true }}
             />
-
-            <Button type="submit" variant="contained" color="primary">
+     <TextField
+                select
+                label="Mode de paiement"
+                name="payment_method"
+                value={form.payment_method}
+                onChange={handleChange}
+                required
+              >
+                <MenuItem value="cash">Cash</MenuItem>
+                <MenuItem value="orange_money">Orange Money</MenuItem>
+                <MenuItem value="wave">Wave</MenuItem>
+              </TextField>
+            {/* ================= Action ================= */}
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              sx={{ mt: 2 }}
+            >
               Enregistrer la livraison
             </Button>
           </Box>

@@ -3,10 +3,10 @@ import {
   View,
   FlatList,
   TouchableOpacity,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import {
   Dialog,
@@ -16,11 +16,8 @@ import {
   Button,
 } from "react-native-paper";
 
-const { width, height } = Dimensions.get("window");
-const isDesktop = width >= 768;
-
 /* ---------- Section Title ---------- */
-const SectionTitle = ({ children, theme }) => (
+const SectionTitle = ({ children, theme, isDesktop }) => (
   <Text
     style={{
       marginBottom: 6,
@@ -45,6 +42,9 @@ export default function TransactionDialog({
   profile,
   transactionTypes,
 }) {
+  /* ---------- Responsive ---------- */
+  const { width, height } = useWindowDimensions();
+  const isDesktop = width >= 768;
 
   /* ---------- Validation ---------- */
   const isValid = useMemo(() => {
@@ -63,11 +63,10 @@ export default function TransactionDialog({
         onDismiss={onDismiss}
         style={{
           backgroundColor: theme.colors.surface,
-          borderRadius: 16,
+          borderRadius: isDesktop ? 16 : 12,
           alignSelf: "center",
-          width: isDesktop ? 560 : "94%",
-          maxWidth: 640,
-          maxHeight: "90%",
+          width: isDesktop ? 560 : width - 24,
+          maxHeight: height - 40,
         }}
       >
         {/* ===== TITLE ===== */}
@@ -82,10 +81,10 @@ export default function TransactionDialog({
           {editMode ? "✏️ Modifier la transaction" : "➕ Nouvelle transaction"}
         </Dialog.Title>
 
-        {/* ===== CONTENT (MOBILE SAFE) ===== */}
+        {/* ===== CONTENT ===== */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ maxHeight: height * 0.75 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ maxHeight: height - 180 }}
         >
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -96,7 +95,9 @@ export default function TransactionDialog({
               {/* ===== CAISSE ===== */}
               {cashes.length > 1 && (
                 <>
-                  <SectionTitle theme={theme}>Caisse</SectionTitle>
+                  <SectionTitle theme={theme} isDesktop={isDesktop}>
+                    Caisse
+                  </SectionTitle>
 
                   <TextInput
                     label="Rechercher une caisse"
@@ -122,13 +123,14 @@ export default function TransactionDialog({
                       }}
                     >
                       <FlatList
-                        keyboardShouldPersistTaps="handled"
                         data={cashes.filter((c) =>
                           c.name
                             .toLowerCase()
                             .includes(form.cashQuery.toLowerCase())
                         )}
                         keyExtractor={(item) => item.id.toString()}
+                        keyboardShouldPersistTaps="handled"
+                        nestedScrollEnabled
                         renderItem={({ item }) => {
                           const selected = form.cashId === item.id;
                           return (
@@ -175,7 +177,9 @@ export default function TransactionDialog({
               >
                 {/* Montant */}
                 <View style={{ flex: 1 }}>
-                  <SectionTitle theme={theme}>Montant</SectionTitle>
+                  <SectionTitle theme={theme} isDesktop={isDesktop}>
+                    Montant
+                  </SectionTitle>
                   <TextInput
                     label="Montant (FCFA)"
                     value={form.amount}
@@ -195,12 +199,16 @@ export default function TransactionDialog({
                 {/* CREDIT / DEBIT */}
                 {profile?.role?.toLowerCase() !== "grossiste" && (
                   <View style={{ flex: 1 }}>
-                    <SectionTitle theme={theme}>Type</SectionTitle>
+                    <SectionTitle theme={theme} isDesktop={isDesktop}>
+                      Type
+                    </SectionTitle>
                     <View style={{ flexDirection: "row", gap: 6 }}>
                       {profile?.role?.toLowerCase() === "admin" && (
                         <Button
                           mode={
-                            form.type === "CREDIT" ? "contained" : "outlined"
+                            form.type === "CREDIT"
+                              ? "contained"
+                              : "outlined"
                           }
                           onPress={() =>
                             setForm({ ...form, type: "CREDIT" })
@@ -218,7 +226,9 @@ export default function TransactionDialog({
 
                       <Button
                         mode={
-                          form.type === "DEBIT" ? "contained" : "outlined"
+                          form.type === "DEBIT"
+                            ? "contained"
+                            : "outlined"
                         }
                         onPress={() =>
                           setForm({ ...form, type: "DEBIT" })
@@ -238,7 +248,9 @@ export default function TransactionDialog({
               </View>
 
               {/* ===== TYPE TRANSACTION ===== */}
-              <SectionTitle theme={theme}>Type de transaction</SectionTitle>
+              <SectionTitle theme={theme} isDesktop={isDesktop}>
+                Type de transaction
+              </SectionTitle>
 
               <View
                 style={{
@@ -306,9 +318,10 @@ export default function TransactionDialog({
         {/* ===== ACTIONS ===== */}
         <Dialog.Actions
           style={{
-            justifyContent: "flex-end",
-            gap: 10,
+            flexDirection: isDesktop ? "row" : "column",
+            gap: 8,
             paddingHorizontal: 16,
+            paddingBottom: 8,
           }}
         >
           <Button
