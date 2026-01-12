@@ -16,19 +16,30 @@ class ParcelController extends Controller
     /**
      * List all parcels
      */
-   public function index()
+public function index()
 {
-    $agencyId = auth()->user()->agency_id;
+    $user = auth()->user();
 
-    $parcels = Parcel::where('departure_agency_id', $agencyId)
-        ->orWhere('arrival_agency_id', $agencyId)
-        ->orderBy('created_at', 'desc')
-        ->paginate(20);
+    $query = Parcel::query();
+
+    // Si ce n'est pas un admin, filtrer par agence
+    if ($user->role !== 'admin') {
+        $agencyId = $user->agency_id;
+        $query->where(function($q) use ($agencyId) {
+            $q->where('departure_agency_id', $agencyId)
+              ->orWhere('arrival_agency_id', $agencyId);
+        });
+    }
+
+    $parcels = $query->orderBy('created_at', 'desc')
+                      ->paginate(20)
+                      ->withQueryString(); // conserve la pagination et filtres
 
     return inertia('Parcels/Index', [
         'parcels' => $parcels
     ]);
 }
+
 
   
 
@@ -260,30 +271,37 @@ public function show(Parcel $parcel)
         'trip.route.departureCity',
         'trip.route.arrivalCity',
         'trip.bus',
-        'departureAgency',      // ajout
-        'arrivalAgency',   // ajout
+        'departureAgency',
+        'arrivalAgency',
     ]);
 
     return Inertia::render('Parcels/Show', [
         'parcel' => [
-        'id' => $parcel->id,
-        'tracking_number' => $parcel->tracking_number,
-        'sender_name' => $parcel->sender_name,
-        'recipient_name' => $parcel->recipient_name,
-        // Générer l'URL publique pour le frontend
-        'parcel_image' => $parcel->parcel_image ? asset('storage/' . $parcel->parcel_image) : null,
-        'senderAgency' => $parcel->departureAgency ? [
-            'id' => $parcel->departureAgency->id,
-            'name' => $parcel->departureAgency->name,
-        ] : null,
+            'id' => $parcel->id,
+            'tracking_number' => $parcel->tracking_number,
+            'sender_name' => $parcel->sender_name,
+            'recipient_name' => $parcel->recipient_name,
+            
+            // URL publique via public_web
+            'parcel_image' => $parcel->parcel_image 
+                ? Storage::disk('public_web')->url($parcel->parcel_image) 
+                : null,
+
+            'senderAgency' => $parcel->departureAgency ? [
+                'id' => $parcel->departureAgency->id,
+                'name' => $parcel->departureAgency->name,
+            ] : null,
+
             'recipientAgency' => $parcel->arrivalAgency ? [
                 'id' => $parcel->arrivalAgency->id,
                 'name' => $parcel->arrivalAgency->name,
             ] : null,
+
             'weight_kg' => $parcel->weight_kg,
             'price' => $parcel->price,
             'status' => $parcel->status,
             'description' => $parcel->description,
+
             'trip' => $parcel->trip ? [
                 'id' => $parcel->trip->id,
                 'departureCity' => $parcel->trip->route->departureCity?->name,
@@ -301,6 +319,7 @@ public function show(Parcel $parcel)
         ],
     ]);
 }
+
 
 
 
