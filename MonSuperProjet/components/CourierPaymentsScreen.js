@@ -37,6 +37,7 @@ export default function CourierPaymentsScreen() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [validatingAll, setValidatingAll] = useState(false);
 
   useEffect(() => {
     init();
@@ -44,12 +45,10 @@ export default function CourierPaymentsScreen() {
 
   /* ===== INIT ===== */
   const init = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: profileData, error } = await supabase
+    const { data, error } = await supabase
       .from("users")
       .select("*")
       .eq("id", user.id)
@@ -60,8 +59,8 @@ export default function CourierPaymentsScreen() {
       return;
     }
 
-    setProfile(profileData);
-    fetchPayments(profileData);
+    setProfile(data);
+    fetchPayments(data);
   };
 
   /* ===== FETCH PAYMENTS ===== */
@@ -74,47 +73,19 @@ export default function CourierPaymentsScreen() {
         .eq("type", "DEBIT")
         .order("created_at", { ascending: false });
 
-      // kiosque voit seulement ses paiements
       if (profileData.role === "kiosque") {
         query = query.eq("cashier_id", profileData.id);
       }
 
       const { data, error } = await query;
+      if (error) throw error;
 
-      if (error) Alert.alert("Erreur", error.message);
-      else setPayments(data || []);
+      setPayments(data || []);
     } catch (err) {
       Alert.alert("Erreur", err.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  /* ===== VALIDATION ADMIN ===== */
-  const validatePayment = async (transactionId) => {
-    Alert.alert(
-      "Validation du paiement",
-      "Confirmer la validation de ce paiement ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Valider",
-          onPress: async () => {
-            const { error } = await supabase
-              .from("transactions")
-              .update({ status: "APPROVED" })
-              .eq("id", transactionId);
-
-            if (error) {
-              Alert.alert("Erreur", error.message);
-            } else {
-              Alert.alert("Succès", "Paiement validé ✅");
-              fetchPayments(profile);
-            }
-          },
-        },
-      ]
-    );
   };
 
   /* ===== SEARCH ===== */
@@ -128,17 +99,89 @@ export default function CourierPaymentsScreen() {
     );
   }, [payments, search]);
 
-  /* ===== TOTAL ===== */
-  const total = useMemo(() => {
-    return filtered.reduce((sum, p) => sum + Number(p.amount), 0);
-  }, [filtered]);
+  /* ===== PENDING ===== */
+  const pendingPayments = useMemo(
+    () => filtered.filter(p => p.transaction_status === "PENDING"),
+    [filtered]
+  );
 
-  if (loading)
+  /* ===== TOTAL ===== */
+  const total = useMemo(
+    () => filtered.reduce((sum, p) => sum + Number(p.amount), 0),
+    [filtered]
+  );
+
+  /* ===== VALIDATION SINGLE ===== */
+  const validatePayment = (id) => {
+    Alert.alert(
+      "Validation",
+      "Confirmer la validation de ce paiement ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Valider",
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from("transactions")
+                .update({ status: "APPROVED" })
+                .eq("id", id);
+
+              if (error) throw error;
+
+              fetchPayments(profile);
+            } catch (err) {
+              Alert.alert("Erreur", err.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  /* ===== VALIDATION ALL ===== */
+  const validateAllPayments = () => {
+    if (pendingPayments.length === 0) return;
+
+    Alert.alert(
+      "Validation globale",
+      `Valider ${pendingPayments.length} paiement(s) ?`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Tout valider",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setValidatingAll(true);
+              const ids = pendingPayments.map(p => p.id);
+
+              const { error } = await supabase
+                .from("transactions")
+                .update({ status: "APPROVED" })
+                .in("id", ids);
+
+              if (error) throw error;
+
+              fetchPayments(profile);
+            } catch (err) {
+              Alert.alert("Erreur", err.message);
+            } finally {
+              setValidatingAll(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (loading) {
     return (
       <PaperProvider theme={theme}>
         <ActivityIndicator style={{ marginTop: 30 }} />
       </PaperProvider>
     );
+  }
 
   return (
     <PaperProvider theme={theme}>
@@ -146,19 +189,33 @@ export default function CourierPaymentsScreen() {
         {/* SEARCH */}
         <TextInput
           placeholder="Rechercher coursier ou boutique..."
-          placeholderTextColor={theme.colors.placeholder}
           value={search}
           onChangeText={setSearch}
-          style={[styles.search, { backgroundColor: theme.colors.surface }]}
+          style={styles.search}
           mode="outlined"
         />
 
         {/* TOTAL */}
-        <Card style={[styles.totalCard, { backgroundColor: theme.colors.surface }]}>
+        <Card style={styles.totalCard}>
           <Card.Content>
             <Text style={[styles.totalText, { color: theme.colors.success }]}>
-              💰 TOTAL DES RECOUVREMENTS: {total.toLocaleString("fr-FR")} FCFA
+              💰 TOTAL DES RECOUVREMENTS : {total.toLocaleString("fr-FR")} FCFA
             </Text>
+
+            {profile?.role === "admin" && (
+              <Button
+                mode="contained"
+                icon="check-all"
+                loading={validatingAll}
+                disabled={pendingPayments.length === 0 || validatingAll}
+                onPress={validateAllPayments}
+                style={{ marginTop: 10 }}
+              >
+                {pendingPayments.length === 0
+                  ? "Aucun paiement à valider"
+                  : `Tout valider (${pendingPayments.length})`}
+              </Button>
+            )}
           </Card.Content>
         </Card>
 
@@ -168,68 +225,52 @@ export default function CourierPaymentsScreen() {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ paddingBottom: height * 0.12 }}
           renderItem={({ item }) => (
-            <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-  <Card.Content>
-    <Text style={[styles.amount, { color: theme.colors.primary }]}>
-      {item.amount.toLocaleString("fr-FR")} FCFA
-    </Text>
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text style={styles.amount}>
+                  {item.amount.toLocaleString("fr-FR")} FCFA
+                </Text>
 
-    <Text style={{ color: theme.colors.onSurface }}>
-      👤 {item.cashier_name || item.cashier_email}
-    </Text>
+                <Text>👤 {item.cashier_name || item.cashier_email}</Text>
+                <Text>🏪 {item.kiosk_name || "—"}</Text>
+                <Text>📅 {new Date(item.created_at).toLocaleDateString("fr-FR")}</Text>
 
-    <Text style={{ color: theme.colors.onSurface }}>
-      🏪 {item.kiosk_name || "—"}
-    </Text>
+                <Text style={{ fontWeight: "bold", marginTop: 6 }}>
+                  Statut :{" "}
+                  <Text
+                    style={{
+                      color:
+                        item.transaction_status === "APPROVED"
+                          ? theme.colors.success
+                          : item.transaction_status === "REJECTED"
+                          ? theme.colors.error
+                          : theme.colors.accent,
+                    }}
+                  >
+                    {item.transaction_status === "APPROVED"
+                      ? "Approuvé"
+                      : item.transaction_status === "REJECTED"
+                      ? "Rejeté"
+                      : "En attente"}
+                  </Text>
+                </Text>
 
-    <Text style={{ color: theme.colors.onSurface }}>
-      📅 {new Date(item.created_at).toLocaleDateString("fr-FR")}
-    </Text>
-
-    <Text style={{ color: theme.colors.onSurface }}>
-      🔄 Type :{" "}
-      <Text style={{ fontWeight: "bold" }}>
-        {item.transaction_type }
-      </Text>
-    </Text>
-
-    <Text
-      style={{
-        marginTop: 6,
-        fontWeight: "bold",
-        color:
-          item.transaction_status === "APPROVED"
-            ? theme.colors.success
-            : item.transaction_status === "REJECTED"
-            ? theme.colors.error
-            : theme.colors.accent,
-      }}
-    >
-      Statut :{" "}
-      {item.transaction_status === "APPROVED"
-        ? "Approuvé"
-        : item.transaction_status === "REJECTED"
-        ? "Rejeté"
-        : "En attente"}
-    </Text>
-
-    {profile?.role === "admin" && item.transaction_status === "PENDING" && (
-      <Button
-        mode="contained"
-        style={{ marginTop: 10 }}
-        buttonColor={theme.colors.success}
-        onPress={() => validatePayment(item.id)}
-      >
-        Valider le paiement
-      </Button>
-    )}
-  </Card.Content>
-</Card>
-
+                {profile?.role === "admin" &&
+                  item.transaction_status === "PENDING" && (
+                    <Button
+                      mode="contained"
+                      style={{ marginTop: 10 }}
+                      onPress={() => validatePayment(item.id)}
+                    >
+                      Valider
+                    </Button>
+                  )}
+              </Card.Content>
+            </Card>
           )}
           ListEmptyComponent={
-            <Text style={{ color: theme.colors.onSurface, textAlign: "center", marginTop: 20 }}>
-              Aucune transaction trouvée.
+            <Text style={{ textAlign: "center", marginTop: 20 }}>
+              Aucune transaction trouvée
             </Text>
           }
         />
@@ -240,28 +281,10 @@ export default function CourierPaymentsScreen() {
 
 /* ===== STYLES ===== */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: width * 0.04,
-  },
-  search: {
-    marginBottom: height * 0.015,
-  },
-  totalCard: {
-    marginBottom: 10,
-    borderRadius: 12,
-  },
-  totalText: {
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  card: {
-    marginVertical: 6,
-    borderRadius: 12,
-  },
-  amount: {
-    fontWeight: "bold",
-    fontSize: 16,
-    marginBottom: 4,
-  },
+  container: { flex: 1, padding: width * 0.04 },
+  search: { marginBottom: 12 },
+  totalCard: { borderRadius: 12, marginBottom: 10 },
+  totalText: { fontSize: 16, fontWeight: "bold" },
+  card: { marginVertical: 6, borderRadius: 12 },
+  amount: { fontWeight: "bold", fontSize: 16 },
 });

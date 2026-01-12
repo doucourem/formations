@@ -255,7 +255,7 @@ export default function WholesalersList() {
 
           <View style={styles.amountRow}>
             <Text style={isPositive ? styles.positive : styles.negative}>
-              {isPositive ? "Solde créditeur" : "Solde débiteur"} :{" "}
+              {isPositive ? " VOUS DEVEZ " : "ON VOUS DOIT"} :{" "}
               {formatCFA(Math.abs(solde))}
             </Text>
             <IconButton
@@ -276,22 +276,26 @@ export default function WholesalersList() {
       <Text style={styles.header}>Fournisseur & Soldes</Text>
 
       <Card style={styles.totalCard}>
-        <Card.Content>
-          <Text style={styles.totalLabel}>CRÉDIT TOTAL</Text>
-          <Text
-            style={{
-              fontWeight: "bold",
-              textAlign: "center",
-              color:
-                globalTotals.balance >= 0
-                  ? theme.colors.success
-                  : theme.colors.error,
-            }}
-          >
-            {formatCFA(globalTotals.balance)}
-          </Text>
-        </Card.Content>
-      </Card>
+  <Card.Content>
+    <Text style={styles.totalLabel}>
+      {globalTotals.balance >= 0 ? "ON VOUS DOIT" : "VOUS DEVEZ"}
+    </Text>
+
+    <Text
+      style={{
+        fontWeight: "bold",
+        textAlign: "center",
+        color:
+          globalTotals.balance >= 0
+            ? theme.colors.success
+            : theme.colors.error,
+      }}
+    >
+      {formatCFA(Math.abs(globalTotals.balance))}
+    </Text>
+  </Card.Content>
+</Card>
+
 
       <FlatList
         data={wholesalers}

@@ -58,7 +58,7 @@ const getTransactionTypes = (role) => {
     case "kiosque":
       return ["CASH", "Renvoie Airtel", "Renvoie Moov",  "Autre"]; // achats entrants
     default:
-      return ["Envoie Airtel", "Envoie Moov","CASH", "Renvoie Airtel", "Renvoie Moov", "Vente UV", "Autre"];
+      return ["Envoie Airtel", "Envoie Moov","CASH", "Renvoie Airtel", "Renvoie Moov", "Autre"];
   }
 };
 
@@ -89,7 +89,7 @@ const [transactionTypes, setTransactionTypes] = useState([]);
     cashQuery: "",
     amount: "",
     type: "CREDIT",
-    transactionType: "Vente UV",
+    transactionType: "Envoie Airtel",
     otherType: "",
   });
   const [profile, setProfile] = useState(null);
@@ -627,7 +627,7 @@ const handleDeleteTransaction = (id) => {
       amount: "", 
       // Logique de forçage ici :
       type: profile?.role?.toLowerCase() === "kiosque" ? "DEBIT" : "CREDIT", 
-      transactionType: profile?.role?.toLowerCase() === "kiosque" ? "Autre" : "Vente UV", 
+      transactionType: profile?.role?.toLowerCase() === "kiosque" ? "CASH" : "Envoie Airtel", 
       otherType: "" 
     });
     setDialogVisible(true);

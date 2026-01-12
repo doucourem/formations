@@ -143,24 +143,27 @@ export default function KiosksOptimized() {
         <Text style={styles.header}>Clients & Soldes</Text>
 
         {/* TOTAL */}
-        <Card style={styles.totalCard}>
-          <Card.Content>
-            <Text style={styles.totalLabel}>CRÉDIT TOTAL</Text>
-            <Text
-              style={[
-                styles.totalValue,
-                {
-                  color:
-                    total >= 0
-                      ? theme.colors.success
-                      : theme.colors.error,
-                },
-              ]}
-            >
-              {total.toLocaleString("fr-FR")} FCFA
-            </Text>
-          </Card.Content>
-        </Card>
+       <Card style={styles.totalCard}>
+  <Card.Content>
+    <Text style={styles.totalLabel}>
+      {total >= 0 ? "ON VOUS DOIT" : "VOUS DEVEZ"}
+    </Text>
+
+    <Text
+      style={[
+        styles.totalValue,
+        {
+          color:
+            total >= 0
+              ? theme.colors.success
+              : theme.colors.error,
+        },
+      ]}
+    >
+      {Math.abs(total).toLocaleString("fr-FR")} FCFA
+    </Text>
+  </Card.Content>
+</Card>
 
         {/* SEARCH */}
         <TextInput
