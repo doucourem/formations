@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import {
   View,
-  FlatList,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -20,7 +19,8 @@ import {
 const SectionTitle = ({ children, theme, isDesktop }) => (
   <Text
     style={{
-      marginBottom: 6,
+      marginBottom: 8,
+      marginTop: 12,
       fontWeight: "600",
       color: theme.colors.onSurface,
       fontSize: isDesktop ? 16 : 14,
@@ -42,11 +42,9 @@ export default function TransactionDialog({
   profile,
   transactionTypes,
 }) {
-  /* ---------- Responsive ---------- */
   const { width, height } = useWindowDimensions();
   const isDesktop = width >= 768;
 
-  /* ---------- Validation ---------- */
   const isValid = useMemo(() => {
     return (
       form.amount &&
@@ -55,6 +53,14 @@ export default function TransactionDialog({
       (form.transactionType !== "Autre" || form.otherType)
     );
   }, [form]);
+
+  // Filtrage des caisses
+  const filteredCashes = useMemo(() => {
+    if (!form.cashQuery) return [];
+    return cashes.filter((c) =>
+      c.name.toLowerCase().includes(form.cashQuery.toLowerCase())
+    );
+  }, [cashes, form.cashQuery]);
 
   return (
     <Portal>
@@ -66,10 +72,9 @@ export default function TransactionDialog({
           borderRadius: isDesktop ? 16 : 12,
           alignSelf: "center",
           width: isDesktop ? 560 : width - 24,
-          maxHeight: height - 40,
+          maxHeight: height - 60, // Légère marge de sécurité
         }}
       >
-        {/* ===== TITLE ===== */}
         <Dialog.Title
           style={{
             textAlign: "center",
@@ -81,101 +86,79 @@ export default function TransactionDialog({
           {editMode ? "✏️ Modifier la transaction" : "➕ Nouvelle transaction"}
         </Dialog.Title>
 
-        {/* ===== CONTENT ===== */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ maxHeight: height - 180 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flexShrink: 1 }}
         >
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={{ paddingBottom: 20 }}
           >
             <Dialog.Content>
-
-              {/* ===== CAISSE ===== */}
+              {/* ===== SECTION: CAISSE ===== */}
               {cashes.length > 1 && (
-                <>
+                <View style={{ marginBottom: 8 }}>
                   <SectionTitle theme={theme} isDesktop={isDesktop}>
                     Caisse
                   </SectionTitle>
-
                   <TextInput
                     label="Rechercher une caisse"
                     value={form.cashQuery}
-                    onChangeText={(text) =>
-                      setForm({ ...form, cashQuery: text })
-                    }
+                    onChangeText={(text) => setForm({ ...form, cashQuery: text })}
                     mode="outlined"
+                    placeholder="Tapez le nom de la caisse..."
                     right={<TextInput.Icon icon="magnify" />}
-                    style={{ marginBottom: 8 }}
                   />
 
-                  {!!form.cashQuery && (
+                  {filteredCashes.length > 0 && (
                     <View
                       style={{
-                        maxHeight: 160,
+                        marginTop: 4,
+                        maxHeight: 150,
                         borderWidth: 1,
-                        borderColor: theme.colors.outline,
-                        borderRadius: 10,
-                        overflow: "hidden",
+                        borderColor: theme.colors.outlineVariant,
+                        borderRadius: 8,
                         backgroundColor: theme.colors.surfaceVariant,
-                        marginBottom: 12,
                       }}
                     >
-                      <FlatList
-                        data={cashes.filter((c) =>
-                          c.name
-                            .toLowerCase()
-                            .includes(form.cashQuery.toLowerCase())
-                        )}
-                        keyExtractor={(item) => item.id.toString()}
-                        keyboardShouldPersistTaps="handled"
-                        nestedScrollEnabled
-                        renderItem={({ item }) => {
-                          const selected = form.cashId === item.id;
-                          return (
-                            <TouchableOpacity
-                              onPress={() =>
-                                setForm({
-                                  ...form,
-                                  cashId: item.id,
-                                  cashQuery: item.name,
-                                })
-                              }
-                              style={{
-                                padding: 10,
-                                backgroundColor: selected
-                                  ? theme.colors.primary
-                                  : "transparent",
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  color: selected
-                                    ? "white"
-                                    : theme.colors.onSurface,
-                                  fontWeight: selected ? "600" : "400",
-                                }}
-                              >
-                                {item.name} {selected ? "✅" : ""}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        }}
-                      />
+                      {filteredCashes.map((item) => {
+                        const selected = form.cashId === item.id;
+                        return (
+                          <TouchableOpacity
+                            key={item.id}
+                            onPress={() =>
+                              setForm({
+                                ...form,
+                                cashId: item.id,
+                                cashQuery: item.name,
+                              })
+                            }
+                            style={{
+                              padding: 12,
+                              backgroundColor: selected ? theme.colors.primaryContainer : "transparent",
+                              borderBottomWidth: 0.5,
+                              borderBottomColor: theme.colors.outlineVariant,
+                            }}
+                          >
+                            <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                              {item.name} {selected ? "✅" : ""}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   )}
-                </>
+                </View>
               )}
 
-              {/* ===== MONTANT + TYPE ===== */}
+              {/* ===== SECTION: MONTANT & TYPE ===== */}
               <View
                 style={{
                   flexDirection: isDesktop ? "row" : "column",
                   gap: 12,
                 }}
               >
-                {/* Montant */}
                 <View style={{ flex: 1 }}>
                   <SectionTitle theme={theme} isDesktop={isDesktop}>
                     Montant
@@ -183,62 +166,35 @@ export default function TransactionDialog({
                   <TextInput
                     label="Montant (FCFA)"
                     value={form.amount}
-                    keyboardType="number-pad"
-                    inputMode="numeric"
-                    autoFocus={!isDesktop}
+                    keyboardType="numeric"
                     onChangeText={(text) =>
-                      setForm({
-                        ...form,
-                        amount: text.replace(/[^0-9]/g, ""),
-                      })
+                      setForm({ ...form, amount: text.replace(/[^0-9]/g, "") })
                     }
                     mode="outlined"
                   />
                 </View>
 
-                {/* CREDIT / DEBIT */}
                 {profile?.role?.toLowerCase() !== "grossiste" && (
                   <View style={{ flex: 1 }}>
                     <SectionTitle theme={theme} isDesktop={isDesktop}>
-                      Type
+                      Type de flux
                     </SectionTitle>
-                    <View style={{ flexDirection: "row", gap: 6 }}>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
                       {profile?.role?.toLowerCase() === "admin" && (
                         <Button
-                          mode={
-                            form.type === "CREDIT"
-                              ? "contained"
-                              : "outlined"
-                          }
-                          onPress={() =>
-                            setForm({ ...form, type: "CREDIT" })
-                          }
+                          mode={form.type === "CREDIT" ? "contained" : "outlined"}
+                          onPress={() => setForm({ ...form, type: "CREDIT" })}
                           style={{ flex: 1 }}
-                          buttonColor={
-                            form.type === "CREDIT"
-                              ? theme.colors.error
-                              : undefined
-                          }
+                          buttonColor={form.type === "CREDIT" ? theme.colors.error : undefined}
                         >
                           Envoi
                         </Button>
                       )}
-
                       <Button
-                        mode={
-                          form.type === "DEBIT"
-                            ? "contained"
-                            : "outlined"
-                        }
-                        onPress={() =>
-                          setForm({ ...form, type: "DEBIT" })
-                        }
+                        mode={form.type === "DEBIT" ? "contained" : "outlined"}
+                        onPress={() => setForm({ ...form, type: "DEBIT" })}
                         style={{ flex: 1 }}
-                        buttonColor={
-                          form.type === "DEBIT"
-                            ? theme.colors.success
-                            : undefined
-                        }
+                        buttonColor={form.type === "DEBIT" ? theme.colors.primary : undefined}
                       >
                         Paiement
                       </Button>
@@ -247,52 +203,28 @@ export default function TransactionDialog({
                 )}
               </View>
 
-              {/* ===== TYPE TRANSACTION ===== */}
+              {/* ===== SECTION: CATEGORIE ===== */}
               <SectionTitle theme={theme} isDesktop={isDesktop}>
-                Type de transaction
+                Catégorie de transaction
               </SectionTitle>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  marginVertical: 6,
-                }}
-              >
+              <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 }}>
                 {transactionTypes.map((t) => {
                   const selected = form.transactionType === t;
                   return (
                     <TouchableOpacity
                       key={t}
-                      onPress={() =>
-                        setForm({
-                          ...form,
-                          transactionType: t,
-                          otherType: "",
-                        })
-                      }
+                      onPress={() => setForm({ ...form, transactionType: t, otherType: "" })}
                       style={{
-                        paddingVertical: 6,
-                        paddingHorizontal: 12,
-                        borderRadius: 18,
-                        backgroundColor: selected
-                          ? theme.colors.primary
-                          : theme.colors.surfaceVariant,
+                        paddingVertical: 8,
+                        paddingHorizontal: 16,
+                        borderRadius: 20,
+                        backgroundColor: selected ? theme.colors.primary : theme.colors.surfaceVariant,
                         margin: 4,
                         borderWidth: 1,
-                        borderColor: selected
-                          ? theme.colors.primary
-                          : theme.colors.outline,
+                        borderColor: selected ? theme.colors.primary : theme.colors.outline,
                       }}
                     >
-                      <Text
-                        style={{
-                          color: selected
-                            ? "white"
-                            : theme.colors.onSurface,
-                          fontWeight: selected ? "600" : "400",
-                        }}
-                      >
+                      <Text style={{ color: selected ? "white" : theme.colors.onSurface, fontWeight: selected ? "bold" : "normal" }}>
                         {t}
                       </Text>
                     </TouchableOpacity>
@@ -302,42 +234,39 @@ export default function TransactionDialog({
 
               {form.transactionType === "Autre" && (
                 <TextInput
-                  label="Précisez le type"
+                  label="Précisez le motif"
                   value={form.otherType}
-                  onChangeText={(text) =>
-                    setForm({ ...form, otherType: text })
-                  }
+                  onChangeText={(text) => setForm({ ...form, otherType: text })}
                   mode="outlined"
-                  style={{ marginTop: 8 }}
+                  style={{ marginTop: 12 }}
                 />
               )}
             </Dialog.Content>
           </ScrollView>
         </KeyboardAvoidingView>
 
-        {/* ===== ACTIONS ===== */}
         <Dialog.Actions
           style={{
-            flexDirection: isDesktop ? "row" : "column",
+            flexDirection: isDesktop ? "row" : "column-reverse", // Bouton principal en haut sur mobile
             gap: 8,
-            paddingHorizontal: 16,
-            paddingBottom: 8,
+            padding: 16,
           }}
         >
           <Button
             onPress={onDismiss}
-            mode="outlined"
-            textColor={theme.colors.error}
+            mode="text"
+            style={{ width: isDesktop ? "auto" : "100%" }}
+            textColor={theme.colors.secondary}
           >
             Annuler
           </Button>
-
           <Button
             mode="contained"
             onPress={onSave}
             disabled={!isValid}
+            style={{ width: isDesktop ? "auto" : "100%" }}
           >
-            {editMode ? "Modifier" : "Enregistrer"}
+            {editMode ? "Mettre à jour" : "Confirmer la transaction"}
           </Button>
         </Dialog.Actions>
       </Dialog>
