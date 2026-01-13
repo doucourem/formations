@@ -55,9 +55,9 @@ const handleChange = (e) => {
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      alert("Image trop lourde (max 2 Mo).");
-      return;
-    }
+  alert("Image trop lourde (max 2 Mo).");
+  return;
+}
     setForm({ ...form, parcel_image: file });
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
@@ -84,19 +84,23 @@ const handleChange = (e) => {
           <form onSubmit={handleSubmit}>
             <Box display="grid" gap={3}>
               {/* Voyage */}
-              <TextField
-                select
-                label="Voyage (Trip)"
-                name="trip_id"
-                value={form.trip_id}
-                onChange={handleChange}
-              >
-                {trips.map((t) => (
-                  <MenuItem key={t.id} value={t.id}>
-                    {t.route?.departureCity?.name || 'Ville départ'} ➝ {t.route?.arrivalCity?.name || 'Ville arrivée'}
-                  </MenuItem>
-                ))}
-              </TextField>
+             <TextField
+                             select
+                             label="Voyage"
+                             name="trip_id"
+                             value={form.trip_id}
+                             onChange={handleChange}
+                         
+                           >
+                             {Array.isArray(trips) &&
+                               trips.map((t) => (
+                                 <MenuItem key={t.id} value={t.id}>
+                                   {`${t.route?.departureCity?.name || "-"} → ${
+                                     t.route?.arrivalCity?.name || "-"
+                                   } (Départ ${t.departure_at})`}
+                                 </MenuItem>
+                               ))}
+                           </TextField>
 
               {/* Agence de départ */}
            {/* Agence de départ */}
@@ -223,11 +227,13 @@ const handleChange = (e) => {
               {/* Image du colis */}
               <Box>
                 <TextField
-                  type="file"
-                  label="Photo du colis"
-                  InputLabelProps={{ shrink: true }}
-                  onChange={handleFileChange}
-                />
+  type="file"
+  label="Photo du colis"
+  InputLabelProps={{ shrink: true }}
+  inputProps={{ accept: "image/jpeg,image/png,image/jpg" }}
+  onChange={handleFileChange}
+/>
+
                 {imagePreview && (
                   <Box mt={1} display="flex" flexDirection="column" alignItems="center">
                     <img

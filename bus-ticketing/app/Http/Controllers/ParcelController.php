@@ -126,7 +126,7 @@ public function store(Request $request)
         'price' => 'required|numeric|min:0',
         'description' => 'nullable|string',
         'status' => 'required|string|max:100',
-        'parcel_image' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+        'parcel_image' => 'nullable|image|mimes:jpeg,jpg,png|max:20480',
         'departure_agency_id' => 'required|exists:agencies,id', // ✅ nouvelle validation
         'arrival_agency_id' => 'required|exists:agencies,id',   // ✅ nouvelle validation
     ]);
@@ -167,7 +167,7 @@ public function update(Request $request, Parcel $parcel)
         'price' => 'required|numeric|min:0',
         'description' => 'nullable|string',
         'status' => 'required|string|max:100',
-        'parcel_image' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+        'parcel_image' => 'nullable|image|mimes:jpeg,jpg,png|max:20480',
         'departure_agency_id' => 'required|exists:agencies,id',
         'arrival_agency_id' => 'required|exists:agencies,id',
     ]);

@@ -1,135 +1,192 @@
-import React from 'react';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Card, CardHeader, CardContent, Typography, Box, Button, Divider, Grid } from '@mui/material';
-import { Download as DownloadIcon, LocalShipping, Person } from '@mui/icons-material';
+import React from "react";
+import GuestLayout from "@/Layouts/GuestLayout";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  Typography,
+  Box,
+  Button,
+  Divider,
+  Grid,
+} from "@mui/material";
+import {
+  Download as DownloadIcon,
+  LocalShipping,
+  Person,
+} from "@mui/icons-material";
 import { jsPDF } from "jspdf";
+import ParcelTicket80mm from './ParcelTicket80mm'; // adapte le chemin
 
+
+/* ===============================
+   CONSTANTES
+================================ */
 const STATUS_FR = {
-    pending: "En attente",
-    in_transit: "En transit",
-    delivered: "Livré",
+  pending: "En attente",
+  in_transit: "En transit",
+  delivered: "Livré",
 };
 
 const BLUE_MUI = [63, 81, 181];
 
+/* ===============================
+   UTILITAIRES
+================================ */
+const getBase64ImageFromURL = (url) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+
+const getQRCodeBase64 = async (text) => {
+  const url = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+    text
+  )}`;
+  return await getBase64ImageFromURL(url);
+};
+
+const numberToWordsFR = (n) => {
+  const u = ["", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"];
+  const d = ["", "dix", "vingt", "trente", "quarante", "cinquante", "soixante"];
+
+  const conv = (x) => {
+    if (x < 10) return u[x];
+    if (x < 20)
+      return (
+        ["dix", "onze", "douze", "treize", "quatorze", "quinze", "seize"][x - 10] ||
+        `dix-${u[x - 10]}`
+      );
+    if (x < 70)
+      return d[Math.floor(x / 10)] + (x % 10 ? "-" + u[x % 10] : "");
+    if (x < 80) return "soixante-" + conv(x - 60);
+    return "quatre-vingt" + (x % 20 ? "-" + conv(x - 80) : "");
+  };
+
+  let r = "";
+  if (n >= 1_000_000) {
+    r += conv(Math.floor(n / 1_000_000)) + " million ";
+    n %= 1_000_000;
+  }
+  if (n >= 1_000) {
+    r += conv(Math.floor(n / 1_000)) + " mille ";
+    n %= 1_000;
+  }
+  if (n >= 100) {
+    r += u[Math.floor(n / 100)] + " cent ";
+    n %= 100;
+  }
+  if (n > 0) r += conv(n);
+
+  return r.trim() || "zéro";
+};
+
+/* ===============================
+   COMPONENT
+================================ */
 export default function ParcelDetail({ parcel }) {
+    const amount = Number(parcel.price) || 0;
+  const handleDownloadPDF = async () => {
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    
 
-    const getBase64ImageFromURL = (url) => new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            canvas.getContext("2d").drawImage(img, 0, 0);
-            resolve(canvas.toDataURL("image/png"));
-        };
-        img.onerror = reject;
-        img.src = url;
-    });
+    /* HEADER */
+    doc.setFillColor(...BLUE_MUI);
+    doc.rect(0, 0, 210, 35, "F");
+    doc.setFontSize(20);
+    doc.setTextColor(255);
+    doc.setFont("helvetica", "bold");
+    doc.text("REÇU DE TRANSPORT - COLIS", 20, 23);
 
-    const addPDFHeader = (doc) => {
-        doc.setFillColor(...BLUE_MUI);
-        doc.rect(0, 0, 210, 40, 'F');
-        doc.setFontSize(22);
-        doc.setTextColor(255);
-        doc.setFont("helvetica", "bold");
-        doc.text("REÇU DE TRANSPORT - COLIS", 20, 25);
-    };
+    let y = 50;
+    doc.setTextColor(40);
+    doc.setFontSize(12);
+    doc.text(`Tracking : ${parcel.tracking_number || parcel.id}`, 20, y);
+    doc.setFontSize(10);
+    doc.text(`Émis le : ${new Date().toLocaleString("fr-FR")}`, 140, y);
 
-    const addPDFDetails = async (doc) => {
-        let yPos = 55;
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Émis le : ${new Date().toLocaleString()}`, 140, yPos);
-        doc.setFontSize(14);
-        doc.setTextColor(40);
-        doc.text(`Tracking : ${parcel.tracking_number || parcel.id}`, 20, yPos);
+    /* IMAGE */
+    if (parcel.parcel_image) {
+      try {
+        const img = await getBase64ImageFromURL(`/storage/${parcel.parcel_image}`);
+        doc.addImage(img, "PNG", 150, 60, 40, 40);
+      } catch {}
+    }
 
-        if (parcel.image_url) {
-            try {
-                const imgData = await getBase64ImageFromURL(parcel.image_url);
-                doc.addImage(imgData, 'PNG', 150, 65, 40, 40);
-            } catch {
-                console.warn("L'image n'a pas pu être chargée pour le PDF");
-            }
-        }
+    y += 20;
+    doc.line(20, y, 190, y);
 
-        yPos += 30;
-        doc.setDrawColor(200);
-        doc.line(20, yPos, 190, yPos);
+    /* EXP / DEST */
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text("EXPÉDITEUR", 20, y);
+    doc.text("DESTINATAIRE", 110, y);
 
-        yPos += 10;
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("EXPÉDITEUR", 20, yPos);
-        doc.text("DESTINATAIRE", 110, yPos);
+    y += 7;
+    doc.setFont("helvetica", "normal");
+    doc.text(parcel.sender_name || "-", 20, y);
+    doc.text(parcel.recipient_name || "-", 110, y);
 
-        yPos += 8;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(11);
-        doc.text(`${parcel.sender_name || "-"}`, 20, yPos);
-        doc.text(`${parcel.recipient_name || "-"}`, 110, yPos);
+    y += 6;
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Agence : ${parcel.senderAgency?.name || "-"}`, 20, y);
+    doc.text(`Agence : ${parcel.recipientAgency?.name || "-"}`, 110, y);
 
-        yPos += 6;
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Agence : ${parcel.senderAgency?.name || "-"}`, 20, yPos);
-        doc.text(`Agence : ${parcel.recipientAgency?.name || "-"}`, 110, yPos);
+    /* DETAILS */
+    y += 15;
+    doc.setTextColor(0);
+    doc.setFontSize(11);
+    doc.text(`Poids : ${parcel.weight_kg ?? "-"} kg`, 20, y);
+    y += 6;
+    doc.text(`Statut : ${STATUS_FR[parcel.status]}`, 20, y);
 
-        return yPos + 25;
-    };
+    /* MONTANT */
+    y += 12;
+    doc.setFillColor(240);
+    doc.rect(20, y, 170, 15, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text(
+      `MONTANT PAYÉ : ${amount.toLocaleString("fr-FR")} FCFA`,
+      25,
+      y + 10
+    );
 
-    const handleDownloadPDF = async () => {
-        const doc = new jsPDF();
-        addPDFHeader(doc);
-        let yPos = await addPDFDetails(doc);
+    y += 25;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    const words = doc.splitTextToSize(
+      `Arrêté le présent reçu à la somme de : ${numberToWordsFR(
+        amount
+      )} francs CFA`,
+      170
+    );
+    doc.text(words, 20, y);
 
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text("DÉTAILS TECHNIQUES", 20, yPos);
+    /* QR CODE */
+    const qr = await getQRCodeBase64(parcel.tracking_number || parcel.id);
+    doc.addImage(qr, "PNG", 85, 240, 40, 40);
+    doc.setFontSize(8);
+    doc.text("Scanner pour le suivi", 105, 283, { align: "center" });
 
-        yPos += 10;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(11);
-        [
-            `Poids : ${parcel.weight_kg ?? "-" } kg`,
-            `Statut : ${STATUS_FR[parcel.status] || "-" }`,
-            `Description : ${parcel.description || "N/A"}`
-        ].forEach(line => {
-            doc.text(line, 20, yPos);
-            yPos += 7;
-        });
+    doc.save(`recu_colis_${parcel.tracking_number || parcel.id}.pdf`);
+  };
 
-        yPos += 10;
-        doc.setFillColor(240);
-        doc.rect(20, yPos, 170, 15, 'F');
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(13);
-        doc.text(`MONTANT PAYÉ : ${(parcel.price ?? 0).toLocaleString()} FCFA`, 25, yPos + 10);
-
-        if (parcel.trip) {
-            yPos += 30;
-            doc.setFontSize(12);
-            doc.text("INFORMATIONS DE TRANSIT", 20, yPos);
-            yPos += 8;
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            doc.text(`Trajet : ${parcel.trip.departureCity} -> ${parcel.trip.arrivalCity}`, 20, yPos);
-            yPos += 6;
-            doc.text(`Véhicule : ${parcel.trip.bus?.registration_number || "Non assigné"}`, 20, yPos);
-        }
-
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text("Ce document sert de preuve officielle de dépôt de colis.", 105, 285, { align: "center" });
-
-        doc.save(`recu_colis_${parcel.tracking_number || parcel.id}.pdf`);
-    };
-
-    return (
-        <GuestLayout>
+  /* ===============================
+     UI
+  ================================ */
+  return (
+     <GuestLayout>
             <Box p={4} sx={{ maxWidth: 900, mx: 'auto' }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                     <Typography variant="h4" fontWeight="bold">Détails de l'expédition</Typography>
@@ -195,9 +252,11 @@ export default function ParcelDetail({ parcel }) {
                                 </Typography>
                             </Grid>
                         </Grid>
+                        <ParcelTicket80mm parcel={parcel} />
                     </CardContent>
                 </Card>
             </Box>
         </GuestLayout>
-    );
+
+  );
 }

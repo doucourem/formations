@@ -87,6 +87,14 @@ export default function KiosksOptimized() {
     fetchKiosks();
   }, []);
 
+  // auto-refresh toutes les 30s
+useEffect(() => {
+  if (!user) return;
+  const interval = setInterval(() => {
+    fetchKiosks();
+  }, 30000);
+  return () => clearInterval(interval);
+}, [user]);
   /* ================= FETCH ================= */
   const fetchKiosks = async () => {
     const {

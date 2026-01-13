@@ -139,7 +139,31 @@ const fetchCashesAndTransactions = useCallback(async () => {
         .or(`cashier_id.eq.${user.id},seller_id.eq.${user.id}`);
       if (error) throw error;
       cashesData = data;
-    } else {
+    } 
+    else if (profileData?.role === "admin") {
+  // 1️⃣ récupérer les kiosques de l'admin
+  const { data: kiosksData, error: kiosksError } = await supabase
+    .from("kiosks")
+    .select("id")
+    .eq("owner_id", user.id);
+
+  if (kiosksError) throw kiosksError;
+
+  const kioskIds = kiosksData.map(k => k.id);
+
+  // 2️⃣ récupérer toutes les caisses de ces kiosques
+  const { data, error } = await supabase
+    .from("cashes")
+    .select("id, name, kiosk_id, balance, min_balance, cashier_id, seller_id")
+    .in("kiosk_id", kioskIds);
+
+  if (error) throw error;
+
+  cashesData = data;
+}
+
+
+    else {
       const { data, error } = await supabase
         .from("cashes")
         .select("id, name, kiosk_id, balance, min_balance");

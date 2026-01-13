@@ -43,6 +43,15 @@ export default function CourierPaymentsScreen() {
     init();
   }, []);
 
+  /* ===== AUTO-REFRESH ===== */
+useEffect(() => {
+  if (!profile) return; // attendre que le profile soit chargé
+  const interval = setInterval(() => {
+    fetchPayments(profile);
+  }, 30000); // toutes les 30 secondes
+  return () => clearInterval(interval); // nettoyage à la destruction du composant
+}, [profile]);
+
   /* ===== INIT ===== */
   const init = async () => {
     const { data: { user } } = await supabase.auth.getUser();

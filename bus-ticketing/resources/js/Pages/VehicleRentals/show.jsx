@@ -16,6 +16,8 @@ import GuestLayout from "@/Layouts/GuestLayout";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable"; // ✅ Correct import
 import dayjs from "dayjs";
+// Si tu utilises Ziggy pour les routes Inertia
+import { route } from "ziggy-js"; 
 
 export default function VehicleRentalShow() {
   const { rental } = usePage().props;
@@ -39,12 +41,14 @@ export default function VehicleRentalShow() {
 
   const statusProps = getStatusProps(rental.status);
 
-  // ✅ Export PDF fonctionnel
+  // =========================
+  // Export PDF classique
+  // =========================
   const handleExportPDF = () => {
     const doc = new jsPDF();
 
     doc.setFontSize(18);
-    doc.text("Détails de la location 🚗", 14, 20);
+    doc.text("Détails de la location", 14, 20);
 
     const data = [
       ["ID", rental.id],
@@ -67,6 +71,40 @@ export default function VehicleRentalShow() {
     doc.save(`Location_${rental.id}.pdf`);
   };
 
+  // =========================
+  // Optionnel : Ticket 80mm
+  // =========================
+  const generateTicket80mm = async () => {
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, 200] });
+    let y = 8;
+    const center = 40;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("LOCATION & TRANSPORT", center, y, { align: "center" });
+    y += 6;
+    doc.setFontSize(13);
+    doc.text("BILLET DE LOCATION", center, y, { align: "center" });
+    y += 6;
+    doc.line(5, y, 75, y);
+    y += 5;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(`Date : ${new Date().toLocaleString("fr-FR")}`, 5, y); y += 5;
+    doc.text(`ID : ${rental.id}`, 5, y); y += 5;
+    doc.text(`Véhicule : ${rental.vehicle_name}`, 5, y); y += 5;
+    doc.text(`Client : ${rental.customer_name}`, 5, y); y += 5;
+    doc.text(`Statut : ${statusProps.label}`, 5, y); y += 6;
+    doc.text(`Début : ${formatDate(rental.rental_start)}`, 5, y); y += 5;
+    doc.text(`Fin : ${formatDate(rental.rental_end)}`, 5, y); y += 6;
+
+    doc.line(5, y, 75, y); y += 5;
+    doc.text("Merci pour votre confiance", center, y, { align: "center" });
+
+    doc.save(`ticket_location_${rental.id}.pdf`);
+  };
+
   return (
     <GuestLayout>
       <Box sx={{ maxWidth: 600, margin: "0 auto", mt: 4 }}>
@@ -75,8 +113,8 @@ export default function VehicleRentalShow() {
             title={<Typography variant="h5">Détails de la location 🚗</Typography>}
             action={
               <Stack direction="row" spacing={1}>
-                <Button variant="contained" onClick={handleExportPDF}>
-                  Export PDF
+                <Button variant="contained" onClick={generateTicket80mm}>
+                  Télécharger le billet
                 </Button>
                 <Button
                   variant="contained"

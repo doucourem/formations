@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Alert, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import {
   Text,
   TextInput,
@@ -8,96 +8,116 @@ import {
   useTheme,
   Provider as PaperProvider,
 } from "react-native-paper";
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useNavigation } from '@react-navigation/native';
-
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useNavigation } from "@react-navigation/native";
 import supabase from "../supabaseClient";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const theme = useTheme();
-   const navigation = useNavigation(); // <-- IMPORTANT
-const signIn = async () => {
-  // Connexion avec email et mot de passe
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+  const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
-  if (authError) {
-    Alert.alert("Erreur de connexion", authError.message);
-    console.error("Erreur de connexion :", authError.message);
-    return;
-  }
+  const signIn = async () => {
+    if (!email || !password) {
+      Alert.alert("Erreur", "Veuillez renseigner email et mot de passe.");
+      return;
+    }
 
-  // Récupérer le profil depuis la table 'users' avec l'email
-  const { data: userProfile, error: profileError } = await supabase
-    .from("users")
-     .select("id, email, full_name, role") // <- rôle inclus
-    .eq("id", authData.user.id)
-    .maybeSingle();
+    setLoading(true);
+    try {
+      // 1️⃣ Connexion rapide
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-  if (profileError || !userProfile) {
-    console.error("Erreur récupération profil :", profileError?.message);
-    Alert.alert("Erreur", "Impossible de récupérer le profil utilisateur");
-    return;
-  }
+      if (authError) throw new Error(authError.message);
 
-  //console.log("Profil utilisateurffff :", userProfile);
-  Alert.alert("Succès", "✅ Connexion réussie !");
-  // Redirection vers le Drawer
-  navigation.reset({
-    index: 0,
-    routes: [{ name: "MainDrawer", params: { user: userProfile } }],
-  });
-};
+      if (!authData.user) throw new Error("Utilisateur introuvable.");
+
+      // 2️⃣ Construire le profil à partir du user et metadata
+      const userProfile = {
+        id: authData.user.id,
+        email: authData.user.email,
+        full_name: authData.user.user_metadata?.full_name || "",
+        role: authData.user.user_metadata?.role || "kiosque", // par défaut
+      };
+
+      // 3️⃣ Navigation immédiate
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "MainDrawer", params: { user: userProfile } }],
+      });
+
+      // 4️⃣ Charger le profil complet en arrière-plan si nécessaire
+      // (ex: pour avoir les kiosques, cashes, etc.)
+      supabase
+        .from("users")
+        .select("id, email, full_name, role")
+        .eq("id", authData.user.id)
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error) console.error("Erreur récupération profil :", error.message);
+          // Ici tu peux stocker les infos dans un contexte global ou Redux
+          // Exemple : setGlobalUser(data);
+        });
+
+    } catch (err) {
+      console.error("Connexion échouée :", err.message);
+      Alert.alert("Erreur de connexion", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface, elevation: 8 }]}>
-        <View style={styles.iconContainer}>
-          <Icon
-            name="account" // Vous pouvez choisir une autre icône comme "login" ou "account-arrow-right"
-            size={60}
-            color={theme.colors.primary}
+    <PaperProvider theme={theme}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Card style={[styles.card, { backgroundColor: theme.colors.surface, elevation: 8 }]}>
+          <View style={styles.iconContainer}>
+            <Icon name="account" size={60} color={theme.colors.primary} />
+          </View>
+
+          <Text style={styles.title}>Bienvenue</Text>
+
+          <TextInput
+            label="Adresse Email"
+            mode="outlined"
+            value={email}
+            onChangeText={setEmail}
+            style={styles.input}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            outlineColor={theme.colors.onSurface}
+            activeOutlineColor={theme.colors.primary}
           />
-        </View>
 
-        <Text style={styles.title}>Bienvenue</Text>
+          <TextInput
+            label="Mot de passe"
+            mode="outlined"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            style={styles.input}
+            outlineColor={theme.colors.onSurface}
+            activeOutlineColor={theme.colors.primary}
+          />
 
-        <TextInput
-          label="Adresse Email"
-          mode="outlined"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          outlineColor={theme.colors.onSurface}
-          activeOutlineColor={theme.colors.primary}
-        />
-        <TextInput
-          label="Mot de passe"
-          mode="outlined"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-          outlineColor={theme.colors.onSurface}
-          activeOutlineColor={theme.colors.primary}
-        />
-
-        <View style={styles.buttonContainer}>
           <Button
             mode="contained"
             onPress={signIn}
+            loading={loading}
+            disabled={loading}
             style={[styles.button, { backgroundColor: theme.colors.primary }]}
             labelStyle={styles.buttonLabel}
           >
             Se Connecter
           </Button>
-          
-                 </View>
-      </Card>
-    </View>
+        </Card>
+      </View>
+    </PaperProvider>
   );
 }
 
@@ -115,7 +135,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   iconContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 10,
   },
   title: {
@@ -123,18 +143,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 20,
-    color: "#F8FAFC", // Couleur fixe ou `theme.colors.onSurface`
+    color: "#F8FAFC",
   },
   input: {
     marginBottom: 16,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 16,
-    marginTop: 16,
-  },
   button: {
-    flex: 1,
+    marginTop: 10,
     borderRadius: 12,
   },
   buttonLabel: {

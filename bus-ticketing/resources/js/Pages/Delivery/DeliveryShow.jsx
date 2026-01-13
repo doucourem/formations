@@ -34,12 +34,68 @@ export default function DeliveryShow({ delivery }) {
 
   const statusProps = getStatusProps(delivery.status);
 
+const handleExportTicket = () => {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: [80, 150], // petit ticket thermique
+  });
+
+  const margin = 10;
+  let y = 10;
+
+  // --- Titre centré ---
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("Livraison - Ticket", 40, y, { align: "center" });
+  y += 10;
+
+  // --- Séparateur ---
+  doc.setLineWidth(0.2);
+  doc.line(margin, y, 70, y);
+  y += 5;
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+
+  const addLine = (label, value) => {
+    doc.text(`${label}:`, margin, y);
+    doc.text(`${value}`, 70, y, { align: "right" });
+    y += 7;
+  };
+  addLine("Véhicule", delivery.bus?.registration_number || "—");
+  addLine("Chauffeur", `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`.trim() || "—");
+  addLine("Produit", delivery.product_name || "—");
+  addLine("Lot", delivery.product_lot || "—");
+  addLine("Quantité chargée", delivery.quantity_loaded ?? "—");
+  addLine("Quantité livrée", delivery.quantity_delivered ?? "—");
+  addLine("Prix", `${Number(delivery.price).toLocaleString()} CFA`);
+  addLine("Statut", statusProps.label);
+  addLine("Départ", formatDate(delivery.departure_at));
+  addLine("Arrivée", formatDate(delivery.arrival_at));
+
+  // --- Séparateur ---
+  y += 3;
+  doc.line(margin, y, 70, y);
+  y += 5;
+
+  // --- Footer ---
+  doc.setFontSize(9);
+  doc.text(`Imprimé le: ${dayjs().format("DD/MM/YYYY HH:mm")}`, margin, y);
+  y += 6;
+  doc.text("Merci pour votre confiance !", 40, y, { align: "center" });
+
+  // --- Sauvegarde ---
+  doc.save(`Ticket_Livraison_${delivery.id}.pdf`);
+};
+
+
   // ✅ Export PDF avec autoTable pour un rendu propre
   const handleExportPDF = () => {
     const doc = new jsPDF();
 
     doc.setFontSize(18);
-    doc.text("Détails de la livraison 📦", 14, 20);
+    doc.text("Détails de la livraison", 14, 20);
 
     const data = [
       ["Véhicule", `${delivery.bus?.registration_number} (${delivery.bus?.vehicle_type || delivery.bus?.model})`],
@@ -49,7 +105,7 @@ export default function DeliveryShow({ delivery }) {
       ["Quantité chargée", delivery.quantity_loaded],
       ["Quantité livrée", delivery.quantity_delivered ?? "—"],
       ["Distance (km)", delivery.distance_km ?? "—"],
-      ["Prix", `${Number(delivery.price).toLocaleString()} CFA`],
+      ["Prix", `${new Intl.NumberFormat("fr-FR").format(delivery.price)} CFA`],
       ["Statut", statusProps.label],
       ["Départ", formatDate(delivery.departure_at)],
       ["Arrivée", formatDate(delivery.arrival_at)],
@@ -74,7 +130,7 @@ export default function DeliveryShow({ delivery }) {
           title={<Typography variant="h5">Détails de la livraison 📦</Typography>}
           action={
             <Stack direction="row" spacing={1}>
-              <Button variant="contained" onClick={handleExportPDF}>
+              <Button variant="contained" onClick={handleExportTicket}>
                 Export PDF
               </Button>
               <Button
