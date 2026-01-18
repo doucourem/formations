@@ -17,29 +17,45 @@ class TicketController extends Controller
      */
 public function index(Request $request)
 {
-    // 🔍 Récupération des filtres envoyés par Inertia
-    $search = $request->input('search');
-    $status = $request->input('status');
+    $user = auth()->user();
 
-    // 🔧 Query de base avec relations
-    $query = Ticket::with(['trip.route.departureCity', 'trip.route.arrivalCity', 'baggages'])
-        ->orderBy('id', 'desc');
+    abort_if(!$user, 403);
 
-    // 🔍 Filtre recherche
-    if (!empty($search)) {
-        $query->where('client_name', 'LIKE', '%' . $search . '%');
-    }
+    // 🔍 Filtres Inertia
+    $search = $request->string('search')->trim()->value();
+    $status = $request->string('status')->trim()->value();
 
-    // 🎯 Filtre statut
-    if (!empty($status)) {
-        $query->where('status', $status);
-    }
+    $tickets = Ticket::query()
+        ->with([
+            'trip.route.departureCity:id,name',
+            'trip.route.arrivalCity:id,name',
+            'baggages:id,ticket_id,description,weight,price',
+            'user:id,agence_id',
+        ])
+        ->when($search, fn ($q) =>
+            $q->where('client_name', 'like', "%{$search}%")
+        )
+        ->when($status, fn ($q) =>
+            $q->where('status', $status)
+        )
+        ->when(true, function ($q) use ($user) {
+            match ($user->role) {
+                'admin', 'manager' => null,
+                'agent' => $q->where('user_id', $user->id),
+                'manageragence' => $q->whereHas(
+                    'user',
+                    fn ($u) => $u->where('agence_id', $user->agence_id)
+                ),
+                default => $q->whereRaw('1 = 0'),
+            };
+        })
+        ->orderByDesc('id')
+        ->paginate(10)
+        ->withQueryString();
 
-    // 📄 Pagination dynamique (10 par page)
-    $tickets = $query->paginate(10)->withQueryString();
+    // 🔄 Transformation frontend-safe
+    $tickets->through(function ($ticket) {
 
-    // 🔄 Transformer les tickets pour simplifier React
-    $tickets->getCollection()->transform(function ($ticket) {
         $route = $ticket->trip?->route;
 
         return [
@@ -49,34 +65,41 @@ public function index(Request $request)
             'seat_number' => $ticket->seat_number,
             'price' => $ticket->price,
 
-            // Texte de l'itinéraire pré-calculé
-            'route_text' => $route && $route->departureCity && $route->arrivalCity
-                ? $route->departureCity->name . ' → ' . $route->arrivalCity->name
-                : null,
+            'route_text' => $route
+                ? trim(
+                    ($route->departureCity->name ?? '-') .
+                    ' → ' .
+                    ($route->arrivalCity->name ?? '-')
+                )
+                : '-',
 
-            // Séparer les villes si besoin
-            'departureCity' => $route?->departureCity
-                ? ['name' => $route->departureCity->name]
-                : null,
-            'arrivalCity' => $route?->arrivalCity
-                ? ['name' => $route->arrivalCity->name]
-                : null,
+            'departureCity' => [
+                'name' => $route->departureCity->name ?? '-',
+            ],
 
-            // Bagages
-            'baggages' => $ticket->baggages->map(fn($b) => [
+            'arrivalCity' => [
+                'name' => $route->arrivalCity->name ?? '-',
+            ],
+
+            'baggages' => $ticket->baggages->map(fn ($b) => [
                 'id' => $b->id,
-                'description' => $b->description ?? null,
-                'weight' => $b->weight ?? null,
-                'price' => $b->price ?? null,
+                'description' => $b->description,
+                'weight' => $b->weight,
+                'price' => $b->price,
             ]),
         ];
     });
 
-    // Retour vers Inertia
     return Inertia::render('Tickets/Index', [
         'tickets' => $tickets,
+        'filters' => [
+            'search' => $search,
+            'status' => $status,
+        ],
+        'userRole' => $user->role,
     ]);
 }
+
 
 
 

@@ -242,7 +242,15 @@ useEffect(() => {
 
                 <Text>👤 {item.cashier_name || item.cashier_email}</Text>
                 <Text>🏪 {item.kiosk_name || "—"}</Text>
-                <Text>📅 {new Date(item.created_at).toLocaleDateString("fr-FR")}</Text>
+                <Text>📅 {new Date(item.created_at).toLocaleDateString("fr-FR")}
+                  {" "}
+  ⏰ {new Date(item.created_at).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}
+                </Text>
+       
+
 
                 <Text style={{ fontWeight: "bold", marginTop: 6 }}>
                   Statut :{" "}
