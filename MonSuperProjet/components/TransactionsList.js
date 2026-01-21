@@ -56,9 +56,9 @@ const getTransactionTypes = (role) => {
     case "grossiste":
       return [ "Demande de fonds", "Autre"]; // ventes sortantes
     case "kiosque":
-      return ["CASH", "Renvoie Airtel", "Renvoie Moov",  "Autre"]; // achats entrants
+      return ["CASH", "Renvoie Airtel", "Renvoie Moov"]; // achats entrants
     default:
-      return ["Envoie Airtel", "Envoie Moov","CASH", "Renvoie Airtel", "Renvoie Moov", "Autre"];
+      return ["Envoie Airtel", "Envoie Moov","CASH", "Renvoie Airtel", "Renvoie Moov"];
   }
 };
 
@@ -114,74 +114,70 @@ const fetchCashesAndTransactions = useCallback(async () => {
   setLoading(true);
 
   try {
-    // 1️⃣ Récupérer le rôle de l'utilisateur
+    // 🔹 1️⃣ Récupérer le rôle de l'utilisateur et normaliser
     const { data: profileData, error: profileError } = await supabase
       .from("users")
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
     if (profileError) throw profileError;
-    setProfile(profileData);
 
-    // Déterminer le type par défaut
-    const defaultType = profileData?.role?.toLowerCase() === "kiosque" ? "DEBIT" : "CREDIT";
+    setProfile(profileData);
+    const role = profileData?.role?.toLowerCase();
+    const isAdmin = role === "admin";
+
+    // Type par défaut selon rôle
+    const defaultType = role === "kiosque" ? "DEBIT" : "CREDIT";
     setTransactionTypes(getTransactionTypes(profileData?.role));
 
-    // 2️⃣ Récupérer les kiosks
-    const { data: kiosksData } = await supabase.from("kiosks").select("id, name");
+    // 🔹 2️⃣ Récupérer les kiosks
+    let kiosksData = [];
+    if (isAdmin) {
+      // Admin ne voit que ses kiosks
+      const { data, error } = await supabase
+        .from("kiosks")
+        .select("id, name")
+        .eq("owner_id", user.id);
+      if (error) throw error;
+      kiosksData = data || [];
+    } else {
+      const { data } = await supabase.from("kiosks").select("id, name");
+      kiosksData = data || [];
+    }
 
-    // 3️⃣ Récupérer les caisses selon le rôle
-    let cashesData;
-    if (profileData?.role === "kiosque" || profileData?.role === "grossiste") {
+    // 🔹 3️⃣ Récupérer les caisses selon rôle
+    let cashesData = [];
+    if (role === "kiosque" || role === "grossiste") {
       const { data, error } = await supabase
         .from("cashes")
         .select("id, name, kiosk_id, balance, min_balance, cashier_id, seller_id")
         .or(`cashier_id.eq.${user.id},seller_id.eq.${user.id}`);
       if (error) throw error;
-      cashesData = data;
-    } 
-    else if (profileData?.role === "admin") {
-  // 1️⃣ récupérer les kiosques de l'admin
-  const { data: kiosksData, error: kiosksError } = await supabase
-    .from("kiosks")
-    .select("id")
-    .eq("owner_id", user.id);
-
-  if (kiosksError) throw kiosksError;
-
-  const kioskIds = kiosksData.map(k => k.id);
-
-  // 2️⃣ récupérer toutes les caisses de ces kiosques
-  const { data, error } = await supabase
-    .from("cashes")
-    .select("id, name, kiosk_id, balance, min_balance, cashier_id, seller_id")
-    .in("kiosk_id", kioskIds);
-
-  if (error) throw error;
-
-  cashesData = data;
-}
-
-
-    else {
-      const { data, error } = await supabase
-        .from("cashes")
-        .select("id, name, kiosk_id, balance, min_balance");
-      if (error) throw error;
-      cashesData = data;
+      cashesData = data || [];
+    } else {
+      // Admin ou autres roles -> toutes les caisses des kiosks accessibles
+      const kioskIds = kiosksData.map(k => k.id);
+      if (kioskIds.length) {
+        const { data, error } = await supabase
+          .from("cashes")
+          .select("id, name, kiosk_id, balance, min_balance")
+          .in("kiosk_id", kioskIds);
+        if (error) throw error;
+        cashesData = data || [];
+      }
     }
 
-    // 4️⃣ Récupérer les transactions
+    // 🔹 4️⃣ Récupérer les transactions
     const cashIds = cashesData.map(c => c.id);
-    const { data: txData } = await supabase
+    const { data: txData = [] } = await supabase
       .from("transactions")
       .select("*")
-      .in("cash_id", cashIds)
+      .in("cash_id", cashIds.length ? cashIds : [0]) // sécurise in([])
       .order("created_at", { ascending: false });
 
-    // 5️⃣ Calcul des soldes et enrichissement
+    // 🔹 5️⃣ Calcul des soldes et enrichissement
     const cashBalances = {};
-    const enriched = txData.map((t) => {
+    const enriched = txData.map(t => {
       const isCredit = t.type === "CREDIT";
       const prev = cashBalances[t.cash_id] || 0;
       const newBal = isCredit ? prev + t.amount : prev - t.amount;
@@ -199,14 +195,13 @@ const fetchCashesAndTransactions = useCallback(async () => {
       };
     });
 
-    // 6️⃣ Déterminer la caisse par défaut
+    // 🔹 6️⃣ Déterminer la caisse par défaut
     let defaultCashId = null;
     let defaultCashQuery = "";
-
     if (cashesData.length === 1) {
       defaultCashId = cashesData[0].id;
       defaultCashQuery = cashesData[0].name;
-    } else if (profileData?.role === "kiosque" || profileData?.role === "grossiste") {
+    } else if (role === "kiosque" || role === "grossiste") {
       const userCash = cashesData.find(c => c.cashier_id === user.id || c.seller_id === user.id);
       if (userCash) {
         defaultCashId = userCash.id;
@@ -214,18 +209,18 @@ const fetchCashesAndTransactions = useCallback(async () => {
       }
     }
 
-    // 7️⃣ Mettre à jour les états principaux
+    // 🔹 7️⃣ Mettre à jour les états
     setTransactions(enriched);
     setCashes(cashesData);
     setKiosks(kiosksData);
 
-    // 8️⃣ Initialiser le formulaire
+    // 🔹 8️⃣ Initialiser le formulaire
     setForm({
       cashId: defaultCashId,
       cashQuery: defaultCashQuery,
       amount: "",
       type: defaultType,
-      transactionType: "Vente UV",
+      transactionType: role === "kiosque" ? "CASH" : "Envoie Airtel",
       otherType: "",
     });
 
@@ -235,6 +230,7 @@ const fetchCashesAndTransactions = useCallback(async () => {
     setLoading(false);
   }
 }, [user]);
+
 
 
 
@@ -484,6 +480,9 @@ const handleDeleteTransaction = (id) => {
 
  const renderItem = ({ item }) => {
   const isCredit = item.type === "CREDIT";
+  const isAdmin = profile?.role === "admin";
+
+
 
   return (
     <Card
@@ -504,32 +503,33 @@ const handleDeleteTransaction = (id) => {
             color={isCredit ? theme.colors.error : theme.colors.success}
           />
         )}
-        right={() => (
-          <View style={{ flexDirection: "row", marginRight: 8 }}>
-            {/* ✏️ Modifier */}
-            <TouchableOpacity
-              onPress={() => openEditDialog(item)}
-              style={{ marginRight: 12 }}
-            >
-              <MaterialCommunityIcons
-                name="pencil"
-                size={22}
-                color={theme.colors.accent}
-              />
-            </TouchableOpacity>
+        right={() =>
+  isAdmin ? (
+    <View style={{ flexDirection: "row", marginRight: 8 }}>
+      <TouchableOpacity
+        onPress={() => openEditDialog(item)}
+        style={{ marginRight: 12 }}
+      >
+        <MaterialCommunityIcons
+          name="pencil"
+          size={22}
+          color={theme.colors.accent}
+        />
+      </TouchableOpacity>
 
-            {/* 🗑️ Supprimer */}
-            <TouchableOpacity
-              onPress={() => handleDeleteTransaction(item.id)}
-            >
-              <MaterialCommunityIcons
-                name="delete"
-                size={22}
-                color={theme.colors.error}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
+      <TouchableOpacity
+        onPress={() => handleDeleteTransaction(item.id)}
+      >
+        <MaterialCommunityIcons
+          name="delete"
+          size={22}
+          color={theme.colors.error}
+        />
+      </TouchableOpacity>
+    </View>
+  ) : null
+}
+
       />
 
       <Card.Content>

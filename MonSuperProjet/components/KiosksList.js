@@ -154,7 +154,7 @@ useEffect(() => {
        <Card style={styles.totalCard}>
   <Card.Content>
     <Text style={styles.totalLabel}>
-      {total >= 0 ? "ON VOUS DOIT" : "VOUS DEVEZ"}
+      {total >= 0 ? "ON VOUS DOIT" : "DETTE CLIENTS"}
     </Text>
 
     <Text

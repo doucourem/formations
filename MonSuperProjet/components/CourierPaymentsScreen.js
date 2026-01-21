@@ -85,7 +85,11 @@ useEffect(() => {
       if (profileData.role === "kiosque") {
         query = query.eq("cashier_id", profileData.id);
       }
-
+  // 🔹 Admin → voit uniquement les transactions de ses clients
+    if (profileData.role === "admin") {
+      query = query.eq("owner_id", profileData.id);
+      // ou .eq("admin_id", profileData.id) selon ta DB
+    }
       const { data, error } = await query;
       if (error) throw error;
 

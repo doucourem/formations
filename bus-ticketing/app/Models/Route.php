@@ -33,9 +33,4 @@ class Route extends Model
 {
     return $this->hasMany(RouteStop::class)->orderBy('order');
 }
-
-    public function trips()
-{
-    return $this->hasMany(Trip::class);
-}
 }
