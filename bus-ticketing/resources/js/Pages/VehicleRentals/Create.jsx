@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Box, TextField, Button, MenuItem, Typography, Card, CardContent, Divider } from '@mui/material';
+import { Box, TextField, Button, Typography, Card, CardContent, Divider } from '@mui/material';
 
 export default function Create({ vehicles }) {
   const [form, setForm] = useState({
@@ -10,6 +10,8 @@ export default function Create({ vehicles }) {
     rental_price: '',
     rental_start: '',
     rental_end: '',
+    departure_location: '', // texte libre
+    arrival_location: '',   // texte libre
     status: 'active',
     photo_before: null,
     photo_after: null,
@@ -32,7 +34,7 @@ export default function Create({ vehicles }) {
       return;
     }
 
-    if (file.size > 20* 1024 * 1024) {
+    if (file.size > 10 * 1024 * 1024) {
       alert('Image trop lourde (max 2 Mo)');
       return;
     }
@@ -67,19 +69,28 @@ export default function Create({ vehicles }) {
       <Card>
         <CardContent>
           <Box component="form" onSubmit={handleSubmit} display="grid" gap={2}>
+            {/* Véhicule */}
             <TextField select label="Véhicule" name="vehicle_id" value={form.vehicle_id} onChange={handleChange} required>
               {vehicles.map(v => (
-                <MenuItem key={v.id} value={v.id}>{v.registration_number}</MenuItem>
+                <option key={v.id} value={v.id}>{v.registration_number}</option>
               ))}
             </TextField>
 
+            {/* Client et prix */}
             <TextField label="Client" name="client_name" value={form.client_name} onChange={handleChange} required />
             <TextField label="Prix" name="rental_price" value={form.rental_price} onChange={handleChange} type="number" required />
+
+            {/* Dates */}
             <TextField label="Début" type="datetime-local" name="rental_start" value={form.rental_start} onChange={handleChange} required />
             <TextField label="Fin" type="datetime-local" name="rental_end" value={form.rental_end} onChange={handleChange} required />
 
+            {/* Lieux de départ et arrivée */}
+            <TextField label="Lieu de départ" name="departure_location" value={form.departure_location} onChange={handleChange} required />
+            <TextField label="Lieu d'arrivée" name="arrival_location" value={form.arrival_location} onChange={handleChange} required />
+
             <Divider sx={{ my: 2 }} />
 
+            {/* Photos */}
             <Box>
               <Typography>Photo avant la location</Typography>
               <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'before')} />

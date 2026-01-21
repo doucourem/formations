@@ -19,6 +19,11 @@ import {
   CardHeader,
   CardContent,
   Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  MenuItem
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -28,6 +33,10 @@ import AddIcon from "@mui/icons-material/Add";
 
 export default function VehicleRentalIndex({ rentals }) {
   const [page, setPage] = useState(rentals.current_page || 1);
+  const [openExpenseModal, setOpenExpenseModal] = useState(false);
+  const [selectedRental, setSelectedRental] = useState(null);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [expenseData, setExpenseData] = useState({ type: "", amount: "", description: "" });
 
   const handleDelete = (id) => {
     if (confirm("Voulez-vous vraiment supprimer cette location ?")) {
@@ -52,25 +61,52 @@ export default function VehicleRentalIndex({ rentals }) {
     );
   };
 
-  // Ajoutez cette fonction en haut du composant
-const translateStatus = (status) => {
-  switch (status) {
-    case "active":
-      return "Active";
-    case "completed":
-      return "Terminée";
-    case "cancelled":
-      return "Annulée";
-    default:
-      return status;
-  }
-};
+  const translateStatus = (status) => {
+    switch (status) {
+      case "active": return "Active";
+      case "completed": return "Terminée";
+      case "cancelled": return "Annulée";
+      default: return status;
+    }
+  };
+
+  // Modal dépenses
+  const handleOpenExpenseModal = (rental, expense = null) => {
+    setSelectedRental(rental);
+    setSelectedExpense(expense);
+    setExpenseData(expense || { type: "", amount: "", description: "" });
+    setOpenExpenseModal(true);
+  };
+
+  const handleCloseExpenseModal = () => {
+    setSelectedRental(null);
+    setSelectedExpense(null);
+    setExpenseData({ type: "", amount: "", description: "" });
+    setOpenExpenseModal(false);
+  };
+
+  const handleSaveExpense = () => {
+    if (!selectedRental) return;
+
+    const routeName = selectedExpense
+      ? `vehicle_rental_expenses.update`
+      : `vehicle_rental_expenses.store`;
+
+    const method = selectedExpense ? "put" : "post";
+    const payload = selectedExpense
+      ? { ...expenseData, _method: "put" }
+      : { ...expenseData, rental_id: selectedRental.id };
+
+    Inertia[method](route(routeName, selectedExpense?.id || undefined), payload, {
+      onSuccess: () => handleCloseExpenseModal(),
+    });
+  };
 
   return (
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 2 }}>
         <CardHeader
-          title={<Typography variant="h5">Liste des Locations de Véhicules 🚗</Typography>}
+          title={<Typography variant="h5">Locations de Véhicules 🚗</Typography>}
           action={
             <Button
               variant="contained"
@@ -82,7 +118,6 @@ const translateStatus = (status) => {
           }
         />
         <CardContent>
-          {/* Recherche */}
           <Box mb={2}>
             <TextField
               label="Rechercher..."
@@ -93,7 +128,6 @@ const translateStatus = (status) => {
             />
           </Box>
 
-          {/* Tableau */}
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
@@ -105,12 +139,13 @@ const translateStatus = (status) => {
                     "Début",
                     "Fin",
                     "Prix",
-                    "Photos",
                     "Statut",
+                    "Dépenses",
                     "Actions",
                   ].map((col) => (
-                    <TableCell key={col} 
-                    sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}
+                    <TableCell
+                      key={col}
+                      sx={{ backgroundColor: '#1976d2', color: 'white', fontWeight: 'bold' }}
                     >
                       {col}
                     </TableCell>
@@ -119,50 +154,94 @@ const translateStatus = (status) => {
               </TableHead>
 
               <TableBody>
-  {rentals.data.length > 0 ? (
-    rentals.data.map((rental) => (
-      <TableRow key={rental.id}>
-        <TableCell>{rental.id}</TableCell>
-        <TableCell>{rental.bus?.registration_number || "-"}</TableCell>
-        <TableCell>{rental.client_name}</TableCell>
-        <TableCell>{new Date(rental.rental_start).toLocaleString()}</TableCell>
-        <TableCell>{new Date(rental.rental_end).toLocaleString()}</TableCell>
-        <TableCell>{rental.rental_price}</TableCell>
-        <TableCell>
-          <Stack direction="row" spacing={1}>
-            {rental.photo_before_url && <img src={rental.photo_before_url} alt="Avant" width={50} />}
-            {rental.photo_after_url && <img src={rental.photo_after_url} alt="Après" width={50} />}
-          </Stack>
-        </TableCell>
-        <TableCell>{translateStatus(rental.status)}</TableCell>
-        <TableCell>
-          <Stack direction="row" spacing={1}>
-            <IconButton color="primary" onClick={() => Inertia.get(route("vehicle-rentals.show", rental.id))}>
-              <VisibilityIcon />
-            </IconButton>
-            <IconButton color="warning" onClick={() => Inertia.get(route("vehicle-rentals.edit", rental.id))}>
-              <EditIcon />
-            </IconButton>
-            <IconButton color="error" onClick={() => handleDelete(rental.id)}>
-              <DeleteIcon />
-            </IconButton>
-          </Stack>
-        </TableCell>
-      </TableRow>
-    ))
-  ) : (
-    <TableRow>
-      <TableCell colSpan={9} align="center">
-        Aucune location enregistrée.
-      </TableCell>
-    </TableRow>
-  )}
-</TableBody>
+                {rentals.data.length > 0 ? (
+                  rentals.data.map((rental) => (
+                    <TableRow key={rental.id}>
+                      <TableCell>{rental.id}</TableCell>
+                      <TableCell>{rental.bus?.registration_number || "-"}</TableCell>
+                      <TableCell>{rental.client_name}</TableCell>
+                      <TableCell>{new Date(rental.rental_start).toLocaleString()}</TableCell>
+                      <TableCell>{new Date(rental.rental_end).toLocaleString()}</TableCell>
+                      <TableCell>{rental.rental_price}</TableCell>
+                      <TableCell>{translateStatus(rental.status)}</TableCell>
 
+                      {/* Colonne Dépenses */}
+                      <TableCell>
+                        <Stack spacing={0.5}>
+                          {rental.expenses?.length > 0 ? (
+                            rental.expenses.map((e) => (
+                              <Box
+                                key={e.id}
+                                display="flex"
+                                justifyContent="space-between"
+                                alignItems="center"
+                              >
+                                <Typography variant="body2">
+                                  {e.type} : {e.amount} CFA
+                                </Typography>
+                                <Stack direction="row" spacing={0.5}>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleOpenExpenseModal(rental, e)}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => {
+                                      if (confirm("Supprimer cette dépense ?")) {
+                                        Inertia.delete(route("vehicle_rental_expenses.destroy", e.id));
+                                      }
+                                    }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Stack>
+                              </Box>
+                            ))
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              Aucune dépense
+                            </Typography>
+                          )}
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => handleOpenExpenseModal(rental)}
+                          >
+                            + Ajouter
+                          </Button>
+                        </Stack>
+                      </TableCell>
+
+                      <TableCell>
+                        <Stack direction="row" spacing={1}>
+                          <IconButton color="primary" onClick={() => Inertia.get(route("vehicle-rentals.show", rental.id))}>
+                            <VisibilityIcon />
+                          </IconButton>
+                          <IconButton color="warning" onClick={() => Inertia.get(route("vehicle-rentals.edit", rental.id))}>
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton color="error" onClick={() => handleDelete(rental.id)}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center">
+                      Aucune location enregistrée.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
             </Table>
           </TableContainer>
 
-          {/* Pagination */}
           {rentals.last_page > 1 && (
             <Box mt={2} display="flex" justifyContent="center">
               <Pagination
@@ -175,6 +254,55 @@ const translateStatus = (status) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal Dépenses */}
+    
+<Dialog open={openExpenseModal} onClose={handleCloseExpenseModal} maxWidth="sm" fullWidth>
+  <DialogTitle>
+    {selectedExpense ? "Modifier une dépense" : `Ajouter une dépense pour la location #${selectedRental?.id}`}
+  </DialogTitle>
+  <DialogContent>
+    <Stack spacing={2}>
+      <TextField
+        select
+        label="Type de dépense"
+        value={expenseData.type}
+        onChange={(e) => setExpenseData({ ...expenseData, type: e.target.value })}
+        fullWidth
+      >
+        <MenuItem value="">Sélectionner</MenuItem>
+        <MenuItem value="chauffeur">Chauffeur</MenuItem>
+        <MenuItem value="fuel">Carburant</MenuItem>
+        <MenuItem value="toll">Péages</MenuItem>
+        <MenuItem value="meal">Restauration</MenuItem>
+        <MenuItem value="maintenance">Entretien</MenuItem>
+        <MenuItem value="other">Autres</MenuItem>
+      </TextField>
+
+      <TextField
+        label="Montant"
+        type="number"
+        value={expenseData.amount}
+        onChange={(e) => setExpenseData({ ...expenseData, amount: e.target.value })}
+        fullWidth
+      />
+
+      <TextField
+        label="Description"
+        value={expenseData.description}
+        onChange={(e) => setExpenseData({ ...expenseData, description: e.target.value })}
+        fullWidth
+        multiline
+        rows={2}
+      />
+    </Stack>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={handleCloseExpenseModal} color="secondary">Annuler</Button>
+    <Button onClick={handleSaveExpense} variant="contained">Enregistrer</Button>
+  </DialogActions>
+</Dialog>
+
     </GuestLayout>
   );
 }

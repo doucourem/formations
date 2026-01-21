@@ -4,20 +4,14 @@ import GuestLayout from '@/Layouts/GuestLayout';
 import { Box, TextField, Button, MenuItem, Typography, Card, CardContent, Divider } from '@mui/material';
 
 export default function Edit({ rental, vehicles }) {
-  // 🔹 Helper pour formater les dates au format YYYY-MM-DDTHH:MM
-  const formatDateTimeLocal = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const iso = date.toISOString(); // ex: 2026-01-12T14:30:00.000Z
-    return iso.slice(0, 16);        // YYYY-MM-DDTHH:MM
-  };
-
   const [form, setForm] = useState({
     vehicle_id: rental.vehicle_id,
     client_name: rental.client_name,
     rental_price: rental.rental_price,
-    rental_start: formatDateTimeLocal(rental.rental_start),
-    rental_end: formatDateTimeLocal(rental.rental_end),
+    rental_start: rental.rental_start,
+    rental_end: rental.rental_end,
+    departure_location: rental.departure_location || '', // ajouté
+    arrival_location: rental.arrival_location || '',     // ajouté
     status: rental.status,
     photo_before: null,
     photo_after: null,
@@ -26,13 +20,11 @@ export default function Edit({ rental, vehicles }) {
   const [previewBefore, setPreviewBefore] = useState(rental.photo_before_url);
   const [previewAfter, setPreviewAfter] = useState(rental.photo_after_url);
 
-  // ✅ Gestion des changements de champs
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
 
-  // ✅ Gestion upload photo
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -47,31 +39,24 @@ export default function Edit({ rental, vehicles }) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (type === 'before') {
-        setForm({ ...form, photo_before: file });
-        setPreviewBefore(reader.result);
-      } else {
-        setForm({ ...form, photo_after: file });
-        setPreviewAfter(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    if (type === 'before') {
+      setForm({ ...form, photo_before: file });
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewBefore(reader.result);
+      reader.readAsDataURL(file);
+    } else {
+      setForm({ ...form, photo_after: file });
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewAfter(reader.result);
+      reader.readAsDataURL(file);
+    }
   };
 
-  // ✅ Soumission formulaire
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // Validation date de fin > date de début
-    if (form.rental_end <= form.rental_start) {
-      alert('La date de fin doit être après la date de début !');
-      return;
-    }
-
     const data = new FormData();
     data.append('_method', 'PUT');
+
     Object.keys(form).forEach((key) => {
       if (form[key] !== null) data.append(key, form[key]);
     });
@@ -93,33 +78,21 @@ export default function Edit({ rental, vehicles }) {
               ))}
             </TextField>
 
-            {/* Client et Prix */}
+            {/* Client et prix */}
             <TextField label="Client" name="client_name" value={form.client_name} onChange={handleChange} required />
             <TextField label="Prix" name="rental_price" value={form.rental_price} onChange={handleChange} type="number" required />
 
             {/* Dates */}
-            <TextField
-              label="Début"
-              type="datetime-local"
-              name="rental_start"
-              value={form.rental_start}
-              onChange={handleChange}
-              required
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Fin"
-              type="datetime-local"
-              name="rental_end"
-              value={form.rental_end}
-              onChange={handleChange}
-              required
-              InputLabelProps={{ shrink: true }}
-            />
+            <TextField label="Début" type="datetime-local" name="rental_start" value={form.rental_start} onChange={handleChange} required />
+            <TextField label="Fin" type="datetime-local" name="rental_end" value={form.rental_end} onChange={handleChange} required />
+
+            {/* Lieux de départ et arrivée */}
+            <TextField label="Lieu de départ" name="departure_location" value={form.departure_location} onChange={handleChange} required />
+            <TextField label="Lieu d'arrivée" name="arrival_location" value={form.arrival_location} onChange={handleChange} required />
 
             <Divider sx={{ my: 2 }} />
 
-            {/* Photos avant/après */}
+            {/* Photos */}
             <Box>
               <Typography>Photo avant la location</Typography>
               <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'before')} />

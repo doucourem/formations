@@ -13,10 +13,11 @@ class DeliveryController extends Controller
 {
     public function index(Request $request)
     {
-        $deliveries = Delivery::with(['bus','driver','logs'])
+        $deliveries = Delivery::with(['bus','driver','logs','expenses'])
             ->latest()
             ->paginate(15)
             ->withQueryString();
+
 
         return Inertia::render('Delivery/DeliveryIndex', compact('deliveries'));
     }

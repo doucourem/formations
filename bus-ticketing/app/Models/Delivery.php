@@ -58,5 +58,14 @@ class Delivery extends Model
 
     $this->save();
 }
+public function expenses()
+{
+    return $this->hasMany(DeliveryExpense::class);
+}
+
+public function getTotalExpensesAttribute()
+{
+    return $this->expenses->sum('amount');
+}
 
 }

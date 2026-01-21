@@ -14,10 +14,9 @@ import {
 } from "@mui/material";
 import GuestLayout from "@/Layouts/GuestLayout";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // ✅ Correct import
+import autoTable from "jspdf-autotable";
 import dayjs from "dayjs";
-// Si tu utilises Ziggy pour les routes Inertia
-import { route } from "ziggy-js"; 
+import { route } from "ziggy-js";
 
 export default function VehicleRentalShow() {
   const { rental } = usePage().props;
@@ -54,6 +53,8 @@ export default function VehicleRentalShow() {
       ["ID", rental.id],
       ["Véhicule", rental.vehicle_name],
       ["Client", rental.customer_name],
+      ["Lieu de départ", rental.departure_location],
+      ["Lieu d'arrivée", rental.arrival_location],
       ["Date de début", formatDate(rental.rental_start)],
       ["Date de fin", formatDate(rental.rental_end)],
       ["Statut", statusProps.label],
@@ -72,9 +73,9 @@ export default function VehicleRentalShow() {
   };
 
   // =========================
-  // Optionnel : Ticket 80mm
+  // Ticket 80mm
   // =========================
-  const generateTicket80mm = async () => {
+  const generateTicket80mm = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, 200] });
     let y = 8;
     const center = 40;
@@ -95,9 +96,11 @@ export default function VehicleRentalShow() {
     doc.text(`ID : ${rental.id}`, 5, y); y += 5;
     doc.text(`Véhicule : ${rental.vehicle_name}`, 5, y); y += 5;
     doc.text(`Client : ${rental.customer_name}`, 5, y); y += 5;
-    doc.text(`Statut : ${statusProps.label}`, 5, y); y += 6;
+    doc.text(`Lieu départ : ${rental.departure_location}`, 5, y); y += 5;
+    doc.text(`Lieu arrivée : ${rental.arrival_location}`, 5, y); y += 5;
     doc.text(`Début : ${formatDate(rental.rental_start)}`, 5, y); y += 5;
-    doc.text(`Fin : ${formatDate(rental.rental_end)}`, 5, y); y += 6;
+    doc.text(`Fin : ${formatDate(rental.rental_end)}`, 5, y); y += 5;
+    doc.text(`Statut : ${statusProps.label}`, 5, y); y += 6;
 
     doc.line(5, y, 75, y); y += 5;
     doc.text("Merci pour votre confiance", center, y, { align: "center" });
@@ -122,6 +125,9 @@ export default function VehicleRentalShow() {
                 >
                   Retour à la liste
                 </Button>
+                <Button variant="contained" onClick={handleExportPDF}>
+                  Export PDF
+                </Button>
               </Stack>
             }
           />
@@ -141,6 +147,16 @@ export default function VehicleRentalShow() {
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="subtitle2">Client :</Typography>
                 <Typography>{rental.customer_name}</Typography>
+              </Stack>
+
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="subtitle2">Lieu de départ :</Typography>
+                <Typography>{rental.departure_location}</Typography>
+              </Stack>
+
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="subtitle2">Lieu d'arrivée :</Typography>
+                <Typography>{rental.arrival_location}</Typography>
               </Stack>
 
               <Stack direction="row" justifyContent="space-between">

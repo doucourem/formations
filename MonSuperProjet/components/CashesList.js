@@ -30,13 +30,7 @@ const CashCard = memo(({ item, profile, navigation, onDelete, onClose }) => {
                 onPress={() => onDelete(item.id)}
               />
             )}
-            {profile?.role === "admin" && !item.closed && (
-              <IconButton
-                icon="lock"
-                iconColor="#065F46"
-                onPress={() => onClose(item)}
-              />
-            )}
+
           </View>
         )}
       />

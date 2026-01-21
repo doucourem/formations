@@ -13,8 +13,6 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { useSafeAreaInsets, SafeAreaProvider } from "react-native-safe-area-context";
-
 
 // Contextes et API
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -168,31 +166,23 @@ function LogoutTab() {
 
 function TabNavigator() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          height: 56 + insets.bottom,
-          paddingBottom: insets.bottom,
+        tabBarStyle: { 
+          backgroundColor: theme.colors.surface, 
+          height: 65, 
+          paddingBottom: 10,
           borderTopWidth: 1,
-          borderTopColor: theme.colors.outline,
+          borderTopColor: theme.colors.outline
         },
-
-        tabBarLabelStyle: {
-          paddingBottom: 4,
-        },
-
         tabBarIcon: ({ color, size, focused }) => {
           let iconName;
-          if (route.name === "Voyages") iconName = focused ? "bus-clock" : "bus";
-          else if (route.name === "Tickets") iconName = focused ? "ticket" : "ticket-outline";
+          if (route.name === "Tickets") iconName = focused ? "ticket" : "ticket-outline";
+          else if (route.name === "Voyages") iconName = focused ? "bus-clock" : "bus";
           else if (route.name === "Profil") iconName = focused ? "shield-check" : "shield-check-outline";
           else if (route.name === "Quitter") iconName = "logout";
 
@@ -207,7 +197,6 @@ function TabNavigator() {
     </Tab.Navigator>
   );
 }
-
 
 function AuthStack() {
   return (

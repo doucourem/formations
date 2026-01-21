@@ -255,7 +255,7 @@ export default function WholesalersList() {
 
           <View style={styles.amountRow}>
             <Text style={isPositive ? styles.positive : styles.negative}>
-              {isPositive ? " ON VOUS DOIT " : "VOUS DEVEZ "} :{" "}
+              {isPositive ? " VOUS DEVEZ " : "ON VOUS DOIT"} :{" "}
               {formatCFA(Math.abs(solde))}
             </Text>
             <IconButton

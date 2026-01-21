@@ -54,7 +54,7 @@ const theme = {
 const getTransactionTypes = (role) => {
   switch (role?.toLowerCase()) {
     case "grossiste":
-      return [ "Demande de fonds", "Autre"]; // ventes sortantes
+      return [ "Demande de fonds"]; // ventes sortantes
     case "kiosque":
       return ["CASH", "Renvoie Airtel", "Renvoie Moov"]; // achats entrants
     default:

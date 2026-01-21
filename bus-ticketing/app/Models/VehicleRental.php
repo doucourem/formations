@@ -15,14 +15,16 @@ class VehicleRental extends Model
         'rental_price',
         'rental_start',
         'rental_end',
+        'departure_location',
+        'arrival_location',
         'status',
     ];
 
-
-     protected $casts = [
+    protected $casts = [
         'rental_start' => 'datetime',
         'rental_end'   => 'datetime',
     ];
+
     public function bus()
     {
         return $this->belongsTo(Bus::class, 'vehicle_id');
@@ -32,4 +34,11 @@ class VehicleRental extends Model
     {
         return $this->status === 'active';
     }
+
+    // 🔹 Relation avec les dépenses
+    public function expenses()
+    {
+        return $this->hasMany(VehicleRentalExpense::class, 'vehicle_rental_id');
+    }
+
 }
