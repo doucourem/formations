@@ -13,8 +13,8 @@ return [
 
     'allowed_origins' => [
         'https://nilatouleltrans.com',
-        'http://localhost:8000',
-        'http://127.0.0.1:8000',
+        'http://localhost:8081',
+        'http://127.0.0.1:8081',
     ],
 
     'allowed_origins_patterns' => [],
