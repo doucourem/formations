@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Models\Route as TripRoute;
 class TicketController extends Controller
 {
     /**
@@ -20,85 +21,62 @@ public function index(Request $request)
     $user = auth()->user();
     abort_if(!$user, 403);
 
-    // 🔍 Récupération des filtres
-   $search      = $request->string('search')->trim()->value();
-$status      = $request->string('status')->trim()->value();
-$routeSearch = $request->string('route')->trim()->value();
+    // Récupération des routes pour le select
+    $routes = TripRoute::with(['departureCity:id,name', 'arrivalCity:id,name'])
+        ->orderByDesc('id')
+        ->get()
+        ->map(fn($route) => [
+            'id' => $route->id,
+            'departureCity' => $route->departureCity->name ?? '-',
+            'arrivalCity' => $route->arrivalCity->name ?? '-',
+        ]);
 
-// Les floats et dates sont déjà des valeurs
-$priceMin = $request->float('price_min'); // <- juste ça
-$priceMax = $request->float('price_max');
-$dateFrom = $request->date('date_from');   // <- renvoie Carbon|null
-$dateTo   = $request->date('date_to');
-
+    // 🔍 Filtres
+    $search      = $request->string('search')->trim()->value();
+    $status      = $request->string('status')->trim()->value();
+    $routeSearch = $request->string('route')->trim()->value();
+    $dateFrom    = $request->date('date_from');
+    $dateTo      = $request->date('date_to');
 
     $tickets = Ticket::query()
         ->with([
             'trip.route.departureCity:id,name',
             'trip.route.arrivalCity:id,name',
-            'baggages:id,ticket_id,description,weight,price',
+            'baggages:id,ticket_id,description,weight',
             'user:id,agence_id',
         ])
-        // Recherche client
-        ->when($search, fn ($q) => $q->where('client_name', 'like', "%{$search}%"))
-
-        // Recherche par statut
-        ->when($status, fn ($q) => $q->where('status', $status))
-
-        // Recherche par trajet (départ ou arrivée)
-        ->when($routeSearch, function ($q) use ($routeSearch) {
-            $q->whereHas('trip.route.departureCity', fn ($q) =>
-                $q->where('name', 'like', "%{$routeSearch}%")
-            )->orWhereHas('trip.route.arrivalCity', fn ($q) =>
-                $q->where('name', 'like', "%{$routeSearch}%")
-            );
-        })
-
-        // Filtre prix
-        ->when($priceMin, fn ($q) => $q->where('price', '>=', $priceMin))
-        ->when($priceMax, fn ($q) => $q->where('price', '<=', $priceMax))
-
-        // Filtre par date de voyage (trip.date si tu as un champ date)
-        ->when($dateFrom, fn ($q) => $q->whereHas('trip', fn ($q) => $q->whereDate('departure_time', '>=', $dateFrom)))
-        ->when($dateTo, fn ($q) => $q->whereHas('trip', fn ($q) => $q->whereDate('departure_time', '<=', $dateTo)))
-
-        // 🔒 Restrictions par rôle
-        ->when(true, function ($q) use ($user) {
+        ->when($search, fn($q) => $q->where('client_name', 'like', "%{$search}%"))
+        ->when($status, fn($q) => $q->where('status', $status))
+        ->when($routeSearch, fn($q) => $q->whereHas('trip.route', fn($q) =>
+            $q->where('id', $routeSearch)
+        ))
+        ->when($dateFrom, fn($q) => $q->whereHas('trip', fn($q) => $q->whereDate('departure_time', '>=', $dateFrom)))
+        ->when($dateTo, fn($q) => $q->whereHas('trip', fn($q) => $q->whereDate('departure_time', '<=', $dateTo)))
+        ->when(true, function($q) use ($user) {
             match ($user->role) {
                 'admin', 'manager','super_admin' => null,
                 'agent' => $q->where('user_id', $user->id),
-                'manageragence' => $q->whereHas('user', fn ($u) => $u->where('agence_id', $user->agence_id)),
+                'manageragence' => $q->whereHas('user', fn($u) => $u->where('agence_id', $user->agence_id)),
                 default => $q->whereRaw('1 = 0'),
             };
         })
-
         ->orderByDesc('id')
         ->paginate(10)
         ->withQueryString();
 
     // 🔄 Transformation pour le front
-    $tickets->through(fn ($ticket) => [
+    $tickets->through(fn($ticket) => [
         'id' => $ticket->id,
         'client_name' => $ticket->client_name,
         'status' => $ticket->status,
-        'seat_number' => $ticket->seat_number,
-        'price' => $ticket->price,
+        'route_id' => $ticket->trip?->route->id, // <- pour select voyage
         'route_text' => $ticket->trip?->route
-            ? ($ticket->trip->route->departureCity->name ?? '-') .
-              ' → ' .
-              ($ticket->trip->route->arrivalCity->name ?? '-')
+            ? ($ticket->trip->route->departureCity->name ?? '-') . ' → ' . ($ticket->trip->route->arrivalCity->name ?? '-')
             : '-',
-        'departureCity' => [
-            'name' => $ticket->trip?->route->departureCity->name ?? '-',
-        ],
-        'arrivalCity' => [
-            'name' => $ticket->trip?->route->arrivalCity->name ?? '-',
-        ],
-        'baggages' => $ticket->baggages->map(fn ($b) => [
+        'baggages' => $ticket->baggages->map(fn($b) => [
             'id' => $b->id,
             'description' => $b->description,
             'weight' => $b->weight,
-            'price' => $b->price,
         ]),
     ]);
 
@@ -108,14 +86,14 @@ $dateTo   = $request->date('date_to');
             'search' => $search,
             'status' => $status,
             'route' => $routeSearch,
-            'price_min' => $priceMin,
-            'price_max' => $priceMax,
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
         ],
         'userRole' => $user->role,
+        'routes' => $routes,
     ]);
 }
+
 
 
 

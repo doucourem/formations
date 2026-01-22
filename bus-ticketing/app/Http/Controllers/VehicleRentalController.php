@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bus;
 use App\Models\VehicleRental;
+use App\Models\VehicleRentalExpense;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -23,6 +24,10 @@ public function index(Request $request)
         ->paginate(15) // paginate au lieu de get()
         ->withQueryString(); // conserve recherche et filtres
 
+       
+
+    $vehicles = VehicleRentalExpense::all();
+    //dd($vehicles);
     return Inertia::render('VehicleRentals/Index', [
         'rentals' => $rentals
     ]);

@@ -10,7 +10,7 @@ class VehicleRentalExpense extends Model
     use HasFactory;
 
     protected $fillable = [
-        'rental_id',  // clé étrangère vers VehicleRental
+        'vehicle_rental_id',  // clé étrangère vers VehicleRental
         'type',       // chauffeur, fuel, toll, meal, maintenance, other
         'amount',
         'description',

@@ -65,22 +65,39 @@ export default function DeliveryIndex({ deliveries }) {
     setOpenExpenseModal(false);
   };
 
-  const handleSaveExpense = () => {
-    if (!selectedDelivery) return;
+const handleSaveExpense = () => {
+  if (!selectedDelivery) return;
 
-    const routeName = selectedExpense
-      ? `delivery-expenses.update`
-      : `delivery-expenses.store`;
+  const method = selectedExpense ? "put" : "post";
 
-    const method = selectedExpense ? "put" : "post";
-    const payload = selectedExpense
-      ? { ...expenseData, _method: "put" }
-      : { ...expenseData, delivery_id: selectedDelivery.id };
+  const routeName = selectedExpense
+    ? "delivery-expenses.update"
+    : "delivery-expenses.store";
 
-    Inertia[method](route(routeName, selectedExpense?.id || undefined), payload, {
-      onSuccess: () => handleCloseExpenseModal(),
-    });
-  };
+  const routeParams = selectedExpense
+    ? { delivery: selectedDelivery.id, expense: selectedExpense.id } // ✅ il faut expense
+    : { delivery: selectedDelivery.id }; // pour store
+
+  const payload = selectedExpense
+    ? { ...expenseData, _method: "put" }
+    : { ...expenseData };
+
+  Inertia[method](route(routeName, routeParams), payload, {
+    onSuccess: () => handleCloseExpenseModal(),
+  });
+};
+
+const TYPE_LABELS = {
+  chauffeur: "Chauffeur",
+  carburant: "Carburant",
+  peages: "Péages",
+  restauration: "Restauration",
+  entretien: "Entretien",
+  autres: "Autres",
+};
+
+
+
 
   return (
     <GuestLayout>
@@ -115,7 +132,7 @@ export default function DeliveryIndex({ deliveries }) {
               <TableHead>
                 <TableRow>
                   {[
-                    "ID",
+                
                     "Véhicule",
                     "Chauffeur",
                     "Produit",
@@ -140,7 +157,7 @@ export default function DeliveryIndex({ deliveries }) {
                 {deliveries.data.length > 0 ? (
                   deliveries.data.map((d) => (
                     <TableRow key={d.id}>
-                      <TableCell>{d.id}</TableCell>
+                      
                       <TableCell>{d.bus.registration_number}</TableCell>
                       <TableCell>{d.driver.first_name}</TableCell>
                       <TableCell>{d.product_name}</TableCell>
@@ -164,9 +181,10 @@ export default function DeliveryIndex({ deliveries }) {
                                 justifyContent="space-between"
                                 alignItems="center"
                               >
-                                <Typography variant="body2">
-                                  {e.type} : {e.amount} CFA
-                                </Typography>
+                               <Typography variant="body2">
+  {TYPE_LABELS[e.type] || e.type} : {e.amount} CFA
+</Typography>
+
                                 <Stack direction="row" spacing={0.5}>
                                   <IconButton
                                     size="small"
@@ -253,13 +271,13 @@ export default function DeliveryIndex({ deliveries }) {
         onChange={(e) => setExpenseData({ ...expenseData, type: e.target.value })}
         fullWidth
       >
-        <MenuItem value="">Sélectionner</MenuItem>
-        <MenuItem value="chauffeur">Chauffeur</MenuItem>
-        <MenuItem value="fuel">Carburant</MenuItem>
-        <MenuItem value="toll">Péages</MenuItem>
-        <MenuItem value="meal">Restauration</MenuItem>
-        <MenuItem value="maintenance">Entretien</MenuItem>
-        <MenuItem value="other">Autres</MenuItem>
+       <MenuItem value="chauffeur">Chauffeur</MenuItem>
+<MenuItem value="carburant">Carburant</MenuItem>
+<MenuItem value="peages">Péages</MenuItem>
+<MenuItem value="restauration">Restauration</MenuItem>
+<MenuItem value="entretien">Entretien</MenuItem>
+<MenuItem value="autres">Autres</MenuItem>
+
       </TextField>
 
       <TextField

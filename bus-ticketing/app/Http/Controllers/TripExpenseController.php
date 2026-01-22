@@ -32,29 +32,19 @@ class TripExpenseController extends Controller
     /**
      * Stocker une nouvelle dépense
      */
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'trip_id' => 'required|exists:trips,id',
-            'type' => 'required|string',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-        ]);
+   public function store(Request $request, Trip $trip)
+{
+    $data = $request->validate([
+        'type' => 'required|string',
+        'amount' => 'required|numeric|min:0',
+        'description' => 'nullable|string',
+    ]);
 
-        $expense = TripExpense::create([
-            'trip_id' => $data['trip_id'],
-            'type' => $data['type'],
-            'amount' => $data['amount'],
-            'description' => $data['description'] ?? null,
-        ]);
+    $trip->expenses()->create($data);
 
-        $trip = Trip::with('expenses')->find($data['trip_id']);
+    return redirect()->back()->with('message', 'Dépense ajoutée avec succès');
+}
 
-        return redirect()->back()->with([
-            'message' => 'Dépense ajoutée avec succès',
-            'trip' => $trip,
-        ]);
-    }
 
     /**
      * Supprimer une dépense

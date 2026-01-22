@@ -96,7 +96,9 @@ Route::get('/parcels/export', [ParcelController::class, 'exportSummary'])->name(
 Route::get('/parcels/export-detailed', [ParcelController::class, 'exportDetailed'])->name('parcels.export-detailed');
 
 Route::get('/trips/{trip}/expenses', [TripExpenseController::class, 'index'])->name('trip-expenses.index');
-Route::post('/trip-expenses', [TripExpenseController::class, 'store'])->name('trip-expenses.store');
+Route::post('/trips/{trip}/expenses', [TripExpenseController::class, 'store'])
+    ->name('trip-expenses.store');
+
 Route::delete('/trip-expenses/{tripExpense}', [TripExpenseController::class, 'destroy'])->name('trip-expenses.destroy');
 Route::put('/trip-expenses/{tripExpense}', [TripExpenseController::class, 'update'])->name('trip-expenses.update');
 

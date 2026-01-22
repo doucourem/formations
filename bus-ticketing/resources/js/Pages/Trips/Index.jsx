@@ -138,7 +138,7 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
               <Table>
                 <TableHead sx={{ bgcolor: "#1565c0" }}>
                   <TableRow>
-                    {["ID", "Route", "Bus", "Départ", "Arrivée", "Prix", "Places dispo", "Actions"].map((col) => (
+                    {[ "Route", "Bus", "Départ", "Arrivée", "Prix", "Places dispo", "Actions"].map((col) => (
                       <TableCell key={col} sx={{ color: "white", fontWeight: "bold" }}>{col}</TableCell>
                     ))}
                   </TableRow>
@@ -148,7 +148,7 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                     trips.data.map((trip) => (
                       <React.Fragment key={trip.id}>
                         <TableRow hover>
-                          <TableCell>{trip.id}</TableCell>
+                          
                           <TableCell>{trip.route?.departureCity?.name || "-"} → {trip.route?.arrivalCity?.name || "-"}</TableCell>
                           <TableCell>{trip.bus?.model || "-"}</TableCell>
                           <TableCell>{formatDateFR(trip.departure_at)}</TableCell>
@@ -205,39 +205,7 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
                           </TableCell>
                         </TableRow>
 
-                        {/* LISTE DES DÉPENSES EXISTANTES */}
-                        {trip.expenses?.length > 0 && (
-                          <TableRow>
-                            <TableCell colSpan={8}>
-                              <Typography variant="subtitle2" gutterBottom>💰 Dépenses :</Typography>
-                              <Table size="small">
-                                <TableHead>
-                                  <TableRow>
-                                    <TableCell>Type</TableCell>
-                                    <TableCell>Montant (FCFA)</TableCell>
-                                    <TableCell>Description</TableCell>
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {trip.expenses.map((exp) => (
-                                    <TableRow key={exp.id}>
-                                      <TableCell>{{
-                                        chauffeur: "Chauffeur",
-                                        fuel: "Carburant",
-                                        toll: "Péage",
-                                        meal: "Restauration",
-                                        maintenance: "Entretien",
-                                        other: "Autre",
-                                      }[exp.type] || exp.type}</TableCell>
-                                      <TableCell>{exp.amount.toLocaleString("fr-FR")}</TableCell>
-                                      <TableCell>{exp.description || "-"}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </TableCell>
-                          </TableRow>
-                        )}
+                       
 
                         {/* FORMULAIRE DÉPENSES DANS DIALOG */}
                         <Dialog

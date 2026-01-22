@@ -95,13 +95,20 @@ export default function VehicleRentalIndex({ rentals }) {
     const method = selectedExpense ? "put" : "post";
     const payload = selectedExpense
       ? { ...expenseData, _method: "put" }
-      : { ...expenseData, rental_id: selectedRental.id };
+      : { ...expenseData, vehicle_rental_id: selectedRental.id };
 
     Inertia[method](route(routeName, selectedExpense?.id || undefined), payload, {
       onSuccess: () => handleCloseExpenseModal(),
     });
   };
-
+const TYPE_LABELS = {
+  chauffeur: "Chauffeur",
+  carburant: "Carburant",
+  peages: "Péages",
+  restauration: "Restauration",
+  entretien: "Entretien",
+  autres: "Autres",
+};
   return (
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 2 }}>
@@ -133,7 +140,7 @@ export default function VehicleRentalIndex({ rentals }) {
               <TableHead>
                 <TableRow>
                   {[
-                    "ID",
+                   
                     "Véhicule",
                     "Client",
                     "Début",
@@ -157,7 +164,7 @@ export default function VehicleRentalIndex({ rentals }) {
                 {rentals.data.length > 0 ? (
                   rentals.data.map((rental) => (
                     <TableRow key={rental.id}>
-                      <TableCell>{rental.id}</TableCell>
+                     
                       <TableCell>{rental.bus?.registration_number || "-"}</TableCell>
                       <TableCell>{rental.client_name}</TableCell>
                       <TableCell>{new Date(rental.rental_start).toLocaleString()}</TableCell>
@@ -177,8 +184,9 @@ export default function VehicleRentalIndex({ rentals }) {
                                 alignItems="center"
                               >
                                 <Typography variant="body2">
-                                  {e.type} : {e.amount} CFA
-                                </Typography>
+  {TYPE_LABELS[e.type] || e.type} : {e.amount} CFA
+</Typography>
+
                                 <Stack direction="row" spacing={0.5}>
                                   <IconButton
                                     size="small"
@@ -264,20 +272,21 @@ export default function VehicleRentalIndex({ rentals }) {
   <DialogContent>
     <Stack spacing={2}>
       <TextField
-        select
-        label="Type de dépense"
-        value={expenseData.type}
-        onChange={(e) => setExpenseData({ ...expenseData, type: e.target.value })}
-        fullWidth
-      >
-        <MenuItem value="">Sélectionner</MenuItem>
-        <MenuItem value="chauffeur">Chauffeur</MenuItem>
-        <MenuItem value="fuel">Carburant</MenuItem>
-        <MenuItem value="toll">Péages</MenuItem>
-        <MenuItem value="meal">Restauration</MenuItem>
-        <MenuItem value="maintenance">Entretien</MenuItem>
-        <MenuItem value="other">Autres</MenuItem>
-      </TextField>
+  select
+  label="Type de dépense"
+  value={expenseData.type}
+  onChange={(e) => setExpenseData({ ...expenseData, type: e.target.value })}
+  fullWidth
+>
+  <MenuItem value="">Sélectionner</MenuItem>
+  <MenuItem value="chauffeur">Chauffeur</MenuItem>
+  <MenuItem value="carburant">Carburant</MenuItem>
+  <MenuItem value="peages">Péages</MenuItem>
+  <MenuItem value="restauration">Restauration</MenuItem>
+  <MenuItem value="entretien">Entretien</MenuItem>
+  <MenuItem value="autres">Autres</MenuItem>
+</TextField>
+
 
       <TextField
         label="Montant"
