@@ -639,25 +639,40 @@ const handleDeleteTransaction = (id) => {
           />
         )}
 
-       <FAB
+      <FAB
   icon="plus"
   style={[styles.fab, { bottom: height * 0.03, right: width * 0.04 }]}
   onPress={() => {
     setEditMode(false);
     setEditingId(null);
+
+    // Définition du type de transaction selon le rôle
+    const role = profile?.role?.toLowerCase();
+    let type = "CREDIT";
+    let transactionType = "Envoie Airtel";
+
+    if (role === "kiosque") {
+      type = "DEBIT";
+      transactionType = "CASH";
+    } else if (role === "grossiste") {
+      type = "CREDIT"; // ou CREDIT selon ton besoin pour la demande de fonds
+      transactionType = "Demande de fonds";
+    }
+
     setForm({ 
       cashId: cashes.length === 1 ? cashes[0].id : null, 
       cashQuery: cashes.length === 1 ? cashes[0].name : "", 
       amount: "", 
-      // Logique de forçage ici :
-      type: profile?.role?.toLowerCase() === "kiosque" ? "DEBIT" : "CREDIT", 
-      transactionType: profile?.role?.toLowerCase() === "kiosque" ? "CASH" : "Envoie Airtel", 
+      type,
+      transactionType,
       otherType: "" 
     });
+
     setDialogVisible(true);
   }}
   label="Nouvelle"
 />
+
 
        <TransactionDialog
   visible={dialogVisible}
