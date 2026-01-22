@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import {
   View,
   TouchableOpacity,
@@ -39,6 +39,8 @@ export default function TransactionDialog({
 }) {
   const { width, height } = useWindowDimensions();
   const isDesktop = width >= 768;
+
+  const [submitting, setSubmitting] = useState(false); // ← état pour éviter double envoi
 
   // ---------- Pré-remplissage automatique selon rôle ----------
   useEffect(() => {
@@ -88,13 +90,14 @@ export default function TransactionDialog({
 
   // ---------- Soumission ----------
   const handleSave = async () => {
-    if (!isValid) return;
+    if (!isValid || submitting) return; // bloque si formulaire invalide ou déjà en cours
+    setSubmitting(true); // bloque les clics supplémentaires
 
     try {
-      await onSave(form); // onSave géré par le parent pour insertion / API
-      onDismiss();        // ferme le dialogue
+      await onSave(form); // appel parent / API
+      onDismiss(); // ferme le dialogue
 
-      // reset formulaire
+      // reset formulaire après envoi
       setForm({
         cashId: cashes.length === 1 ? cashes[0].id : null,
         cashQuery: cashes.length === 1 ? cashes[0].name : "",
@@ -116,6 +119,8 @@ export default function TransactionDialog({
     } catch (error) {
       console.error(error);
       Alert.alert("Erreur", "Impossible d’enregistrer la transaction");
+    } finally {
+      setSubmitting(false); // déverrouille le bouton
     }
   };
 
@@ -244,9 +249,7 @@ export default function TransactionDialog({
                           mode={form.type === "CREDIT" ? "contained" : "outlined"}
                           onPress={() => setForm({ ...form, type: "CREDIT" })}
                           style={{ flex: 1 }}
-                          buttonColor={
-                            form.type === "CREDIT" ? theme.colors.error : undefined
-                          }
+                          buttonColor={form.type === "CREDIT" ? theme.colors.error : undefined}
                         >
                           Envoi
                         </Button>
@@ -328,7 +331,12 @@ export default function TransactionDialog({
             Annuler
           </Button>
 
-          <Button mode="contained" onPress={handleSave} disabled={!isValid}>
+          <Button
+            mode="contained"
+            onPress={handleSave}
+            disabled={!isValid || submitting}
+            loading={submitting} // spinner pendant envoi
+          >
             {editMode ? "Mettre à jour" : "Confirmer la transaction"}
           </Button>
         </Dialog.Actions>
