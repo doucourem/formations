@@ -103,6 +103,19 @@ Route::delete('/trip-expenses/{tripExpense}', [TripExpenseController::class, 'de
 Route::put('/trip-expenses/{tripExpense}', [TripExpenseController::class, 'update'])->name('trip-expenses.update');
 
 
+// Totaux par type pour Trips
+Route::get('/trips/{trip}/expenses/total-by-type', [TripExpenseController::class, 'totalByType'])
+    ->name('trip-expenses.total-by-type');
+
+// Totaux par type pour Vehicle Rentals
+Route::get('/vehicle-rentals/{rental}/expenses/total-by-type', [VehicleRentalExpenseController::class, 'totalByType'])
+    ->name('vehicle_rental_expenses.total-by-type');
+
+// Totaux par type pour Deliveries
+Route::get('/deliveries/{delivery}/expenses/total-by-type', [DeliveryExpenseController::class, 'totalByType'])
+    ->name('delivery-expenses.total-by-type');
+
+
 
 // Routes pour gérer les dépenses des locations de véhicules
 Route::prefix('vehicle-rentals')->group(function () {

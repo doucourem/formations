@@ -1,11 +1,14 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const API_URL = "https://nilatouleltrans.com/api";
+//const API_URL = "http://127.0.0.1:8000/api";
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL, // ex: http://127.0.0.1:8000/api
+  baseURL: API_URL, // ex: http://127.0.0.1:8000/api
   headers: {
     Accept: "application/json",
   },
+  withCredentials: true, // ⚠️ obligatoire pour cookies / CORS
 });
 
 /**

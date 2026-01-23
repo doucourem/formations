@@ -215,30 +215,48 @@ public function storeExtension(Request $request, VehicleRental $vehicleRental)
                      ->with('success', 'Location prolongée avec succès.');
 }
 
+public function totalByType($rentalId)
+{
+    $totals = VehicleRentalExpense::where('vehicle_rental_id', $rentalId)
+        ->selectRaw('type, SUM(amount) as total')
+        ->groupBy('type')
+        ->get();
+
+    return response()->json($totals);
+}
 
 
 public function show($id)
 {
-    $rental = VehicleRental::findOrFail($id);
+    $rental = VehicleRental::with(['bus', 'expenses'])->findOrFail($id);
 
     return Inertia::render('VehicleRentals/show', [
-    'rental' => [
-        'id' => $rental->id,
-        'vehicle_name' => $rental->bus->registration_number ?? '-',
-        'customer_name' => $rental->client_name ?? '-',
-        'departure_location' => $rental->departure_location ?? '-', // ajouté
-        'arrival_location' => $rental->arrival_location ?? '-',     // ajouté
-        'start_date' => $rental->rental_start
-            ? Carbon::parse($rental->rental_start)->format('d/m/Y')
-            : '-',
-        'end_date' => $rental->rental_end
-            ? Carbon::parse($rental->rental_end)->format('d/m/Y')
-            : '-',
-        'status' => $rental->status,
-    ],
-]);
+        'rental' => [
+            'id' => $rental->id,
+            'vehicle_name' => $rental->bus->registration_number ?? '-',
+            'customer_name' => $rental->client_name ?? '-',
+            'departure_location' => $rental->departure_location ?? '-',
+            'arrival_location' => $rental->arrival_location ?? '-',
 
+            // ⛔ garde les vraies dates pour React
+            'rental_start' => $rental->rental_start,
+            'rental_end' => $rental->rental_end,
+
+            'status' => $rental->status,
+
+            // ✅ LES DÉPENSES
+            'expenses' => $rental->expenses->map(function ($expense) {
+                return [
+                    'id' => $expense->id,
+                    'type' => $expense->type,
+                    'amount' => $expense->amount,
+                    'description' => $expense->description,
+                ];
+            }),
+        ],
+    ]);
 }
+
 
 
 

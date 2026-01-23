@@ -11,11 +11,16 @@ import {
   Button,
   Stack,
   Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import { Inertia } from "@inertiajs/inertia";
 import dayjs from "dayjs";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // ✅ Correct import pour autoTable
+import autoTable from "jspdf-autotable";
 
 export default function DeliveryShow({ delivery }) {
   const formatDate = (date) =>
@@ -34,91 +39,48 @@ export default function DeliveryShow({ delivery }) {
 
   const statusProps = getStatusProps(delivery.status);
 
-const handleExportTicket = () => {
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: [80, 150], // petit ticket thermique
-  });
+  const totalExpenses = delivery.total_expenses || 0;
+  const netResult = Number(delivery.price) - totalExpenses;
 
-  const margin = 10;
-  let y = 10;
-
-  // --- Titre centré ---
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("Livraison - Ticket", 40, y, { align: "center" });
-  y += 10;
-
-  // --- Séparateur ---
-  doc.setLineWidth(0.2);
-  doc.line(margin, y, 70, y);
-  y += 5;
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-
-  const addLine = (label, value) => {
-    doc.text(`${label}:`, margin, y);
-    doc.text(`${value}`, 70, y, { align: "right" });
-    y += 7;
-  };
-  addLine("Véhicule", delivery.bus?.registration_number || "—");
-  addLine("Chauffeur", `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`.trim() || "—");
-  addLine("Produit", delivery.product_name || "—");
-  addLine("Lot", delivery.product_lot || "—");
-  addLine("Quantité chargée", delivery.quantity_loaded ?? "—");
-  addLine("Quantité livrée", delivery.quantity_delivered ?? "—");
-  addLine("Prix", `${Number(delivery.price).toLocaleString()} CFA`);
-  addLine("Statut", statusProps.label);
-  addLine("Départ", formatDate(delivery.departure_at));
-  addLine("Arrivée", formatDate(delivery.arrival_at));
-
-  // --- Séparateur ---
-  y += 3;
-  doc.line(margin, y, 70, y);
-  y += 5;
-
-  // --- Footer ---
-  doc.setFontSize(9);
-  doc.text(`Imprimé le: ${dayjs().format("DD/MM/YYYY HH:mm")}`, margin, y);
-  y += 6;
-  doc.text("Merci pour votre confiance !", 40, y, { align: "center" });
-
-  // --- Sauvegarde ---
-  doc.save(`Ticket_Livraison_${delivery.id}.pdf`);
-};
-
-
-  // ✅ Export PDF avec autoTable pour un rendu propre
+  // ================== EXPORT PDF COMPLET ==================
   const handleExportPDF = () => {
     const doc = new jsPDF();
 
     doc.setFontSize(18);
     doc.text("Détails de la livraison", 14, 20);
 
-    const data = [
-      ["Véhicule", `${delivery.bus?.registration_number} (${delivery.bus?.vehicle_type || delivery.bus?.model})`],
-      ["Chauffeur", `${delivery.driver?.first_name} ${delivery.driver?.last_name}`],
-      ["Produit", delivery.product_name],
-      ["Lot", delivery.product_lot || "—"],
-      ["Quantité chargée", delivery.quantity_loaded],
-      ["Quantité livrée", delivery.quantity_delivered ?? "—"],
-      ["Distance (km)", delivery.distance_km ?? "—"],
-      ["Prix", `${new Intl.NumberFormat("fr-FR").format(delivery.price)} CFA`],
-      ["Statut", statusProps.label],
-      ["Départ", formatDate(delivery.departure_at)],
-      ["Arrivée", formatDate(delivery.arrival_at)],
-    ];
-
     autoTable(doc, {
       startY: 30,
       head: [["Champ", "Valeur"]],
-      body: data,
-      theme: "grid",
-      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-      styles: { cellPadding: 3 },
+      body: [
+        ["Véhicule", delivery.bus?.registration_number || "—"],
+        ["Chauffeur", `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`],
+        ["Produit", delivery.product_name],
+        ["Lot", delivery.product_lot || "—"],
+        ["Quantité chargée", delivery.quantity_loaded],
+        ["Quantité livrée", delivery.quantity_delivered ?? "—"],
+        ["Distance (km)", delivery.distance_km ?? "—"],
+        ["Prix", `${Number(delivery.price).toLocaleString()} CFA`],
+        ["Total dépenses", `${totalExpenses.toLocaleString()} CFA`],
+        ["Résultat net", `${netResult.toLocaleString()} CFA`],
+        ["Statut", statusProps.label],
+        ["Départ", formatDate(delivery.departure_at)],
+        ["Arrivée", formatDate(delivery.arrival_at)],
+      ],
     });
+
+    if (delivery.expenses?.length) {
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 10,
+        head: [["Type", "Montant (CFA)", "Description", "Date"]],
+        body: delivery.expenses.map((e) => [
+          e.type,
+          Number(e.amount).toLocaleString(),
+          e.description || "—",
+          e.created_at,
+        ]),
+      });
+    }
 
     doc.save(`Livraison_${delivery.id}.pdf`);
   };
@@ -130,7 +92,7 @@ const handleExportTicket = () => {
           title={<Typography variant="h5">Détails de la livraison 📦</Typography>}
           action={
             <Stack direction="row" spacing={1}>
-              <Button variant="contained" onClick={handleExportTicket}>
+              <Button variant="contained" onClick={handleExportPDF}>
                 Export PDF
               </Button>
               <Button
@@ -144,15 +106,16 @@ const handleExportTicket = () => {
             </Stack>
           }
         />
+
         <Divider />
+
         <CardContent>
           <Stack spacing={3}>
+            {/* INFOS PRINCIPALES */}
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Véhicule</Typography>
-                <Typography>
-                  {delivery.bus?.registration_number} ({delivery.bus?.vehicle_type || delivery.bus?.model})
-                </Typography>
+                <Typography>{delivery.bus?.registration_number}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Chauffeur</Typography>
@@ -164,6 +127,7 @@ const handleExportTicket = () => {
 
             <Divider />
 
+            {/* PRODUIT */}
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Produit</Typography>
@@ -175,6 +139,7 @@ const handleExportTicket = () => {
               </Grid>
             </Grid>
 
+            {/* QUANTITÉS */}
             <Grid container spacing={2}>
               <Grid item xs={12} md={4}>
                 <Typography variant="subtitle2">Quantité chargée</Typography>
@@ -192,33 +157,74 @@ const handleExportTicket = () => {
 
             <Divider />
 
+            {/* FINANCIER */}
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={4}>
                 <Typography variant="subtitle2">Prix</Typography>
                 <Typography fontWeight="bold">
                   {Number(delivery.price).toLocaleString()} CFA
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Statut</Typography>
-                <Chip
-                  label={statusProps.label}
-                  color={statusProps.color}
-                  sx={{ fontWeight: "bold" }}
-                />
+              <Grid item xs={12} md={4}>
+                <Typography variant="subtitle2">Total dépenses</Typography>
+                <Typography fontWeight="bold" color="error">
+                  {totalExpenses.toLocaleString()} CFA
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Typography variant="subtitle2">Résultat net</Typography>
+                <Typography
+                  fontWeight="bold"
+                  color={netResult >= 0 ? "success.main" : "error.main"}
+                >
+                  {netResult.toLocaleString()} CFA
+                </Typography>
               </Grid>
             </Grid>
 
             <Divider />
 
+            {/* DÉPENSES */}
+            <Typography variant="h6">Dépenses</Typography>
+
+            {delivery.expenses?.length ? (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Montant (CFA)</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Date</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {delivery.expenses.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell>{e.type}</TableCell>
+                      <TableCell>{Number(e.amount).toLocaleString()}</TableCell>
+                      <TableCell>{e.description || "—"}</TableCell>
+                      <TableCell>{e.created_at}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <Typography color="text.secondary">
+                Aucune dépense enregistrée
+              </Typography>
+            )}
+
+            <Divider />
+
+            {/* STATUT & DATES */}
             <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2">Statut</Typography>
+                <Chip label={statusProps.label} color={statusProps.color} />
+              </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Départ</Typography>
                 <Typography>{formatDate(delivery.departure_at)}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Arrivée</Typography>
-                <Typography>{formatDate(delivery.arrival_at)}</Typography>
               </Grid>
             </Grid>
 

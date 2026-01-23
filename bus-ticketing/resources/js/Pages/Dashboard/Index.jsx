@@ -5,6 +5,7 @@ import SalesChart from '@/Components/SalesChart';
 import BusFillRate from '@/Components/BusFillRate';
 import TopDrivers from '@/Components/TopDrivers';
 import TopRoutes from '@/Components/TopRoutes';
+import ExpensesDashboard from '@/Pages/Dashboard/ExpensesDashboard';
 import ParcelRoutesChart from '@/Components/ParcelRoutesChart';
 import { Package } from "lucide-react";
 
@@ -95,6 +96,8 @@ export default function DashboardIndex() {
     <div className="h-72">
         <ParcelRoutesChart routes={data.parcel_routes} />
     </div>
+    <ExpensesDashboard tripId={5} rentalId={3} deliveryId={8} />
+
 </div>
 
 

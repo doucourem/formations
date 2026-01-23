@@ -2,8 +2,8 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ⚠️ Change l'URL selon ton serveur Laravel
-const API_URL = "http://127.0.0.1:8000/api";
-
+const API_URL = "https://nilatouleltrans.com/api";
+//const API_URL = "http://127.0.0.1:8000/api";
 // Création d'une instance axios
 const api = axios.create({
   baseURL: API_URL,
@@ -11,6 +11,7 @@ const api = axios.create({
     Accept: "application/json",
     "Content-Type": "application/json",
   },
+  withCredentials: true, // ⚠️ obligatoire pour cookies / CORS
 });
 
 // ================== AUTH ==================

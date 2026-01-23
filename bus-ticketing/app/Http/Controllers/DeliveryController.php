@@ -67,11 +67,26 @@ class DeliveryController extends Controller
     }
 
     public function show(Delivery $delivery)
-    {
-        $delivery->load('bus','driver','logs');
+{
+    $delivery->load([
+        'bus',
+        'driver',
+        'logs',
+        'expenses', // ✅ AJOUT ICI
+    ]);
 
-        return Inertia::render('Delivery/DeliveryShow', compact('delivery'));
-    }
+    return Inertia::render('Delivery/DeliveryShow', compact('delivery'));
+}
+
+public function totalByType($deliveryId)
+{
+    $totals = \App\Models\DeliveryExpense::where('delivery_id', $deliveryId)
+        ->selectRaw('type, SUM(amount) as total')
+        ->groupBy('type')
+        ->get();
+
+    return response()->json($totals);
+}
 
     public function edit(Delivery $delivery)
     {

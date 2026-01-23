@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\TicketApiController;
 use App\Http\Controllers\Api\TripApiController;
 
 use App\Http\Controllers\Api\SeatController;
+use \App\Http\Controllers\Api\ParcelController;
 
 
 
@@ -63,6 +64,18 @@ Route::get('trips/{trip}/seats', [SeatController::class, 'availableSeats']);
 Route::post('seats/reserve', [SeatController::class, 'reserve']);
 });
 
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    // ... tes autres routes tickets / trips / seats ...
+
+    // Parcels
+    Route::get('parcels', [ParcelController::class, 'index']);
+    Route::get('parcels/{id}', [ParcelController::class, 'show']);
+    Route::post('parcels', [ParcelController::class, 'store']);
+    Route::put('parcels/{id}', [ParcelController::class, 'update']);
+    Route::delete('parcels/{id}', [ParcelController::class, 'destroy']);
+});
 
 
 
@@ -388,7 +401,7 @@ Route::post('/twilio/webhook2', [TwilioWebhookController::class, 'handle']);
 // ----------------------
 // Fonction recherche voyages
 
-
+/*
 function rechercherVoyages($departure, $arrival, $date, $twiml, $from = null) {
     $departure = trim($departure);
     $arrival   = trim($arrival);
@@ -451,7 +464,7 @@ function rechercherVoyages($departure, $arrival, $date, $twiml, $from = null) {
 }
 
 
-
+*/
 
 
 

@@ -124,6 +124,7 @@ export default function TicketsIndex({ tickets, routes }) {
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>ID</TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Client</TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Voyage</TableCell>
+                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Prix</TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Statut</TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Bagages</TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>Actions</TableCell>
@@ -135,6 +136,8 @@ export default function TicketsIndex({ tickets, routes }) {
                     <TableCell>{ticket.id}</TableCell>
                     <TableCell>{ticket.client_name}</TableCell>
                     <TableCell>{ticket.route_text || "—"}</TableCell>
+                    <TableCell>{ticket.price?.toLocaleString() || "—"} FCFA</TableCell>
+                    
                     <TableCell>
                       <Chip
                         label={ticket.status === "paid" ? "Payé" : ticket.status === "pending" ? "En attente" : "Annulé"}

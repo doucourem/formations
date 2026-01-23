@@ -29,6 +29,7 @@ import ChangePasswordScreen from "./components/ChangePasswordScreen";
 
 // Assets
 import logo from "./assets/logo.png";
+import ParcelListScreen from "./screens/ParcelListScreen";
 
 /* ================= THÈMES PERSONNALISÉS ================= */
 const commonTheme = { roundness: 10 };
@@ -143,13 +144,17 @@ function PasswordStack() {
 /* ================= GESTION DÉCONNEXION ================= */
 
 function LogoutTab() {
-  const { token, setUser, setToken } = useAuth();
+  const { logout, setUser, setToken } = useAuth(); // ✅ utiliser logout du contexte
   const theme = useTheme();
 
   React.useEffect(() => {
     const doLogout = async () => {
-      try { await logout(token); } catch (e) { console.error("Logout error", e); }
-      finally { setUser(null); setToken(null); }
+      try { 
+        await logout(); // ✅ plus de token passé, logout gère tout
+      } catch (e) { 
+        console.error("Logout error", e); 
+      }
+      // setUser et setToken sont déjà faits dans logout
     };
     doLogout();
   }, []);
@@ -161,6 +166,7 @@ function LogoutTab() {
     </View>
   );
 }
+
 
 /* ================= NAVIGATEURS PRINCIPAUX ================= */
 
@@ -192,7 +198,7 @@ function TabNavigator() {
     >
       <Tab.Screen name="Voyages" component={VoyagesStack} />
       <Tab.Screen name="Tickets" component={TicketsStack} />
-      <Tab.Screen name="Profil" component={PasswordStack} />
+      <Tab.Screen name="Colis" component={ParcelListScreen} />
       <Tab.Screen name="Quitter" component={LogoutTab} />
     </Tab.Navigator>
   );

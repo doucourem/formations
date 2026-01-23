@@ -11,6 +11,11 @@ import {
   CardContent,
   CardHeader,
   Chip,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
 } from "@mui/material";
 import GuestLayout from "@/Layouts/GuestLayout";
 import jsPDF from "jspdf";
@@ -23,7 +28,16 @@ export default function VehicleRentalShow() {
 
   if (!rental) return <p>Location non trouvée</p>;
 
-  const formatDate = (date) => (date ? dayjs(date).format("DD/MM/YYYY") : "—");
+  // ✅ Sécurisation
+  const expenses = rental.expenses ?? [];
+
+  const totalExpenses = expenses.reduce(
+    (sum, e) => sum + Number(e.amount),
+    0
+  );
+
+  const formatDate = (date) =>
+    date ? dayjs(date).format("DD/MM/YYYY") : "—";
 
   const getStatusProps = (status) => {
     switch (status) {
@@ -40,140 +54,93 @@ export default function VehicleRentalShow() {
 
   const statusProps = getStatusProps(rental.status);
 
-  // =========================
-  // Export PDF classique
-  // =========================
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-
-    doc.setFontSize(18);
-    doc.text("Détails de la location", 14, 20);
-
-    const data = [
-      ["ID", rental.id],
-      ["Véhicule", rental.vehicle_name],
-      ["Client", rental.customer_name],
-      ["Lieu de départ", rental.departure_location],
-      ["Lieu d'arrivée", rental.arrival_location],
-      ["Date de début", formatDate(rental.rental_start)],
-      ["Date de fin", formatDate(rental.rental_end)],
-      ["Statut", statusProps.label],
-    ];
-
-    autoTable(doc, {
-      startY: 30,
-      head: [["Champ", "Valeur"]],
-      body: data,
-      theme: "grid",
-      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-      styles: { cellPadding: 3 },
-    });
-
-    doc.save(`Location_${rental.id}.pdf`);
-  };
-
-  // =========================
-  // Ticket 80mm
-  // =========================
-  const generateTicket80mm = () => {
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, 200] });
-    let y = 8;
-    const center = 40;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("LOCATION & TRANSPORT", center, y, { align: "center" });
-    y += 6;
-    doc.setFontSize(13);
-    doc.text("BILLET DE LOCATION", center, y, { align: "center" });
-    y += 6;
-    doc.line(5, y, 75, y);
-    y += 5;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(`Date : ${new Date().toLocaleString("fr-FR")}`, 5, y); y += 5;
-    doc.text(`ID : ${rental.id}`, 5, y); y += 5;
-    doc.text(`Véhicule : ${rental.vehicle_name}`, 5, y); y += 5;
-    doc.text(`Client : ${rental.customer_name}`, 5, y); y += 5;
-    doc.text(`Lieu départ : ${rental.departure_location}`, 5, y); y += 5;
-    doc.text(`Lieu arrivée : ${rental.arrival_location}`, 5, y); y += 5;
-    doc.text(`Début : ${formatDate(rental.rental_start)}`, 5, y); y += 5;
-    doc.text(`Fin : ${formatDate(rental.rental_end)}`, 5, y); y += 5;
-    doc.text(`Statut : ${statusProps.label}`, 5, y); y += 6;
-
-    doc.line(5, y, 75, y); y += 5;
-    doc.text("Merci pour votre confiance", center, y, { align: "center" });
-
-    doc.save(`ticket_location_${rental.id}.pdf`);
-  };
-
   return (
     <GuestLayout>
-      <Box sx={{ maxWidth: 600, margin: "0 auto", mt: 4 }}>
+      <Box sx={{ maxWidth: 800, margin: "0 auto", mt: 4 }}>
         <Card sx={{ borderRadius: 3 }}>
           <CardHeader
             title={<Typography variant="h5">Détails de la location 🚗</Typography>}
             action={
               <Stack direction="row" spacing={1}>
-                <Button variant="contained" onClick={generateTicket80mm}>
-                  Télécharger le billet
-                </Button>
                 <Button
                   variant="contained"
                   onClick={() => Inertia.get(route("vehicle-rentals.index"))}
                 >
-                  Retour à la liste
-                </Button>
-                <Button variant="contained" onClick={handleExportPDF}>
-                  Export PDF
+                  Retour
                 </Button>
               </Stack>
             }
           />
+
           <Divider />
+
           <CardContent>
+            {/* ================= INFOS LOCATION ================= */}
             <Stack spacing={2}>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="subtitle2">ID :</Typography>
-                <Typography>{rental.id}</Typography>
-              </Stack>
-
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="subtitle2">Véhicule :</Typography>
-                <Typography>{rental.vehicle_name}</Typography>
-              </Stack>
-
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="subtitle2">Client :</Typography>
-                <Typography>{rental.customer_name}</Typography>
-              </Stack>
-
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="subtitle2">Lieu de départ :</Typography>
-                <Typography>{rental.departure_location}</Typography>
-              </Stack>
-
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="subtitle2">Lieu d'arrivée :</Typography>
-                <Typography>{rental.arrival_location}</Typography>
-              </Stack>
-
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="subtitle2">Date de début :</Typography>
-                <Typography>{formatDate(rental.rental_start)}</Typography>
-              </Stack>
-
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="subtitle2">Date de fin :</Typography>
-                <Typography>{formatDate(rental.rental_end)}</Typography>
-              </Stack>
+              {[
+                ["ID", rental.id],
+                ["Véhicule", rental.vehicle_name],
+                ["Client", rental.customer_name],
+                ["Lieu de départ", rental.departure_location],
+                ["Lieu d'arrivée", rental.arrival_location],
+                ["Date début", formatDate(rental.rental_start)],
+                ["Date fin", formatDate(rental.rental_end)],
+              ].map(([label, value]) => (
+                <Stack key={label} direction="row" justifyContent="space-between">
+                  <Typography variant="subtitle2">{label} :</Typography>
+                  <Typography>{value}</Typography>
+                </Stack>
+              ))}
 
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography variant="subtitle2">Statut :</Typography>
                 <Chip label={statusProps.label} color={statusProps.color} />
               </Stack>
             </Stack>
+
+            {/* ================= DÉPENSES ================= */}
+            <Divider sx={{ my: 3 }} />
+
+            <Typography variant="h6" gutterBottom>
+              Dépenses liées 💸
+            </Typography>
+
+            {expenses.length === 0 ? (
+              <Typography color="text.secondary">
+                Aucune dépense enregistrée.
+              </Typography>
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Type</strong></TableCell>
+                    <TableCell><strong>Description</strong></TableCell>
+                    <TableCell align="right"><strong>Montant (CFA)</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {expenses.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell>{e.type}</TableCell>
+                      <TableCell>{e.description || "-"}</TableCell>
+                      <TableCell align="right">
+                        {Number(e.amount).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+
+                  {/* TOTAL */}
+                  <TableRow>
+                    <TableCell colSpan={2}>
+                      <strong>Total</strong>
+                    </TableCell>
+                    <TableCell align="right">
+                      <strong>{totalExpenses.toLocaleString()} CFA</strong>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </Box>
