@@ -6,6 +6,7 @@ use App\Models\Trip;
 use App\Models\TripExpense;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class TripExpenseController extends Controller
 {
@@ -43,6 +44,15 @@ class TripExpenseController extends Controller
     $trip->expenses()->create($data);
 
     return redirect()->back()->with('message', 'Dépense ajoutée avec succès');
+}
+
+public function totalByTypeGlobal()
+{
+    return DB::table('trip_expenses')
+        ->select('type', DB::raw('SUM(amount) as total'))
+        ->groupBy('type')
+        ->orderBy('type')
+        ->get();
 }
 
 

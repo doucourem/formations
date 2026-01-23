@@ -115,6 +115,24 @@ Route::get('/vehicle-rentals/{rental}/expenses/total-by-type', [VehicleRentalExp
 Route::get('/deliveries/{delivery}/expenses/total-by-type', [DeliveryExpenseController::class, 'totalByType'])
     ->name('delivery-expenses.total-by-type');
 
+// =====================
+// GLOBAL – TOUTES LES DÉPENSES
+// =====================
+
+// Tous les voyages
+Route::get('/trips/expenses/total-by-type', 
+    [TripExpenseController::class, 'totalByTypeGlobal']
+)->name('trip-expenses.total-by-type.global');
+
+// Toutes les locations de véhicules
+Route::get('/vehicle-rentals/expenses/total-by-type',
+    [VehicleRentalExpenseController::class, 'totalByTypeGlobal']
+)->name('vehicle-rental-expenses.total-by-type.global');
+
+// Toutes les livraisons
+Route::get('/deliveries/expenses/total-by-type',
+    [DeliveryExpenseController::class, 'totalByTypeGlobal']
+)->name('delivery-expenses.total-by-type.global');
 
 
 // Routes pour gérer les dépenses des locations de véhicules

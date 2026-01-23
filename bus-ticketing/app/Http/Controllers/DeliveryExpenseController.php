@@ -6,6 +6,7 @@ use App\Models\Delivery;
 use App\Models\DeliveryExpense;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class DeliveryExpenseController extends Controller
 {
@@ -62,6 +63,16 @@ public function update(Request $request, Delivery $delivery, DeliveryExpense $ex
     $expense->update($data);
 
     return back()->with('success', 'Dépense mise à jour avec succès.');
+}
+
+
+public function totalByTypeGlobal()
+{
+    return DB::table('delivery_expenses')
+        ->select('type', DB::raw('SUM(amount) as total'))
+        ->groupBy('type')
+        ->orderBy('type')
+        ->get();
 }
 
 

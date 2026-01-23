@@ -6,6 +6,7 @@ use App\Models\VehicleRental;
 use App\Models\VehicleRentalExpense;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class VehicleRentalExpenseController extends Controller
 {
@@ -59,4 +60,14 @@ public function update(Request $request, VehicleRentalExpense $expense)
             'expenses' => $expenses,
         ]);
     }
+
+    public function totalByTypeGlobal()
+{
+    return DB::table('vehicle_rental_expenses')
+        ->select('type', DB::raw('SUM(amount) as total'))
+        ->groupBy('type')
+        ->orderBy('type')
+        ->get();
+}
+
 }

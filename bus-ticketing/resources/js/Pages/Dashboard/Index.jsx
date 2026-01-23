@@ -96,7 +96,8 @@ export default function DashboardIndex() {
     <div className="h-72">
         <ParcelRoutesChart routes={data.parcel_routes} />
     </div>
-    <ExpensesDashboard tripId={5} rentalId={3} deliveryId={8} />
+<ExpensesDashboard />
+
 
 </div>
 
