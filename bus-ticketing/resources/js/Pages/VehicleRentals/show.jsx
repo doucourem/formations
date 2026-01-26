@@ -50,7 +50,7 @@ export default function VehicleRentalShow() {
 
     // Infos principales
     const info = [
-      ["ID", rental.id],
+
       ["Véhicule", rental.vehicle_name],
       ["Modèle de contrat", rental.contract_model || "—"],
       ["Chauffeur", rental.driver_name || "—"],

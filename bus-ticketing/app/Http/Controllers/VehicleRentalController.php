@@ -269,17 +269,19 @@ public function totalByType($rentalId)
 
 public function show($id)
 {
-    $rental = VehicleRental::with(['bus', 'expenses'])->findOrFail($id);
+    $rental = VehicleRental::with(['bus', 'driver', 'expenses'])->findOrFail($id);
 
     return Inertia::render('VehicleRentals/show', [
         'rental' => [
             'id' => $rental->id,
             'vehicle_name' => $rental->bus->registration_number ?? '-',
+            'driver_name' => $rental->driver ? $rental->driver->first_name . ' ' . $rental->driver->last_name : '-',
             'customer_name' => $rental->client_name ?? '-',
+            'contract_model' => $rental->contract_model ?? '-',
             'departure_location' => $rental->departure_location ?? '-',
             'arrival_location' => $rental->arrival_location ?? '-',
 
-            // ⛔ garde les vraies dates pour React
+            // ⛔ garder les vraies dates pour React
             'rental_start' => $rental->rental_start,
             'rental_end' => $rental->rental_end,
 
@@ -297,6 +299,7 @@ public function show($id)
         ],
     ]);
 }
+
 
 
 
