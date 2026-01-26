@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Driver;
 
 class VehicleRentalController extends Controller
 {
@@ -41,13 +42,13 @@ public function index(Request $request)
      * Formulaire de création.
      */
     public function create()
-    {
-        $vehicles = Bus::all();
+{
+    return Inertia::render('VehicleRentals/Create', [
+        'vehicles' => Bus::all(),
+        'drivers'  => Driver::all(),
+    ]);
+}
 
-        return inertia('VehicleRentals/Create', [
-            'vehicles' => $vehicles,
-        ]);
-    }
 
     /**
      * Enregistrer une location.
@@ -57,6 +58,7 @@ public function store(Request $request)
 {
     $data = $request->validate([
         'vehicle_id' => 'required|exists:buses,id',
+        'driver_id' => 'required|exists:drivers,id',
         'client_name' => 'required|string|max:255',
         'rental_price' => 'required|numeric|min:0',
         'rental_start' => 'required|date',
@@ -89,18 +91,33 @@ public function store(Request $request)
 
 
 
-    /**
-     * Formulaire d'édition.
-     */
-    public function edit(VehicleRental $vehicleRental)
-    {
-        $vehicles = Bus::all();
+public function edit(VehicleRental $vehicle_rental)
+{
+    $vehicle_rental->load(['driver', 'bus']);
 
-        return inertia('VehicleRentals/Edit', [
-            'rental' => $vehicleRental,
-            'vehicles' => $vehicles,
-        ]);
-    }
+    return Inertia::render('VehicleRentals/Edit', [
+        'rental' => [
+            'id' => $vehicle_rental->id,
+            'vehicle_id' => $vehicle_rental->vehicle_id,
+            'driver_id' => $vehicle_rental->driver_id,
+            'client_name' => $vehicle_rental->client_name,
+            'rental_price' => $vehicle_rental->rental_price,
+            'rental_start' => $vehicle_rental->rental_start,
+            'rental_end' => $vehicle_rental->rental_end,
+            'departure_location' => $vehicle_rental->departure_location,
+            'arrival_location' => $vehicle_rental->arrival_location,
+            'status' => $vehicle_rental->status,
+
+            'photo_before_url' => $vehicle_rental->photo_before ? asset('storage/' . $vehicle_rental->photo_before) : null,
+            'photo_after_url' => $vehicle_rental->photo_after ? asset('storage/' . $vehicle_rental->photo_after) : null,
+        ],
+        'vehicles' => Bus::all(),
+        'drivers' => Driver::all(),
+    ]);
+}
+
+
+
 
     /**
      * Mise à jour d'une location.
@@ -108,24 +125,47 @@ public function store(Request $request)
    // --- update() ---
 public function update(Request $request, VehicleRental $vehicleRental)
 {
-    $data = $request->validate([
+    $data = $request->all();
+
+    // Convertir les inputs datetime-local en format compatible Laravel
+    if(isset($data['rental_start'])) {
+        $data['rental_start'] = str_replace('T', ' ', $data['rental_start']);
+    }
+    if(isset($data['rental_end'])) {
+        $data['rental_end'] = str_replace('T', ' ', $data['rental_end']);
+    }
+
+    // Validation
+    $validated = $request->validate([
         'vehicle_id' => 'required|exists:buses,id',
+        'driver_id'  => 'required|exists:drivers,id',
         'client_name' => 'required|string|max:255',
         'rental_price' => 'required|numeric|min:0',
         'rental_start' => 'required|date',
         'rental_end' => 'required|date|after:rental_start',
-        'departure_location' => 'required|string|max:255', // ajouté
-        'arrival_location' => 'required|string|max:255',   // ajouté
+        'departure_location' => 'required|string|max:255',
+        'arrival_location' => 'required|string|max:255',
         'status' => 'required|in:active,completed,cancelled',
+        'photo_before' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        'photo_after' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
     ]);
 
+    // Gestion des fichiers
+    if ($request->hasFile('photo_before')) {
+        $validated['photo_before'] = $request->file('photo_before')->store('rentals', 'public');
+    }
+
+    if ($request->hasFile('photo_after')) {
+        $validated['photo_after'] = $request->file('photo_after')->store('rentals', 'public');
+    }
+
     // Vérifier conflit avec une autre location
-    $conflict = VehicleRental::where('vehicle_id', $data['vehicle_id'])
+    $conflict = VehicleRental::where('vehicle_id', $validated['vehicle_id'])
         ->where('status', 'active')
         ->where('id', '<>', $vehicleRental->id)
-        ->where(function ($q) use ($data) {
-            $q->whereBetween('rental_start', [$data['rental_start'], $data['rental_end']])
-              ->orWhereBetween('rental_end', [$data['rental_start'], $data['rental_end']]);
+        ->where(function ($q) use ($validated) {
+            $q->whereBetween('rental_start', [$validated['rental_start'], $validated['rental_end']])
+              ->orWhereBetween('rental_end', [$validated['rental_start'], $validated['rental_end']]);
         })
         ->exists();
 
@@ -133,11 +173,12 @@ public function update(Request $request, VehicleRental $vehicleRental)
         return redirect()->back()->with('error', 'Le véhicule est déjà loué sur cette période.');
     }
 
-    $vehicleRental->update($data);
+    $vehicleRental->update($validated);
 
     return redirect()->route('vehicle-rentals.index')
                      ->with('success', 'Location mise à jour avec succès.');
 }
+
 
     /**
      * Supprimer une location.

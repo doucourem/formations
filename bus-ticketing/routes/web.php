@@ -189,7 +189,7 @@ Route::post('deliveries/{delivery}/log', [DeliveryController::class, 'addLog'])-
 
     Route::resource('companies', CompanyController::class);
     Route::resource('garages', GarageController::class);
-     Route::resource('vehicle-rentals', VehicleRentalController::class);
+    Route::resource('vehicle-rentals', VehicleRentalController::class);
 
     // Bus Maintenance
     Route::get('buses/{bus}/maintenance', [BusMaintenanceController::class, 'index'])->name('bus.maintenance.index');

@@ -66,17 +66,23 @@ class DeliveryController extends Controller
             ->with('success', 'Livraison créée avec succès.');
     }
 
-    public function show(Delivery $delivery)
+public function show(Delivery $delivery)
 {
     $delivery->load([
         'bus',
         'driver',
         'logs',
-        'expenses', // ✅ AJOUT ICI
+        'expenses',
     ]);
 
-    return Inertia::render('Delivery/DeliveryShow', compact('delivery'));
+    // 🔴 AJOUT OBLIGATOIRE
+    $delivery->total_expenses = $delivery->expenses->sum('amount');
+
+    return Inertia::render('Delivery/DeliveryShow', [
+        'delivery' => $delivery,
+    ]);
 }
+
 
 public function totalByType($deliveryId)
 {

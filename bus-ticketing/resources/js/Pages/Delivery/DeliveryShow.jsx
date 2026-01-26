@@ -19,12 +19,19 @@ import {
 } from "@mui/material";
 import { Inertia } from "@inertiajs/inertia";
 import dayjs from "dayjs";
+import "dayjs/locale/fr";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+dayjs.locale("fr");
+
 export default function DeliveryShow({ delivery }) {
+  // ================== HELPERS ==================
   const formatDate = (date) =>
-    date ? dayjs(date).format("DD/MM/YYYY HH:mm") : "—";
+    date ? dayjs(date).format("DD MMMM YYYY à HH:mm") : "—";
+
+  const formatMoney = (value) =>
+    `${Number(value || 0).toLocaleString("fr-FR")} CFA`;
 
   const getStatusProps = (status) => {
     switch (status) {
@@ -39,10 +46,22 @@ export default function DeliveryShow({ delivery }) {
 
   const statusProps = getStatusProps(delivery.status);
 
-  const totalExpenses = delivery.total_expenses || 0;
-  const netResult = Number(delivery.price) - totalExpenses;
+  const totalExpenses = Number(delivery.total_expenses || 0);
+  const netResult = Number(delivery.price || 0) - totalExpenses;
+  const translateExpenseType = (type) => {
+  const map = {
+    chauffeur: "Chauffeur",
+    carburant: "Carburant",
+    peages: "Péages",
+    restauration: "Restauration",
+    entretien: "Entretien",
+    autres: "Autres",
+  };
+  return map[type] || type;
+};
 
-  // ================== EXPORT PDF COMPLET ==================
+
+  // ================== EXPORT PDF ==================
   const handleExportPDF = () => {
     const doc = new jsPDF();
 
@@ -54,15 +73,18 @@ export default function DeliveryShow({ delivery }) {
       head: [["Champ", "Valeur"]],
       body: [
         ["Véhicule", delivery.bus?.registration_number || "—"],
-        ["Chauffeur", `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`],
+        [
+          "Chauffeur",
+          `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`,
+        ],
         ["Produit", delivery.product_name],
         ["Lot", delivery.product_lot || "—"],
         ["Quantité chargée", delivery.quantity_loaded],
         ["Quantité livrée", delivery.quantity_delivered ?? "—"],
         ["Distance (km)", delivery.distance_km ?? "—"],
-        ["Prix", `${Number(delivery.price).toLocaleString()} CFA`],
-        ["Total dépenses", `${totalExpenses.toLocaleString()} CFA`],
-        ["Résultat net", `${netResult.toLocaleString()} CFA`],
+        ["Prix", formatMoney(delivery.price)],
+        ["Total dépenses", formatMoney(totalExpenses)],
+        ["Résultat net", formatMoney(netResult)],
         ["Statut", statusProps.label],
         ["Départ", formatDate(delivery.departure_at)],
         ["Arrivée", formatDate(delivery.arrival_at)],
@@ -75,9 +97,9 @@ export default function DeliveryShow({ delivery }) {
         head: [["Type", "Montant (CFA)", "Description", "Date"]],
         body: delivery.expenses.map((e) => [
           e.type,
-          Number(e.amount).toLocaleString(),
+          formatMoney(e.amount),
           e.description || "—",
-          e.created_at,
+          formatDate(e.created_at),
         ]),
       });
     }
@@ -85,11 +107,16 @@ export default function DeliveryShow({ delivery }) {
     doc.save(`Livraison_${delivery.id}.pdf`);
   };
 
+  // ================== RENDER ==================
   return (
     <GuestLayout>
       <Card sx={{ borderRadius: 3 }}>
         <CardHeader
-          title={<Typography variant="h5">Détails de la livraison 📦</Typography>}
+          title={
+            <Typography variant="h5">
+              Détails de la livraison 📦
+            </Typography>
+          }
           action={
             <Stack direction="row" spacing={1}>
               <Button variant="contained" onClick={handleExportPDF}>
@@ -115,12 +142,15 @@ export default function DeliveryShow({ delivery }) {
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Véhicule</Typography>
-                <Typography>{delivery.bus?.registration_number}</Typography>
+                <Typography>
+                  {delivery.bus?.registration_number || "—"}
+                </Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Chauffeur</Typography>
                 <Typography>
-                  {delivery.driver?.first_name} {delivery.driver?.last_name}
+                  {delivery.driver?.first_name}{" "}
+                  {delivery.driver?.last_name}
                 </Typography>
               </Grid>
             </Grid>
@@ -142,15 +172,23 @@ export default function DeliveryShow({ delivery }) {
             {/* QUANTITÉS */}
             <Grid container spacing={2}>
               <Grid item xs={12} md={4}>
-                <Typography variant="subtitle2">Quantité chargée</Typography>
+                <Typography variant="subtitle2">
+                  Quantité chargée
+                </Typography>
                 <Typography>{delivery.quantity_loaded}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Typography variant="subtitle2">Quantité livrée</Typography>
-                <Typography>{delivery.quantity_delivered ?? "—"}</Typography>
+                <Typography variant="subtitle2">
+                  Quantité livrée
+                </Typography>
+                <Typography>
+                  {delivery.quantity_delivered ?? "—"}
+                </Typography>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Typography variant="subtitle2">Distance (km)</Typography>
+                <Typography variant="subtitle2">
+                  Distance (km)
+                </Typography>
                 <Typography>{delivery.distance_km ?? "—"}</Typography>
               </Grid>
             </Grid>
@@ -162,22 +200,26 @@ export default function DeliveryShow({ delivery }) {
               <Grid item xs={12} md={4}>
                 <Typography variant="subtitle2">Prix</Typography>
                 <Typography fontWeight="bold">
-                  {Number(delivery.price).toLocaleString()} CFA
+                  {formatMoney(delivery.price)}
                 </Typography>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Typography variant="subtitle2">Total dépenses</Typography>
+                <Typography variant="subtitle2">
+                  Total des dépenses
+                </Typography>
                 <Typography fontWeight="bold" color="error">
-                  {totalExpenses.toLocaleString()} CFA
+                  {formatMoney(totalExpenses)}
                 </Typography>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Typography variant="subtitle2">Résultat net</Typography>
+                <Typography variant="subtitle2">
+                  Résultat net
+                </Typography>
                 <Typography
                   fontWeight="bold"
                   color={netResult >= 0 ? "success.main" : "error.main"}
                 >
-                  {netResult.toLocaleString()} CFA
+                  {formatMoney(netResult)}
                 </Typography>
               </Grid>
             </Grid>
@@ -192,7 +234,7 @@ export default function DeliveryShow({ delivery }) {
                 <TableHead>
                   <TableRow>
                     <TableCell>Type</TableCell>
-                    <TableCell>Montant (CFA)</TableCell>
+                    <TableCell>Montant</TableCell>
                     <TableCell>Description</TableCell>
                     <TableCell>Date</TableCell>
                   </TableRow>
@@ -200,10 +242,12 @@ export default function DeliveryShow({ delivery }) {
                 <TableBody>
                   {delivery.expenses.map((e) => (
                     <TableRow key={e.id}>
-                      <TableCell>{e.type}</TableCell>
-                      <TableCell>{Number(e.amount).toLocaleString()}</TableCell>
+                        <TableCell>{translateExpenseType(e.type)}</TableCell>
+                      <TableCell>{formatMoney(e.amount)}</TableCell>
                       <TableCell>{e.description || "—"}</TableCell>
-                      <TableCell>{e.created_at}</TableCell>
+                      <TableCell>
+                        {formatDate(e.created_at)}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -220,18 +264,27 @@ export default function DeliveryShow({ delivery }) {
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Statut</Typography>
-                <Chip label={statusProps.label} color={statusProps.color} />
+                <Chip
+                  label={statusProps.label}
+                  color={statusProps.color}
+                />
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2">Départ</Typography>
-                <Typography>{formatDate(delivery.departure_at)}</Typography>
+                <Typography variant="subtitle2">
+                  Date de départ
+                </Typography>
+                <Typography>
+                  {formatDate(delivery.departure_at)}
+                </Typography>
               </Grid>
             </Grid>
 
             <Box mt={2}>
               <Button
                 variant="outlined"
-                onClick={() => Inertia.visit(route("deliveries.index"))}
+                onClick={() =>
+                  Inertia.visit(route("deliveries.index"))
+                }
               >
                 Retour à la liste
               </Button>

@@ -229,9 +229,10 @@ const TYPE_LABELS = {
                           <IconButton color="primary" onClick={() => Inertia.get(route("vehicle-rentals.show", rental.id))}>
                             <VisibilityIcon />
                           </IconButton>
-                          <IconButton color="warning" onClick={() => Inertia.get(route("vehicle-rentals.edit", rental.id))}>
-                            <EditIcon />
-                          </IconButton>
+                         <IconButton color="warning" onClick={() => Inertia.get(route("vehicle-rentals.edit", { vehicle_rental: rental.id }))}>
+  <EditIcon />
+</IconButton>
+
                           <IconButton color="error" onClick={() => handleDelete(rental.id)}>
                             <DeleteIcon />
                           </IconButton>

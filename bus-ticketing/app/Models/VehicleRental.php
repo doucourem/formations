@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+
 class VehicleRental extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'vehicle_id',
+        'driver_id',          // ✅ AJOUT
         'client_name',
         'rental_price',
         'rental_start',
@@ -30,15 +32,20 @@ class VehicleRental extends Model
         return $this->belongsTo(Bus::class, 'vehicle_id');
     }
 
-    public function isActive()
+    // ✅ RELATION CHAUFFEUR
+    public function driver()
     {
-        return $this->status === 'active';
+        return $this->belongsTo(Driver::class);
     }
 
-    // 🔹 Relation avec les dépenses
     public function expenses()
     {
         return $this->hasMany(VehicleRentalExpense::class, 'vehicle_rental_id');
     }
 
+    public function isActive()
+    {
+        return $this->status === 'active';
+    }
 }
+
