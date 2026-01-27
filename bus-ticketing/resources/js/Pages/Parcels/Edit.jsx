@@ -182,7 +182,7 @@ const handleChange = (e) => {
               {/* Poids */}
               <TextField
                 type="number"
-                label="Poids (kg)"
+                label="Nbre"
                 name="weight_kg"
                 value={form.weight_kg}
                 onChange={handleChange}

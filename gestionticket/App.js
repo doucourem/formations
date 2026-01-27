@@ -26,6 +26,8 @@ import CreateTicketScreen from "./screens/CreateTicketScreen";
 import TripListScreen from "./screens/TripListScreen";
 import TripTicketsScreen from "./screens/TripTicketsScreen";
 import ChangePasswordScreen from "./components/ChangePasswordScreen";
+import AddParcelScreen from "./screens/AddParcelScreen";
+import TransfersScreen from "./screens/TransfersScreen";
 
 // Assets
 import logo from "./assets/logo.png";
@@ -93,6 +95,26 @@ function TicketsStack() {
     </Stack.Navigator>
   );
 }
+
+function ParcelStack() {
+  const theme = useTheme();
+
+  return (
+    <Stack.Navigator screenOptions={getScreenOptions(theme)}>
+      <Stack.Screen
+        name="ParcelList"
+        component={ParcelListScreen}
+        options={{ title: "Colis", headerLeft: () => <HeaderLogo /> }}
+      />
+      <Stack.Screen
+        name="AddParcel"
+        component={AddParcelScreen}
+        options={{ title: "Nouveau colis" }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 
 function VoyagesStack() {
   const theme = useTheme();
@@ -186,10 +208,26 @@ function TabNavigator() {
           borderTopColor: theme.colors.outline
         },
         tabBarIcon: ({ color, size, focused }) => {
+          // Onglets avec logo PNG
+          if (route.name === "Tickets") {
+            return (
+              <Image
+                source={logo} // ton logo importé
+                style={{
+                  width: size,
+                  height: size,
+                  resizeMode: "contain",
+                  tintColor: color // facultatif pour changer la couleur
+                }}
+              />
+            );
+          }
+
+          // Onglets avec icônes vectorielles
           let iconName;
-          if (route.name === "Tickets") iconName = focused ? "ticket" : "ticket-outline";
-          else if (route.name === "Voyages") iconName = focused ? "bus-clock" : "bus";
-          else if (route.name === "Profil") iconName = focused ? "shield-check" : "shield-check-outline";
+          if (route.name === "Voyages") iconName = focused ? "bus-clock" : "bus";
+          else if (route.name === "Colis") iconName = focused ? "package-variant" : "package-variant-closed";
+          else if (route.name === "Transferts") iconName = focused ? "swap-horizontal-bold" : "swap-horizontal";
           else if (route.name === "Quitter") iconName = "logout";
 
           return <Icon name={iconName} size={size} color={color} />;
@@ -198,11 +236,13 @@ function TabNavigator() {
     >
       <Tab.Screen name="Voyages" component={VoyagesStack} />
       <Tab.Screen name="Tickets" component={TicketsStack} />
-      <Tab.Screen name="Colis" component={ParcelListScreen} />
+      <Tab.Screen name="Colis" component={ParcelStack} />
+      <Tab.Screen name="Transferts" component={TransfersScreen} />
       <Tab.Screen name="Quitter" component={LogoutTab} />
     </Tab.Navigator>
   );
 }
+
 
 function AuthStack() {
   return (

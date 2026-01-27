@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Driver;
 use App\Models\Trip;
+use App\Models\Bus;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -12,14 +13,19 @@ class TripAssignmentController extends Controller
     // Affiche le formulaire d'assignation d'un driver
     public function create(Driver $driver)
     {
-        $trips = Trip::with(['route.departureCity', 'route.arrivalCity'])
-    ->whereHas('route.departureCity')
-    ->whereHas('route.arrivalCity')
-    ->get();
+       $trips = Trip::with([
+    'route:id,departure_city_id,arrival_city_id',
+    'route.departureCity:id,name',
+    'route.arrivalCity:id,name',
+])
+->whereHas('route.departureCity')
+->whereHas('route.arrivalCity')
+->get();
+
 
         return Inertia::render('Drivers/AssignDriver', [
             'driver' => $driver,
-            'buses' => $driver->buses ?? [],  // si le driver a des bus disponibles
+            'buses' => Bus::all(),  // si le driver a des bus disponibles
             'trips' => $trips,
         ]);
     }

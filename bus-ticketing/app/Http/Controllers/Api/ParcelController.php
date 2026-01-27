@@ -9,6 +9,7 @@ use App\Models\Agency;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+ use Illuminate\Validation\Rule;
 
 class ParcelController extends Controller
 {
@@ -31,6 +32,14 @@ class ParcelController extends Controller
                          ->withQueryString();
 
         return response()->json($parcels);
+    }
+
+
+     public function agences(Request $request)
+    {
+         $agencies = Agency::all(['id', 'name']); // ✅ récupérer toutes les agences
+
+        return response()->json($agencies);
     }
 
     // Créer un colis
@@ -64,6 +73,8 @@ class ParcelController extends Controller
             'parcel' => $parcel,
         ], 201);
     }
+
+
 
     // Afficher un colis
     public function show(Parcel $parcel)
@@ -100,7 +111,13 @@ class ParcelController extends Controller
     {
         $validated = $request->validate([
             'trip_id' => 'nullable|exists:trips,id',
-            'tracking_number' => 'required|string|max:255|unique:parcels,tracking_number,' . $parcel->id,
+            'tracking_number' => [
+    'required',
+    'string',
+    'max:255',
+    Rule::unique('parcels')->ignore($parcel->id),
+],
+
             'sender_name' => 'required|string|max:255',
             'sender_phone' => 'required|string|max:50',
             'recipient_name' => 'required|string|max:255',

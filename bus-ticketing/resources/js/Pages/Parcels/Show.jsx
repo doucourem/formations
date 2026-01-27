@@ -242,7 +242,7 @@ export default function ParcelDetail({ parcel }) {
                                 <Divider sx={{ my: 3 }} />
 
                                 <Box display="flex" justifyContent="space-between" mb={2}>
-                                    <Typography><strong>Poids :</strong> {parcel.weight_kg} kg</Typography>
+                                    <Typography><strong>Nbre :</strong> {parcel.weight_kg}</Typography>
                                     <Typography variant="h6" color="primary"><strong>{parcel.price?.toLocaleString()} FCFA</strong></Typography>
                                 </Box>
 

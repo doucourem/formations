@@ -1,109 +1,126 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import GuestLayout from '@/Layouts/GuestLayout';
-import SalesChart from '@/Components/SalesChart';
-import BusFillRate from '@/Components/BusFillRate';
-import TopDrivers from '@/Components/TopDrivers';
-import TopRoutes from '@/Components/TopRoutes';
-import ExpensesDashboard from '@/Pages/Dashboard/ExpensesDashboard';
-import ParcelRoutesChart from '@/Components/ParcelRoutesChart';
-import { Package } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import GuestLayout from "@/Layouts/GuestLayout";
 
+import SalesChart from "@/Components/SalesChart";
+import ParcelRoutesChart from "@/Components/ParcelRoutesChart";
+import BusFillRate from "@/Components/BusFillRate";
+import TopDrivers from "@/Components/TopDrivers";
+import TopRoutes from "@/Components/TopRoutes";
+import ExpensesDashboard from "@/Pages/Dashboard/ExpensesDashboard";
 
-import { TrendingUp, BarChart2, Users, MapPin } from 'lucide-react';
+import {
+  TrendingUp,
+  Bus,
+  Package,
+  Wallet,
+} from "lucide-react";
+
+/* ===== KPI CARD ===== */
+const KpiCard = ({ title, value, icon: Icon }) => (
+  <div className="bg-white border rounded-xl p-5 shadow-sm flex justify-between items-center">
+    <div>
+      <p className="text-sm text-gray-500">{title}</p>
+      <p className="text-2xl font-bold mt-1">{value}</p>
+    </div>
+    <Icon className="w-8 h-8 text-blue-600" />
+  </div>
+);
 
 export default function DashboardIndex() {
-    const [data, setData] = useState({ sales: [], buses: [], top_drivers: [], top_routes: [] });
+  const [data, setData] = useState({
+    sales: [],
+    parcel_routes: [],
+    buses: [],
+    top_drivers: [],
+    top_routes: [],
+    kpis: {},
+  });
 
-    useEffect(() => {
-        axios.get('/dashboard/data').then(res => setData(res.data));
-    }, []);
+  useEffect(() => {
+    axios.get("/dashboard/data").then((res) => setData(res.data));
+  }, []);
 
-    return (
-        <GuestLayout>
-            <div className="p-4 space-y-6">
-                <h1 className="text-3xl font-bold">Dashboard Transport</h1>
+  return (
+    <GuestLayout>
+      <div className="p-6 space-y-8">
 
-                {/* ====== ROW 1 (Sales + Bus Fill Rate) ====== */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* ===== HEADER ===== */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">📈 Tableau de bord</h1>
+          <span className="text-sm text-gray-500">
+            Mise à jour : aujourd’hui
+          </span>
+        </div>
 
-                    {/* SALES */}
-                    <div className="p-4 bg-white shadow rounded-xl border">
-                        <div className="flex items-center mb-3">
-                            <TrendingUp className="text-blue-600 mr-2" />
-                            <h2 className="text-xl font-semibold">Ventes (30 derniers jours)</h2>
-                        </div>
-                        <div className="h-64">
-                            <SalesChart sales={data.sales} />
-                        </div>
-                    </div>
+        {/* ===== KPI ROW ===== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <KpiCard
+            title="Chiffre d'affaires"
+            value={`${data.kpis.revenue ?? 0} FCFA`}
+            icon={Wallet}
+          />
+          <KpiCard
+            title="Colis envoyés"
+            value={data.kpis.parcels ?? 0}
+            icon={Package}
+          />
+          <KpiCard
+            title="Bus actifs"
+            value={data.kpis.buses ?? 0}
+            icon={Bus}
+          />
+          <KpiCard
+            title="Taux remplissage"
+            value={`${data.kpis.fill_rate ?? 0}%`}
+            icon={TrendingUp}
+          />
+        </div>
 
-                    {/* BUS FILL RATE */}
-                    <div className="p-4 bg-white shadow rounded-xl border">
-                        <div className="flex items-center mb-3">
-                            <BarChart2 className="text-green-600 mr-2" />
-                            <h2 className="text-xl font-semibold">Taux de remplissage des bus</h2>
-                        </div>
-                        <div className="h-64 flex justify-center">
-                            <BusFillRate buses={data.buses} />
-                        </div>
-                    </div>
-
-                </div>
-
-                {/* ====== ROW 2 (Drivers + Routes) ====== */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    {/* TOP DRIVERS */}
-                    <div className="p-4 bg-white shadow rounded-xl border">
-                        <div className="flex items-center mb-3">
-                            <Users className="text-purple-600 mr-2" />
-                            <h2 className="text-xl font-semibold">Top Chauffeurs</h2>
-                        </div>
-                        <TopDrivers drivers={data.top_drivers} />
-                    </div>
-
-                    {/* TOP ROUTES */}
-                    <div className="p-4 bg-white shadow rounded-xl border">
-                       <div className="p-4 bg-white shadow rounded-xl border">
-    <div className="flex items-center mb-3">
-        <MapPin className="text-red-600 mr-2" />
-        <h2 className="text-xl font-semibold">Top Routes</h2>
-    </div>
-    <TopRoutes routes={data.top_routes} />
-</div>
-
-
-                        <ul className="space-y-3">
-                            {data.top_routes.map((r, i) => (
-                                <li key={i} className="flex justify-between p-2 bg-gray-50 rounded-md">
-                                    <span className="font-medium">{r.route}</span>
-                                    <span className="text-sm text-gray-600">
-                                        {r.tickets_sold} tickets • {r.revenue} FCFA
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    {/* ====== ROW — Graphique Colis par Route ====== */}
-<div className="p-4 bg-white shadow rounded-xl border">
-    <div className="flex items-center mb-3">
-        <Package className="text-orange-600 mr-2" />
-        <h2 className="text-xl font-semibold">Montant total des colis par route</h2>
-    </div>
-
-    <div className="h-72">
-        <ParcelRoutesChart routes={data.parcel_routes} />
-    </div>
-<ExpensesDashboard />
-
-
-</div>
-
-
-                </div>
+        {/* ===== ANALYTICS ===== */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-4 rounded-xl shadow border">
+            <h2 className="font-semibold mb-3">Évolution des ventes</h2>
+            <div className="h-64">
+              <SalesChart sales={data.sales} />
             </div>
-        </GuestLayout>
-    );
+          </div>
+
+          <div className="bg-white p-4 rounded-xl shadow border">
+            <h2 className="font-semibold mb-3">Colis par route</h2>
+            <div className="h-64">
+              <ParcelRoutesChart routes={data.parcel_routes} />
+            </div>
+          </div>
+        </div>
+
+        {/* ===== OPERATIONS ===== */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-4 rounded-xl shadow border">
+            <h2 className="font-semibold mb-3">Remplissage des bus</h2>
+            <BusFillRate buses={data.buses} />
+          </div>
+
+          <div className="bg-white p-4 rounded-xl shadow border">
+            <h2 className="font-semibold mb-3">Dépenses</h2>
+            <ExpensesDashboard />
+          </div>
+        </div>
+
+        {/* ===== PERFORMANCE ===== */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-4 rounded-xl shadow border">
+            <h2 className="font-semibold mb-3">Top Chauffeurs</h2>
+            <TopDrivers drivers={data.top_drivers} />
+          </div>
+
+          <div className="bg-white p-4 rounded-xl shadow border">
+            <h2 className="font-semibold mb-3">Top Routes</h2>
+            <TopRoutes routes={data.top_routes} />
+          </div>
+        </div>
+
+      </div>
+    </GuestLayout>
+  );
 }

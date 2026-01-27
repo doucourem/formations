@@ -25,6 +25,7 @@ class BusController extends Controller
                 'registration_number' => $bus->registration_number,
                 'model' => $bus->model,
                 'capacity' => $bus->capacity,
+                 'vehicle_type' => $bus->vehicle_type,
                 'status' => $bus->status,
                 'agency' => $bus->agency?->name ?? '-',
                 'created_at' => $bus->created_at?->toDateTimeString() ?? '',

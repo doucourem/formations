@@ -85,7 +85,7 @@ export default function ParcelTicket({ parcel }) {
     doc.line(5, y, 75, y); y += 6;
 
     /* DETAILS TECHNIQUES */
-    doc.text(`Poids : ${parcel.weight_kg ?? "-"} kg`, 5, y); y += 5;
+    doc.text(`Nbre : ${parcel.weight_kg ?? "-"}`, 5, y); y += 5;
     doc.text(`Statut : ${parcel.status}`, 5, y); y += 6;
 
     /* MONTANT */

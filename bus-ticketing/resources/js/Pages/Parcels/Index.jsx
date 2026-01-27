@@ -151,7 +151,7 @@ export default function Index({ parcels, filters }) {
             <Table>
               <TableHead>
                 <TableRow>
-                  {[ 'Tracking', 'Expéditeur', 'Destinataire', 'Poids (kg)', 'Statut', 'Actions'].map(
+                  {[ 'Tracking', 'Expéditeur', 'Destinataire', 'Nbre', 'Statut', 'Actions'].map(
                     (col) => (
                       <TableCell
                         key={col}
@@ -171,7 +171,7 @@ export default function Index({ parcels, filters }) {
                       <TableCell>{colis.tracking_number}</TableCell>
                       <TableCell>{colis.sender_name}</TableCell>
                       <TableCell>{colis.recipient_name}</TableCell>
-                      <TableCell>{colis.weight_kg} kg</TableCell>
+                      <TableCell>{colis.weight_kg}</TableCell>
                       <TableCell>
                         <strong>{statusMap[colis.status] || colis.status}</strong>
                       </TableCell>

@@ -11,9 +11,10 @@ import {
   useTheme,
   IconButton,
   Surface,
-  Divider
+  Divider,
+  FAB,
 } from "react-native-paper";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { fetchParcels } from "../services/parcelApi";
@@ -28,6 +29,7 @@ const statusOptions = [
 
 export default function ParcelListScreen() {
   const theme = useTheme();
+  const navigation = useNavigation();
 
   // DATA
   const [parcels, setParcels] = useState([]);
@@ -66,9 +68,17 @@ export default function ParcelListScreen() {
       const newParcels = res.data?.data || [];
       const meta = res.data?.meta || {};
 
-      setParcels(reset ? newParcels : [...parcels, ...newParcels]);
-      setHasMore(meta.current_page < meta.last_page);
-      setPage(meta.current_page + 1);
+      setParcels(prev =>
+        reset ? newParcels : [...prev, ...newParcels]
+      );
+
+      setHasMore(
+        meta.current_page && meta.last_page
+          ? meta.current_page < meta.last_page
+          : false
+      );
+
+      setPage((meta.current_page || 1) + 1);
     } catch (e) {
       console.error(e);
       Alert.alert("Erreur", "Impossible de charger les colis");
@@ -81,7 +91,7 @@ export default function ParcelListScreen() {
   useFocusEffect(
     useCallback(() => {
       loadParcels(1, true);
-    }, [statusFilter, dateFilter])
+    }, [statusFilter, dateFilter, search])
   );
 
   const onRefresh = () => {
@@ -122,19 +132,28 @@ export default function ParcelListScreen() {
             </Text>
           </View>
 
-          <View style={styles.footer}>
-            <Text style={[styles.price, { color: theme.colors.primary }]}>
-              {item.price ? `${item.price} CFA` : "---"}
-            </Text>
+         <View style={{ flexDirection: "row", gap: 8 }}>
+  <Button
+    mode="outlined"
+    icon="eye"
+    onPress={() =>
+      navigation.navigate("ParcelDetails", { id: item.id })
+    }
+  >
+    Détails
+  </Button>
 
-            <Button
-              mode="outlined"
-              icon="eye"
-              onPress={() => {/* navigation.navigate("ParcelDetails", { id: item.id }) */}}
-            >
-              Détails
-            </Button>
-          </View>
+  <Button
+    mode="contained"
+    icon="pencil"
+    onPress={() =>
+      navigation.navigate("AddParcel", { parcel: item })
+    }
+  >
+    Éditer
+  </Button>
+</View>
+
         </Card.Content>
       </Card>
     );
@@ -191,12 +210,14 @@ export default function ParcelListScreen() {
 
             <View style={styles.filterActions}>
               {(search || statusFilter || dateFilter) && (
-                <Button onPress={() => {
-                  setSearch("");
-                  setStatusFilter("");
-                  setDateFilter(null);
-                  loadParcels(1, true);
-                }}>
+                <Button
+                  onPress={() => {
+                    setSearch("");
+                    setStatusFilter("");
+                    setDateFilter(null);
+                    loadParcels(1, true);
+                  }}
+                >
                   Réinitialiser
                 </Button>
               )}
@@ -228,7 +249,11 @@ export default function ParcelListScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        onEndReached={() => hasMore && !loading && loadParcels(page)}
+        onEndReached={() => {
+          if (!loading && hasMore) {
+            loadParcels(page);
+          }
+        }}
         onEndReachedThreshold={0.3}
         ListFooterComponent={
           loading && page > 1 ? <ActivityIndicator style={{ margin: 20 }} /> : null
@@ -241,6 +266,14 @@ export default function ParcelListScreen() {
             </View>
           )
         }
+      />
+
+      {/* FAB */}
+      <FAB
+        icon="plus"
+        label="Nouveau colis"
+        style={styles.fab}
+        onPress={() => navigation.navigate("AddParcel")}
       />
     </View>
   );
@@ -266,4 +299,9 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", justifyContent: "space-between" },
   price: { fontWeight: "bold" },
   empty: { alignItems: "center", marginTop: 100 },
+  fab: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+  },
 });

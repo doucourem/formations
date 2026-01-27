@@ -212,7 +212,7 @@ export default function Create({ trips, agencies }) {
 
               {/* Poids */}
               <TextField
-                label="Poids (kg)"
+                label="Nbre"
                 type="number"
                 name="weight_kg"
                 value={form.weight_kg}

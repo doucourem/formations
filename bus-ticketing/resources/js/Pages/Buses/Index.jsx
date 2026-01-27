@@ -90,9 +90,7 @@ export default function BusesIndex({ buses, filters }) {
                     <TableCell sx={{ cursor: "pointer", color: "#fff" }} onClick={() => handleSort("model")}>
                       Modèle {renderSortIcon("model")}
                     </TableCell>
-                    <TableCell sx={{ cursor: "pointer", color: "#fff" }} onClick={() => handleSort("capacity")}>
-                      Capacité {renderSortIcon("capacity")}
-                    </TableCell>
+  
                     <TableCell sx={{ cursor: "pointer", color: "#fff" }} onClick={() => handleSort("registration_number")}>
                       Immatriculation {renderSortIcon("registration_number")}
                     </TableCell>
@@ -107,13 +105,15 @@ export default function BusesIndex({ buses, filters }) {
                       <TableRow key={bus.id}>
                         <TableCell>{bus.id}</TableCell>
                         <TableCell>{bus.model}</TableCell>
-                        <TableCell>{bus.capacity}</TableCell>
+                        
                         <TableCell>{bus.registration_number || "-"}</TableCell>
                         <TableCell align="center">
 <Stack direction="row" spacing={1} justifyContent="center">
 
   {/* Voir les voyages */}
-  <IconButton
+
+   {bus.vehicle_type === "bus" && (
+                   <IconButton
     color="secondary"
     size="small"
     onClick={() => Inertia.visit(route("trips.byBus", bus.id))}
@@ -121,6 +121,8 @@ export default function BusesIndex({ buses, filters }) {
   >
     <TravelExploreIcon />
   </IconButton>
+                )}
+
 
   {/* Historique de maintenance */}
   <IconButton

@@ -13,36 +13,28 @@ export const fetchParcel = async (id) => {
   await loadAuthToken();
   return api.get(`/parcels/${id}`);
 };
-
+export const getAgencies = async (params = {}) => {
+  await loadAuthToken();
+  return api.get("/agencies", { params });
+};
 export const createParcel = async (data) => {
   await loadAuthToken();
-  const formData = new FormData();
-  Object.keys(data).forEach((key) => {
-    if (data[key] !== null && data[key] !== undefined) {
-      formData.append(key, data[key]);
-    }
-  });
 
-  return api.post("/parcels", formData, {
+  return api.post("/parcels", data, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
-
 export const updateParcel = async (id, data) => {
   await loadAuthToken();
-  const formData = new FormData();
-  formData.append("_method", "PUT");
 
-  Object.keys(data).forEach((key) => {
-    if (data[key] !== null && data[key] !== undefined) {
-      formData.append(key, data[key]);
-    }
-  });
-
-  return api.post(`/parcels/${id}`, formData, {
+  // Indique à Laravel que c'est un PUT
+  data.append("_method", "PUT");
+  return api.post(`/parcels/${id}`, data, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
+
+
 
 export const deleteParcel = async (id) => {
   await loadAuthToken();

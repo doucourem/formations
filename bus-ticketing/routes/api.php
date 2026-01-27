@@ -24,7 +24,7 @@ use App\Http\Controllers\Api\TripApiController;
 
 use App\Http\Controllers\Api\SeatController;
 use \App\Http\Controllers\Api\ParcelController;
-
+use App\Http\Controllers\Api\TransferController;
 
 
 
@@ -62,8 +62,24 @@ Route::get('/trips/{trip}/tickets', [TicketApiController::class, 'byTrip']);
 
 Route::get('trips/{trip}/seats', [SeatController::class, 'availableSeats']);
 Route::post('seats/reserve', [SeatController::class, 'reserve']);
+Route::get('/senders', [TransferController::class, 'senders']);
+Route::get('/receivers', [TransferController::class, 'receivers']);
+
 });
 
+
+
+
+
+Route::middleware('auth:sanctum')->prefix('transfers')->group(function () {
+    Route::get('/', [TransferController::class, 'index']);              // Liste + filtres
+    Route::post('/', [TransferController::class, 'store']);             // Créer un transfert
+    Route::get('/{transfer}', [TransferController::class, 'show']);     // Détails
+    Route::put('/{transfer}', [TransferController::class, 'update']);   // Mettre à jour
+    Route::delete('/{transfer}', [TransferController::class, 'destroy']); // Supprimer
+    Route::get('/stats/daily', [TransferController::class, 'daily']);   // Stats journalières/période
+    Route::get('/export', [TransferController::class, 'exportTransfersSummary']); // Export Excel
+});
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -75,6 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('parcels', [ParcelController::class, 'store']);
     Route::put('parcels/{id}', [ParcelController::class, 'update']);
     Route::delete('parcels/{id}', [ParcelController::class, 'destroy']);
+     Route::get('agencies', [ParcelController::class, 'agences']); // Liste toutes les agences
 });
 
 
