@@ -11,6 +11,9 @@ use App\Models\Parcel;
 use App\Models\BusMaintenance as Maintenance;
 use App\Models\baggages as Baggage;
 use App\Models\Route as RouteModel;
+use App\Models\Garage;
+use App\Models\TripExpense;
+
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -24,6 +27,10 @@ class DashboardController extends Controller
     }
 
 
+    public function etatindex()
+    {
+        return Inertia::render('Dashboard/DashboardState'); // Vue React principale
+    }
 
 private function parcelByRoute()
 {
@@ -45,49 +52,88 @@ private function parcelByRoute()
 
 
 
-
-    public function data()
+public function data()
 {
-    // Ventes jour/semaine/mois (dernier mois)
+    // 🔹 Ventes jour/semaine/mois (dernier mois)
     $sales = Ticket::selectRaw('DATE(created_at) as date, SUM(price) as revenue, COUNT(*) as tickets')
         ->where('created_at', '>=', now()->subMonth())
         ->groupBy('date')
         ->orderBy('date')
         ->get()
-        ->toArray(); // <- optionnel, mais OK
+        ->toArray();
 
-    // Taux de remplissage bus
-    $buses = Bus::with('trips.tickets')->get()->map(function($bus) {
+    // 🔹 Taux de remplissage bus
+    $buses = Bus::with('trips.tickets')->get()->map(function ($bus) {
         $capacity = $bus->capacity ?? 0;
-        $sold = $bus->trips->sum(fn($t) => $t->tickets->count());
+        $sold = $bus->trips->sum(fn($t) => optional($t->tickets)->count() ?? 0);
         return [
-            'bus' => $bus->registration_number,
+            'bus' => $bus->registration_number ?? '-',
             'fill_rate' => $capacity ? round($sold / $capacity * 100, 2) : 0,
             'tickets_sold' => $sold,
             'capacity' => $capacity,
         ];
-    })->values()->toArray(); // <- important
+    })->values()->toArray();
 
-    // Top chauffeurs
+    // 🔹 KPI
+    $totalRevenue = Ticket::sum('price') ?? 0;
+    $totalParcels = Ticket::count();
+    $totalBuses = Bus::count();
+    $averageFillRate = $buses ? round(collect($buses)->avg('fill_rate'), 2) : 0;
+
+    $kpis = [
+        'revenue' => $totalRevenue,
+        'parcels' => $totalParcels,
+        'buses' => $totalBuses,
+        'fill_rate' => $averageFillRate,
+    ];
+
+    // 🔹 Top chauffeurs
     $drivers = Driver::with('trips.tickets')->get()->map(fn($d) => [
-        'first_name' => $d->first_name.' '.$d->last_name,
-        'revenue' => $d->trips->sum(fn($t) => $t->tickets->sum('price')),
-        'tickets' => $d->trips->sum(fn($t) => $t->tickets->count()),
-    ])->sortByDesc('revenue')->take(10)->values()->toArray(); // <- values() + toArray()
+        'first_name' => trim(($d->first_name ?? '').' '.($d->last_name ?? '')),
+        'revenue' => $d->trips->sum(fn($t) => optional($t->tickets)->sum('price') ?? 0),
+        'tickets' => $d->trips->sum(fn($t) => optional($t->tickets)->count() ?? 0),
+    ])->sortByDesc('revenue')->take(10)->values()->toArray();
 
-    // Top routes
-    $routes = RouteModel::with('trips.tickets')->get()->map(fn($r) => [
-        'route' => $r->departureCity->name . ' → ' . $r->arrivalCity->name,
-        'revenue' => $r->trips->sum(fn($t) => $t->tickets->sum('price')),
-        'tickets_sold' => $r->trips->sum(fn($t) => $t->tickets->count()),
-    ])->sortByDesc('revenue')->take(10)->values()->toArray(); // <- values() + toArray()
+    // 🔹 Top routes
+    $routes = RouteModel::with('trips.tickets', 'departureCity', 'arrivalCity')->get()->map(fn($r) => [
+        'route' => (optional($r->departureCity)->name ?? '-') . ' → ' . (optional($r->arrivalCity)->name ?? '-'),
+        'revenue' => $r->trips->sum(fn($t) => optional($t->tickets)->sum('price') ?? 0),
+        'tickets_sold' => $r->trips->sum(fn($t) => optional($t->tickets)->count() ?? 0),
+    ])->sortByDesc('revenue')->take(10)->values()->toArray();
+
+    // 🔹 Parcels par route
+    $parcel_routes = $this->parcelByRoute() ?? [];
 
     return response()->json([
         'sales' => $sales,
         'buses' => $buses,
         'top_drivers' => $drivers,
         'top_routes' => $routes,
-        'parcel_routes' => $this->parcelByRoute(),
+        'parcel_routes' => $parcel_routes,
+        'kpis' => $kpis, // <-- ajouté !
+    ]);
+}
+
+
+// Dans DashboardController.php
+
+public function stateData() {
+    $ticketsCount = Ticket::count();
+    
+    // Calcul de l'abonnement des garages (ex: 10 000 par mois par garage actif)
+    $revenuGarages = Garage::where('is_active', true)->count() * 10000;
+
+    return response()->json([
+        'tickets_count'      => $ticketsCount,
+        'contribution_route' => $ticketsCount * 500, // Les 500 FCFA promis
+        'frais_peage'        => TripExpense::where('type', 'peage')->sum('amount'),
+        'frais_garage'       => Maintenance::sum('cost'),
+        'revenu_abonnements_garages' => $revenuGarages,
+        
+        // Données pour les graphiques
+        'top_drivers' => 0,
+        'top_routes'  => RouteModel::getStats(), // Imaginons une méthode de stats
+        'parcel_routes' => Parcel::getStatsByRoute(),
     ]);
 }
 

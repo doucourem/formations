@@ -19,14 +19,6 @@ class ParcelController extends Controller
         $user = $request->user();
         $query = Parcel::query();
 
-        if ($user->role !== 'admin') {
-            $agencyId = $user->agency_id;
-            $query->where(function($q) use ($agencyId) {
-                $q->where('departure_agency_id', $agencyId)
-                  ->orWhere('arrival_agency_id', $agencyId);
-            });
-        }
-
         $parcels = $query->orderByDesc('created_at')
                          ->paginate(20)
                          ->withQueryString();

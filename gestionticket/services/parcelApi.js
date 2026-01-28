@@ -27,12 +27,14 @@ export const createParcel = async (data) => {
 export const updateParcel = async (id, data) => {
   await loadAuthToken();
 
-  // Indique à Laravel que c'est un PUT
+  // Laravel utilise la méthode POST + _method=PUT
   data.append("_method", "PUT");
+
   return api.post(`/parcels/${id}`, data, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
+
 
 
 

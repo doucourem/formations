@@ -47,4 +47,14 @@ public function departureAgency()
     {
         return $this->belongsTo(Ticket::class);
     }
+
+    public static function getStatsByRoute()
+{
+    // Retourne le nombre de colis par route
+    return self::selectRaw('route_id, COUNT(*) as parcels_count')
+        ->groupBy('route_id')
+        ->with('route')
+        ->get();
+}
+
 }

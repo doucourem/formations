@@ -1,21 +1,36 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert, ActivityIndicator } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { fetchSenders, fetchReceivers, createTransfer } from "../services/apiTransfers";
+import { fetchSenders, fetchReceivers, createTransfer, updateTransfer } from "../services/apiTransfers";
 
-export default function TransferModal({ visible, onClose, onCreated }) {
+export default function TransferModal({ visible, onClose, onCreated, transferToEdit }) {
   const [senders, setSenders] = useState([]);
   const [receivers, setReceivers] = useState([]);
   const [form, setForm] = useState({ sender_id: "", receiver_id: "", amount: "" });
   const [loading, setLoading] = useState(false);
 
-  // Charger les expéditeurs et destinataires
-  useEffect(() => {
-    if (visible) {
-      loadSenders();
-      loadReceivers();
+  // Charger expéditeurs et destinataires et pré-remplir si édition
+ useEffect(() => {
+  if (visible) {
+    loadSenders();
+    loadReceivers();
+    
+    if (transferToEdit) {
+      // Extraire l'id depuis sender et receiver si sender_id/receiver_id manquent
+      const senderId = transferToEdit.sender_id ?? transferToEdit.sender?.id;
+      const receiverId = transferToEdit.receiver_id ?? transferToEdit.receiver?.id;
+
+      setForm({
+        sender_id: senderId ? senderId.toString() : "",
+        receiver_id: receiverId ? receiverId.toString() : "",
+        amount: transferToEdit.amount?.toString() || "",
+      });
+    } else {
+      setForm({ sender_id: "", receiver_id: "", amount: "" });
     }
-  }, [visible]);
+  }
+}, [visible, transferToEdit]);
+
 
   const loadSenders = async () => {
     try {
@@ -43,20 +58,33 @@ export default function TransferModal({ visible, onClose, onCreated }) {
     if (!form.sender_id || !form.receiver_id || !form.amount) {
       return Alert.alert("Erreur", "Tous les champs sont obligatoires.");
     }
+
     setLoading(true);
     try {
-      await createTransfer({
-        sender_id: form.sender_id,
-        receiver_id: form.receiver_id,
-        amount: Number(form.amount),
-      });
-      Alert.alert("Succès", "Transfert créé !");
+      if (transferToEdit) {
+        // Modifier le transfert existant
+        await updateTransfer(transferToEdit.id, {
+          sender_id: Number(form.sender_id),
+          receiver_id: Number(form.receiver_id),
+          amount: Number(form.amount),
+        });
+        Alert.alert("Succès", "Transfert modifié !");
+      } else {
+        // Créer un nouveau transfert
+        await createTransfer({
+          sender_id: Number(form.sender_id),
+          receiver_id: Number(form.receiver_id),
+          amount: Number(form.amount),
+        });
+        Alert.alert("Succès", "Transfert créé !");
+      }
+
       setForm({ sender_id: "", receiver_id: "", amount: "" });
-      onCreated?.(); // Recharge la liste
+      onCreated?.();
       onClose();
     } catch (e) {
-      console.error("Erreur création transfert:", e);
-      Alert.alert("Erreur", "Impossible de créer le transfert.");
+      console.error("Erreur sauvegarde transfert:", e);
+      Alert.alert("Erreur", "Impossible de sauvegarder le transfert.");
     } finally {
       setLoading(false);
     }
@@ -66,7 +94,9 @@ export default function TransferModal({ visible, onClose, onCreated }) {
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Nouveau Transfert</Text>
+          <Text style={styles.modalTitle}>
+            {transferToEdit ? "Modifier Transfert" : "Nouveau Transfert"}
+          </Text>
 
           {/* Expéditeur */}
           <Text style={styles.label}>Expéditeur</Text>
@@ -77,7 +107,7 @@ export default function TransferModal({ visible, onClose, onCreated }) {
             >
               <Picker.Item label="Sélectionner un expéditeur" value="" />
               {senders.map((s) => (
-                <Picker.Item key={s.id} label={s.name} value={s.id} />
+                <Picker.Item key={s.id} label={s.name} value={s.id.toString()} />
               ))}
             </Picker>
           </View>
@@ -91,7 +121,7 @@ export default function TransferModal({ visible, onClose, onCreated }) {
             >
               <Picker.Item label="Sélectionner un destinataire" value="" />
               {receivers.map((r) => (
-                <Picker.Item key={r.id} label={r.name} value={r.id} />
+                <Picker.Item key={r.id} label={r.name} value={r.id.toString()} />
               ))}
             </Picker>
           </View>
@@ -116,7 +146,10 @@ export default function TransferModal({ visible, onClose, onCreated }) {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "#f44336" }]}
-              onPress={() => { setForm({ sender_id: "", receiver_id: "", amount: "" }); onClose(); }}
+              onPress={() => {
+                setForm({ sender_id: "", receiver_id: "", amount: "" });
+                onClose();
+              }}
             >
               <Text style={styles.buttonText}>Annuler</Text>
             </TouchableOpacity>

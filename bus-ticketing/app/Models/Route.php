@@ -38,4 +38,14 @@ class Route extends Model
 {
     return $this->hasMany(Trip::class);
 }
+
+public static function getStats()
+{
+    // Retourne les 5 routes les plus fréquentées avec nombre de billets vendus
+    return self::withCount('trips')
+        ->orderBy('trips_count', 'desc')
+        ->take(5)
+        ->get();
+}
+
 }

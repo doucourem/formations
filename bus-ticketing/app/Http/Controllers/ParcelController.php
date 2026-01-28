@@ -23,7 +23,7 @@ public function index()
     $query = Parcel::query();
 
     // Si ce n'est pas un admin, filtrer par agence
-    if ($user->role !== 'admin') {
+    if ($user->role !== 'admin' && $user->role !== 'super_admin') {
         $agencyId = $user->agency_id;
         $query->where(function($q) use ($agencyId) {
             $q->where('departure_agency_id', $agencyId)

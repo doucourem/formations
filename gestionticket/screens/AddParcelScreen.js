@@ -81,75 +81,89 @@ export default function AddParcelScreen({ navigation }) {
   };
 
   // Validation et soumission
-  const submit = async () => {
-    if (
-      !form.sender_name || !form.recipient_name ||
-      !form.sender_phone || !form.recipient_phone ||
-      !form.departure_agency_id || !form.arrival_agency_id ||
-      form.departure_agency_id === form.arrival_agency_id ||
-      !form.payment_method ||
-      !form.tracking_number ||
-      Number(form.weight_kg) <= 0 ||
-      Number(form.price) <= 0
-    ) {
-      return Alert.alert("Erreur", "Merci de remplir tous les champs obligatoires correctement.");
+const submit = async () => {
+  // Vérification des champs obligatoires
+  if (
+    !form.sender_name || !form.recipient_name ||
+    !form.sender_phone || !form.recipient_phone ||
+    !form.departure_agency_id || !form.arrival_agency_id ||
+    form.departure_agency_id === form.arrival_agency_id ||
+    !form.payment_method ||
+    !form.tracking_number ||
+    Number(form.weight_kg) <= 0 ||
+    Number(form.price) <= 0
+  ) {
+    return Alert.alert("Erreur", "Merci de remplir tous les champs obligatoires correctement.");
+  }
+
+  try {
+    setLoading(true);
+
+    const data = new FormData();
+
+    // Champs numériques convertis correctement
+    const payload = {
+      tracking_number: form.tracking_number,
+      sender_name: form.sender_name,
+      sender_phone: form.sender_phone,
+      recipient_name: form.recipient_name,
+      recipient_phone: form.recipient_phone,
+      weight_kg: Number(form.weight_kg),
+      price: Number(form.price),
+      status: form.status,
+      departure_agency_id: Number(form.departure_agency_id),
+      arrival_agency_id: Number(form.arrival_agency_id),
+      description: form.description,
+      payment_method: form.payment_method,
+    };
+
+    // Ajout dans FormData
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== null && value !== "") {
+        // Convertir explicitement en string pour FormData, backend doit parser si nécessaire
+        data.append(key, value.toString());
+      }
+    });
+
+    // Ajouter l'image si présente
+    if (form.parcel_image) {
+      let uri = form.parcel_image.uri;
+      if (!uri.startsWith("file://")) uri = "file://" + uri;
+      const type = form.parcel_image.type?.split(";")[0] || "image/jpeg";
+
+      data.append("parcel_image", {
+        uri,
+        type,
+        name: form.parcel_image.fileName || `parcel-${Date.now()}.jpg`,
+      });
     }
 
-    try {
-      setLoading(true);
-
-      const data = new FormData();
-
-      // Champs
-      Object.entries({
-        tracking_number: form.tracking_number,
-        sender_name: form.sender_name,
-        sender_phone: form.sender_phone,
-        recipient_name: form.recipient_name,
-        recipient_phone: form.recipient_phone,
-        weight_kg: form.weight_kg,
-        price: form.price,
-        status: form.status,
-        departure_agency_id: form.departure_agency_id,
-        arrival_agency_id: form.arrival_agency_id,
-        description: form.description,
-        payment_method: form.payment_method,
-      }).forEach(([key, value]) => value !== null && data.append(key, value.toString()));
-
-      // Image
-      if (form.parcel_image) {
-        let uri = form.parcel_image.uri;
-        if (!uri.startsWith("file://")) uri = "file://" + uri;
-        const type = form.parcel_image.type?.split(";")[0] || "image/jpeg";
-
-        data.append("parcel_image", {
-          uri,
-          type,
-          name: form.parcel_image.fileName || `parcel-${Date.now()}.jpg`,
-        });
-      }
-
-      // Appel API
-      if (existingParcel) {
-        await updateParcel(existingParcel.id, data);
-        Alert.alert("Succès", "Colis mis à jour avec succès", [{ text: "OK", onPress: () => navigation.goBack() }]);
-      } else {
-        await createParcel(data);
-        Alert.alert("Succès", "Colis ajouté avec succès", [{ text: "OK", onPress: () => navigation.goBack() }]);
-      }
-
-    } catch (e) {
-      console.error("Erreur création/édition colis :", e);
-      if (e.response?.data?.errors) {
-        const messages = Object.values(e.response.data.errors).flat().join("\n");
-        Alert.alert("Erreur validation", messages);
-      } else {
-        Alert.alert("Erreur", "Impossible d’ajouter le colis.");
-      }
-    } finally {
-      setLoading(false);
+    // Envoi au backend
+    if (existingParcel) {
+      await updateParcel(existingParcel.id, data);
+      Alert.alert("Succès", "Colis mis à jour avec succès", [
+        { text: "OK", onPress: () => navigation.goBack() }
+      ]);
+    } else {
+      await createParcel(data);
+      Alert.alert("Succès", "Colis ajouté avec succès", [
+        { text: "OK", onPress: () => navigation.goBack() }
+      ]);
     }
-  };
+
+  } catch (e) {
+    console.error("Erreur création/édition colis :", e);
+    if (e.response?.data?.errors) {
+      const messages = Object.values(e.response.data.errors).flat().join("\n");
+      Alert.alert("Erreur validation", messages);
+    } else {
+      Alert.alert("Erreur", "Impossible d’ajouter le colis.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <Provider>

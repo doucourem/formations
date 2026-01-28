@@ -30,8 +30,16 @@ export default function DeliveryShow({ delivery }) {
   const formatDate = (date) =>
     date ? dayjs(date).format("DD MMMM YYYY à HH:mm") : "—";
 
-  const formatMoney = (value) =>
-    `${Number(value || 0).toLocaleString("fr-FR")} CFA`;
+  
+  const formatNumberPDF = (num) => {
+  if (!num && num !== 0) return "0";
+  const parts = num.toString().split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return parts.join(","); // décimales séparées par ","
+};
+
+const formatMoney = (value) => `${formatNumberPDF(value || 0)} CFA`;
+
 
   const getStatusProps = (status) => {
     switch (status) {

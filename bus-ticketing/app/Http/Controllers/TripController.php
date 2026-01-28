@@ -194,27 +194,41 @@ public function index(Request $request)
         ])->where('id', $id);
 
         // 🔹 Filtrer les tickets selon le rôle
-        $tripQuery->with(['tickets' => function ($query) use ($user) {
-            if (!$user) {
-                $query->whereRaw('1 = 0'); // Aucun ticket pour non-connecté
-                return;
-            }
+       $tripQuery->with([
+    'tickets' => function ($query) use ($user) {
 
-            switch ($user->role) {
-                case 'admin':
-                case 'manager':
-                    // voient tous les tickets
-                    break;
-                case 'agent':
-                    $query->where('user_id', $user->id);
-                    break;
-                case 'manageragence':
-                    $query->whereHas('user', fn($q) => $q->where('agence_id', $user->agence_id));
-                    break;
-                default:
-                    $query->whereRaw('1 = 0'); // aucun ticket pour les autres
-            }
-        }]);
+        if (!$user) {
+            $query->whereRaw('1 = 0'); // Aucun ticket pour non-connecté
+            return;
+        }
+
+        switch ($user->role) {
+            case 'admin':
+            case 'manager':
+            case 'super_admin':
+                // voient tous les tickets
+                break;
+
+            case 'agent':
+                $query->where('user_id', $user->id);
+                break;
+
+            case 'manageragence':
+                $query->whereHas('user', function ($q) use ($user) {
+                    $q->where('agence_id', $user->agence_id);
+                });
+                break;
+
+            default:
+                $query->whereRaw('1 = 0'); // aucun ticket pour les autres
+        }
+
+        // ✅ Tri par numéro de siège
+       $query->orderByRaw('CAST(seat_number AS UNSIGNED) ASC');
+
+    }
+]);
+
 
         $trip = $tripQuery->firstOrFail();
 

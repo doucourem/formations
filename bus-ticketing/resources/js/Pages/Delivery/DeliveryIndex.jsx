@@ -135,7 +135,6 @@ const TYPE_LABELS = {
                 
                     "Véhicule",
                     "Chauffeur",
-                    "Produit",
                     "Prix (CFA)",
                     "Départ",
                     "Arrivée",
@@ -160,7 +159,6 @@ const TYPE_LABELS = {
                       
                       <TableCell>{d.bus.registration_number}</TableCell>
                       <TableCell>{d.driver.first_name}</TableCell>
-                      <TableCell>{d.product_name}</TableCell>
                       <TableCell>{d.price}</TableCell>
                       <TableCell>{new Date(d.departure_at).toLocaleString()}</TableCell>
                       <TableCell>{d.arrival_at ? new Date(d.arrival_at).toLocaleString() : "-"}</TableCell>

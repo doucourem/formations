@@ -134,6 +134,7 @@ const handleCancelReservation = async () => {
             >
               {trips.map(t => (
                 <MenuItem key={t.id} value={t.id}>
+                  {`${t.route?.departureCity?.name || "-"} → ${t.route?.arrivalCity?.name || "-"} (Départ: ${t.departure_at})`}
                   </MenuItem>
               ))}
             </Select>

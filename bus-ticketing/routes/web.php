@@ -68,10 +68,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/etatdashboard', [DashboardController::class, 'etatindex'])->name('dashboard2');
     Route::get('/dashboard/data', [DashboardController::class, 'data']);
     Route::get('/abonnements', [DashboardController::class, 'abonnements']);
     Route::get('/export-consolidated', [DashboardController::class, 'exportConsolidated'])
     ->name('export.consolidated');
+    Route::get('/dashboard/state-data', [DashboardController::class, 'stateData'])->name('dashboard.state-data');
 
     // Notifications
     Route::get('/send-sms', [NotificationController::class, 'sendSms']);

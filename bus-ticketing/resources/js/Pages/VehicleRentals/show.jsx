@@ -42,6 +42,14 @@ export default function VehicleRentalShow() {
   };
   const statusProps = getStatusProps(rental.status);
 
+    const formatNumberPDF = (num) => {
+  if (!num && num !== 0) return "0";
+  const parts = num.toString().split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return parts.join(","); // décimales séparées par ","
+};
+
+const formatMoney = (value) => `${formatNumberPDF(value || 0)} CFA`;
   // Export PDF
   const handleExportPDF = () => {
     const doc = new jsPDF();
@@ -153,12 +161,12 @@ export default function VehicleRentalShow() {
                     <TableRow key={e.id}>
                       <TableCell>{e.type}</TableCell>
                       <TableCell>{e.description || "-"}</TableCell>
-                      <TableCell align="right">{Number(e.amount).toLocaleString()}</TableCell>
+                      <TableCell align="right">{formatMoney(e.amount)}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow>
                     <TableCell colSpan={2}><strong>Total</strong></TableCell>
-                    <TableCell align="right"><strong>{totalExpenses.toLocaleString()} CFA</strong></TableCell>
+                    <TableCell align="right"><strong>{formatMoney(totalExpenses)} CFA</strong></TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
