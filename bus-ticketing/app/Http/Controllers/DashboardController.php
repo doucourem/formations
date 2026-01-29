@@ -117,25 +117,94 @@ public function data()
 
 // Dans DashboardController.php
 
-public function stateData() {
-    $ticketsCount = Ticket::count();
+
+
+
+
+public function stateData(Request $request)
+{
+    // 1. Déterminer la période de filtrage
+    $period = $request->query('period', 'month'); // 'month' par défaut
     
-    // Calcul de l'abonnement des garages (ex: 10 000 par mois par garage actif)
-    $revenuGarages = Garage::where('is_active', true)->count() * 10000;
+    $startDate = match($period) {
+        'today' => now()->startOfDay(),
+        'week'  => now()->startOfWeek(),
+        'month' => now()->startOfMonth(),
+        default => now()->startOfMonth(),
+    };
+    
+    $endDate = now()->endOfDay();
+
+    // 2. 🎟️ Tickets vendus (Filtrés par période)
+    $ticketsQuery = Ticket::whereBetween('created_at', [$startDate, $endDate]);
+    $ticketsCount = $ticketsQuery->count();
+    $contributionRoute = $ticketsCount * 500;
+
+    // 3. 🚧 Redevances Routières (Péages)
+    $fraisPeage = TripExpense::where('type', 'peage')
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->sum('amount');
+
+    // 4. 🏢 Partenariats Garages (On peut garder le total ou filtrer selon vos besoins)
+    $revenuGarages = Garage::count() * 10000;
+
+    // 5. 📊 Flux d'activité (Groupé par jour sur la période sélectionnée)
+    $sales = Ticket::whereBetween('created_at', [$startDate, $endDate])
+        ->selectRaw('DATE(created_at) as date')
+        ->selectRaw('COUNT(*) as tickets')
+        ->selectRaw('SUM(price) as revenue')
+        ->groupBy('date')
+        ->orderBy('date')
+        ->get();
+
+    // 6. 🚀 Performance des Lignes (Filtrées)
+    $routes = RouteModel::with(['departureCity', 'arrivalCity', 'trips' => function($query) use ($startDate, $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }, 'trips.tickets'])
+        ->get()
+        ->map(function($r) {
+            $ticketsSold = $r->trips->sum(fn($t) => $t->tickets->count());
+            $revenue = $r->trips->sum(fn($t) => $t->tickets->sum('price'));
+
+            return [
+                'route' => ($r->departureCity->name ?? '-') . ' → ' . ($r->arrivalCity->name ?? '-'),
+                'tickets_sold' => $ticketsSold,
+                'revenue' => $revenue,
+            ];
+        })
+        ->filter(fn($r) => $r['tickets_sold'] > 0) // N'affiche que les routes actives sur la période
+        ->sortByDesc('revenue')
+        ->take(10)
+        ->values()
+        ->toArray();
+
+    // 7. 🚌 Taux de remplissage des Bus (Optionnel)
+    $buses = Bus::with(['trips' => function($q) use ($startDate, $endDate) {
+            $q->whereBetween('created_at', [$startDate, $endDate]);
+        }])->get()->map(function($bus) {
+            return [
+                'name' => $bus->registration_number,
+                'fill_rate' => $bus->trips->avg('fill_rate') ?? 0
+            ];
+        })->take(5);
 
     return response()->json([
-        'tickets_count'      => $ticketsCount,
-        'contribution_route' => $ticketsCount * 500, // Les 500 FCFA promis
-        'frais_peage'        => TripExpense::where('type', 'peage')->sum('amount'),
-        'frais_garage'       => Maintenance::sum('cost'),
+        // KPIs (Indicateurs clés)
+        'tickets_count' => $ticketsCount,
+        'contribution_route' => $contributionRoute, // Calculé dynamiquement sur la période
+        'frais_peage' => $fraisPeage,
         'revenu_abonnements_garages' => $revenuGarages,
-        
-        // Données pour les graphiques
-        'top_drivers' => 0,
-        'top_routes'  => RouteModel::getStats(), // Imaginons une méthode de stats
-        'parcel_routes' => Parcel::getStatsByRoute(),
+
+        // Graphiques et Listes
+        'top_routes' => $routes,
+        'parcel_routes' => Parcel::getStatsByRoute($startDate, $endDate) ?? [],
+        'trips' => $sales,
+        'buses' => $buses,
+        'top_drivers' => [],
     ]);
 }
+
+
 
 
 

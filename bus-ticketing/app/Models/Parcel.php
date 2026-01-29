@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Route;
+use Illuminate\Support\Facades\DB;
 
 class Parcel extends Model
 {
@@ -48,13 +50,31 @@ public function departureAgency()
         return $this->belongsTo(Ticket::class);
     }
 
-    public static function getStatsByRoute()
+
+
+public static function getStatsByRoute()
 {
-    // Retourne le nombre de colis par route
-    return self::selectRaw('route_id, COUNT(*) as parcels_count')
-        ->groupBy('route_id')
-        ->with('route')
-        ->get();
+    return Route::with(['trips.parcels', 'departureCity', 'arrivalCity'])
+        ->get()
+        ->map(function($r) {
+            $parcelsCount = $r->trips->sum(fn($t) => $t->parcels->count());
+            $revenue = $r->trips->sum(fn($t) => $t->parcels->sum('price'));
+
+            return [
+                'route' => ($r->departureCity->name ?? '-') . ' → ' . ($r->arrivalCity->name ?? '-'),
+                'parcels_count' => $parcelsCount,
+                'revenue' => $revenue,
+            ];
+        })
+        ->sortByDesc('parcels_count')
+        ->take(5)
+        ->values()
+        ->toArray();
 }
+
+
+
+
+
 
 }

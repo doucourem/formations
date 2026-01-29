@@ -54,4 +54,17 @@ public function index(Request $request)
 
         return response()->json($seats);
     }
+
+     public function stops($tripId)
+{
+    $trip = Trip::with([
+        'route.stops.city',      // ville de départ du stop
+        'route.stops.toCity',    // ville d'arrivée du stop (si applicable)
+    ])->findOrFail($tripId);
+
+    // Récupération des stops triés par ordre
+    $stops = $trip->route->stops->sortBy('order')->values();
+
+    return response()->json($stops);
+}
 }

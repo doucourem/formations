@@ -126,6 +126,8 @@ class TicketApiController extends Controller
         return response()->json($ticket);
     }
 
+   
+
     public function destroy($id)
     {
         $ticket = Ticket::findOrFail($id);

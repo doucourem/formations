@@ -54,6 +54,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('tickets/{id}', [TicketApiController::class, 'destroy']);
     Route::get('tickets/search', [TicketApiController::class, 'search']);
     Route::get('trips', [TripApiController::class, 'index']);
+    Route::get('/trips/{trip}/stops', [TripApiController::class, 'stops']);
+
 Route::get('trips/{id}', [TripApiController::class, 'show']);
 Route::get('/trips/{trip}/tickets', [TicketApiController::class, 'byTrip']);
 

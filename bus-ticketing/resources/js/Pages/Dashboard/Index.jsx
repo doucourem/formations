@@ -79,7 +79,7 @@ export default function DashboardIndex() {
             icon={Wallet}
           />
           <KpiCard
-            title="Colis envoyés"
+            title="Billets vendus"
             value={formatNumber(kpis.parcels)}
             icon={Package}
           />

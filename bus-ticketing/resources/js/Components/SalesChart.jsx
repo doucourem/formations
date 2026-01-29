@@ -10,23 +10,19 @@ import {
     Legend,
 } from 'chart.js';
 
-// 🔥 Enregistrement obligatoire pour Chart.js v3+
-ChartJS.register(
-    LineElement,
-    PointElement,
-    LinearScale,
-    CategoryScale,
-    Tooltip,
-    Legend
-);
+ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
 
 export default function SalesChart({ sales }) {
+    // 🔹 S'assurer que sales est toujours un tableau
+    const safeSales = Array.isArray(sales) ? sales : [];
+
     // 🔹 Formater les dates en français
-    const labels = sales.map(s =>
+    const labels = safeSales.map(s =>
         new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(new Date(s.date))
     );
-    
-    const data = sales.map(s => s.revenue);
+
+    // 🔹 Formater les revenus, remplacer undefined par 0
+    const data = safeSales.map(s => Number(s.revenue ?? 0));
 
     return (
         <Line
@@ -44,12 +40,18 @@ export default function SalesChart({ sales }) {
             options={{
                 responsive: true,
                 plugins: {
-                    legend: { position: 'top' }
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw ?? 0;
+                                return value.toLocaleString() + ' FCFA';
+                            }
+                        }
+                    }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                    }
+                    y: { beginAtZero: true }
                 }
             }}
         />

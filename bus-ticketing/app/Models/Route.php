@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Route extends Model
 {
@@ -41,11 +42,18 @@ class Route extends Model
 
 public static function getStats()
 {
-    // Retourne les 5 routes les plus fréquentées avec nombre de billets vendus
-    return self::withCount('trips')
-        ->orderBy('trips_count', 'desc')
-        ->take(5)
+    return self::select('routes.*')
+        ->join('trips', 'trips.route_id', '=', 'routes.id')
+        ->join('tickets', 'tickets.trip_id', '=', 'trips.id')
+        ->selectRaw('routes.id, routes.name as route, COUNT(tickets.id) as tickets_sold, SUM(tickets.price) as revenue')
+        ->groupBy('routes.id', 'routes.name') // ajoute toutes les colonnes sélectionnées
+        ->orderByDesc('tickets_sold')
+        ->limit(5)
         ->get();
 }
+
+
+
+
 
 }
