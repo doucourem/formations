@@ -39,10 +39,11 @@ export default function Edit({ user, agences, flash }) {
     { value: "agent", label: "Billetaire" },
     { value: "chauffeur", label: "Chauffeur" },
     { value: "logistique", label: "Responsable logistique" },
+     { value: "etat", label: "Etat malien " },
   ];
 
   // Rôles qui nécessitent la sélection d'une agence
-  const rolesAvecAgence = ["manageragence", "agent"];
+  const rolesAvecAgence = ["manageragence", "agent","chauffeur","logistique","admin","super_admin"];
 
   return (
     <GuestLayout>

@@ -18,12 +18,23 @@ use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Carbon\Carbon;
-
+use Illuminate\Support\Facades\Auth;
 class DashboardController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Dashboard/Index'); // Vue React principale
+
+
+     $user = auth()->user();
+    abort_if(!$user, 403);
+    if($user->role === 'etat'){
+        return Inertia::render('Dashboard/DashboardState'); // Vue React principale
+    }
+    else{
+return Inertia::render('Dashboard/Index'); // Vue React principale
+    }
+        
+
     }
 
 

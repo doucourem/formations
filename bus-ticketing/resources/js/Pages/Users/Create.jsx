@@ -40,10 +40,11 @@ export default function Create({ agences, flash }) {
     { value: "agent", label: "Billetaire" },
     { value: "chauffeur", label: "Chauffeur" },
     { value: "logistique", label: "Responsable logistique" },
+      { value: "etat", label: "Etat malien " },
   ];
 
   // Rôles qui doivent sélectionner une agence
-  const rolesAvecAgence = ["manageragence", "agent"];
+  const rolesAvecAgence = ["manageragence", "agent","chauffeur","logistique","admin","super_admin"];
 
   return (
     <GuestLayout>

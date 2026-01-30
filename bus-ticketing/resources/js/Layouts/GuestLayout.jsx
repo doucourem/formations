@@ -127,6 +127,7 @@ export default function AuthenticatedLayout({ children }) {
     chauffeur: [
       { title: "Mes voyages", items: [{ text: "Voyages assignés", icon: <CommuteIcon />, route: route("trips.index") }] }
     ],
+    
     logistique: [
       { title: "Livraison & Colis", items: [
         { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
