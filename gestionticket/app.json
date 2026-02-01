@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "MonSuperProjet",
-    "slug": "MonSuperProjet",
+    "name": "Sira Mali Numérique",
+    "slug": "sira-mali-numerique",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,7 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.mdoucoure.MonSuperProjet"
+      "package": "com.mdoucoure.siramalinumerique"
     },
     "web": {
       "favicon": "./assets/favicon.png"

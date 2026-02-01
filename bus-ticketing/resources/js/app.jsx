@@ -10,7 +10,7 @@ import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-const appName =  'FasoBillet';
+const appName =  'SIRA Mali Numérique';
 
 // Créer un thème MUI (personnalisable)
 const theme = createTheme({

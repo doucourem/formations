@@ -7,16 +7,16 @@ import {
   useTheme,
   ActivityIndicator,
   Text,
-  IconButton // Ajouté par sécurité
+  IconButton
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Contextes et API
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { logout } from "./services/authApi";
 
 // Écrans
 import Auth from "./components/Auth";
@@ -28,12 +28,12 @@ import TripTicketsScreen from "./screens/TripTicketsScreen";
 import ChangePasswordScreen from "./components/ChangePasswordScreen";
 import AddParcelScreen from "./screens/AddParcelScreen";
 import TransfersScreen from "./screens/TransfersScreen";
+import ParcelListScreen from "./screens/ParcelListScreen";
 
 // Assets
 import logo from "./assets/logo.png";
-import ParcelListScreen from "./screens/ParcelListScreen";
 
-/* ================= THÈMES PERSONNALISÉS ================= */
+/* ================= THÈMES ================= */
 const commonTheme = { roundness: 10 };
 
 const LightThemeCustom = {
@@ -62,17 +62,13 @@ const DarkThemeCustom = {
   },
 };
 
-/* ================= COMPOSANTS UI ================= */
-
-const HeaderLogo = () => (
-  <Image source={logo} style={styles.logo} />
-);
+/* ================= COMPOSANTS ================= */
+const HeaderLogo = () => <Image source={logo} style={styles.logo} />;
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-/* ================= CONFIGURATION NAVIGATION ================= */
-
+/* ================= OPTIONS NAVIGATION ================= */
 const getScreenOptions = (theme) => ({
   headerStyle: { backgroundColor: theme.colors.surface },
   headerTintColor: theme.colors.primary,
@@ -81,8 +77,7 @@ const getScreenOptions = (theme) => ({
   headerShadowVisible: false,
 });
 
-/* ================= STACKS DE NAVIGATION ================= */
-
+/* ================= STACKS ================= */
 function TicketsStack() {
   const theme = useTheme();
   return (
@@ -98,7 +93,6 @@ function TicketsStack() {
 
 function ParcelStack() {
   const theme = useTheme();
-
   return (
     <Stack.Navigator screenOptions={getScreenOptions(theme)}>
       <Stack.Screen
@@ -114,7 +108,6 @@ function ParcelStack() {
     </Stack.Navigator>
   );
 }
-
 
 function VoyagesStack() {
   const theme = useTheme();
@@ -163,20 +156,14 @@ function PasswordStack() {
   );
 }
 
-/* ================= GESTION DÉCONNEXION ================= */
-
+/* ================= LOGOUT ================= */
 function LogoutTab() {
-  const { logout, setUser, setToken } = useAuth(); // ✅ utiliser logout du contexte
+  const { logout } = useAuth();
   const theme = useTheme();
 
   React.useEffect(() => {
     const doLogout = async () => {
-      try { 
-        await logout(); // ✅ plus de token passé, logout gère tout
-      } catch (e) { 
-        console.error("Logout error", e); 
-      }
-      // setUser et setToken sont déjà faits dans logout
+      try { await logout(); } catch (e) { console.error("Logout error", e); }
     };
     doLogout();
   }, []);
@@ -189,11 +176,11 @@ function LogoutTab() {
   );
 }
 
-
-/* ================= NAVIGATEURS PRINCIPAUX ================= */
-
+/* ================= TAB NAVIGATOR AVEC SAFE AREA ================= */
 function TabNavigator() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -201,29 +188,22 @@ function TabNavigator() {
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarStyle: { 
-          backgroundColor: theme.colors.surface, 
-          height: 65, 
-          paddingBottom: 10,
+          backgroundColor: theme.colors.surface,
+          height: 65 + insets.bottom,
+          paddingBottom: 10 + insets.bottom,
           borderTopWidth: 1,
-          borderTopColor: theme.colors.outline
+          borderTopColor: theme.colors.outline,
         },
         tabBarIcon: ({ color, size, focused }) => {
-          // Onglets avec logo PNG
           if (route.name === "Tickets") {
             return (
               <Image
-                source={logo} // ton logo importé
-                style={{
-                  width: size,
-                  height: size,
-                  resizeMode: "contain",
-                  tintColor: color // facultatif pour changer la couleur
-                }}
+                source={logo}
+                style={{ width: size, height: size, resizeMode: "contain" }}
               />
             );
           }
 
-          // Onglets avec icônes vectorielles
           let iconName;
           if (route.name === "Voyages") iconName = focused ? "bus-clock" : "bus";
           else if (route.name === "Colis") iconName = focused ? "package-variant" : "package-variant-closed";
@@ -243,7 +223,7 @@ function TabNavigator() {
   );
 }
 
-
+/* ================= AUTH STACK ================= */
 function AuthStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -253,8 +233,7 @@ function AuthStack() {
   );
 }
 
-/* ================= LOGIQUE ROOT ================= */
-
+/* ================= ROOT APP ================= */
 function AppContent() {
   const { user, loading } = useAuth();
   const theme = useTheme();
@@ -275,13 +254,15 @@ export default function App() {
   const theme = scheme === "dark" ? DarkThemeCustom : LightThemeCustom;
 
   return (
-    <PaperProvider theme={theme}>
-      <AuthProvider>
-        <NavigationContainer theme={theme}>
-          <AppContent />
-        </NavigationContainer>
-      </AuthProvider>
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <AuthProvider>
+          <NavigationContainer theme={theme}>
+            <AppContent />
+          </NavigationContainer>
+        </AuthProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
 

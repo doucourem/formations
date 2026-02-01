@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+mport React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Alert, useWindowDimensions, FlatList, TouchableOpacity } from "react-native";
 import { Card, TextInput, Text, Button } from "react-native-paper";
 import supabase from "../supabaseClient";

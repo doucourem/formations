@@ -37,8 +37,10 @@ use App\Http\Controllers\DeliveryExpenseController;
 
 
 
-Route::get('/', fn() => Inertia::render('HomePage'))->name('home');
+//Route::get('/', fn() => Inertia::render('HomePage'))->name('home');
 
+
+Route::get('/', fn() => Inertia::render('Welcome'))->name('welcome');
 // Compagnies de transport
 Route::get('/compagnies', function () {
     return Inertia::render('CompaniesPage');
@@ -122,7 +124,7 @@ Route::get('/deliveries/{delivery}/expenses/total-by-type', [DeliveryExpenseCont
 // =====================
 
 // Tous les voyages
-Route::get('/trips/expenses/total-by-type', 
+Route::get('/trips/expenses/total-by-type',
     [TripExpenseController::class, 'totalByTypeGlobal']
 )->name('trip-expenses.total-by-type.global');
 
