@@ -1,196 +1,179 @@
 import React, { useState } from "react";
+import { Link } from "@inertiajs/react"; // Importation pour la navigation Inertia
 import { 
   Grid, Container, Box, Typography, Button, Stack, 
   Paper, Dialog, DialogTitle, DialogContent, TextField, 
-  DialogActions, IconButton, MenuItem 
+  DialogActions, IconButton, MenuItem, Divider
 } from "@mui/material";
+// Remplacez ShieldCheck par GppGood (qui est l'écusson de validation standard)
 import { 
   LocalShipping, Timeline, Engineering, BarChart, 
-  Add, LocationOn, GasMeter, AppRegistration, 
-  Close, WorkspacePremium, Handshake, SupportAgent
+  Add, LocationOn, Close, WorkspacePremium, 
+  Handshake, SupportAgent, Assignment, Analytics,
+  GppGood // <-- Utilisez ceci à la place
 } from "@mui/icons-material";
+
+// Vos composants personnalisés
 import PageHero from "@/components/PageHero";
 import FeatureCard from "@/components/FeatureCard";
 import StatWidget from "@/components/StatWidget";
 import InventoryList from "@/components/InventoryList";
 
-export default function HeavyVehiclesPage() {
+export default function HeavyVehiclesPage({ auth }) { // On récupère auth des props
   const [open, setOpen] = useState(false);
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
   return (
-    <Box component="main" sx={{ pb: 8, bgcolor: "#f5f7f9", minHeight: "100vh" }}>
-      {/* HERO */}
-      <PageHero
-        title="Gros Porteurs – Flotte, Location & Livraison"
-        subtitle="Pour les compagnies : pilotage de flotte, location, livraison et maintenance optimisée"
-      />
+    <Box component="main" sx={{ pb: 8, bgcolor: "#F8FAFC", minHeight: "100vh" }}>
+      
+      {/* --- NAVIGATION BAR (Tailwind + Inertia) --- */}
+      <nav className="border-b sticky top-0 bg-white/95 backdrop-blur-sm z-50">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
+              <GppGood className="text-white" size={24} />
+            </div>
+            <div className="leading-none">
+              <span className="text-2xl font-black tracking-tighter uppercase">
+                SIRA MALI <span className="text-green-600 font-extrabold text-sm align-top italic">NUMÉRIQUE</span>
+              </span>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                Plateforme Nationale Intégrée
+              </p>
+            </div>
+          </div>
 
-      <Container maxWidth="lg" sx={{ mt: -6 }}>
-        {/* SECTION 1: INDICATEURS CLÉS */}
-        <Grid container spacing={3} sx={{ mb: 6 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatWidget label="Flotte Totale" value="24" icon={<LocalShipping />} color="primary.main" />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatWidget label="En Mission" value="18" icon={<LocationOn />} color="success.main" trend="75%" />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatWidget label="Camions Disponibles" value="6" icon={<Add />} color="warning.main" />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatWidget label="Alertes Techniques" value="2" icon={<Engineering />} color="error.main" />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatWidget label="Livraisons en cours" value="12" icon={<Timeline />} color="info.main" />
-          </Grid>
-        </Grid>
+          <div className="hidden lg:flex items-center gap-6 font-bold text-sm text-slate-700">
+            <Link href={route('companies')} className="hover:text-green-600 transition">Compagnies</Link>
+            <Link href={route('maintenance')} className="hover:text-green-600 transition">Maintenance</Link>
+            <Link href={route('heavyVehicles')} className="hover:text-green-600 transition">Gros Porteurs</Link>
+            {auth?.user ? (
+              <Link href={route('dashboard')} className="bg-slate-900 text-white px-6 py-2.5 rounded-full shadow-lg hover:bg-slate-800 transition">
+                Dashboard
+              </Link>
+            ) : (
+              <Link href={route('login')} className="border-2 border-slate-900 px-6 py-2.5 rounded-full hover:bg-slate-900 hover:text-white transition">
+                Connexion
+              </Link>
+            )}
+          </div>
+        </div>
+      </nav>
 
-        {/* SECTION 2: OUTILS D'EXPLOITATION */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-          <Box>
-            <Typography variant="h5" fontWeight="800" sx={{ color: "#1e293b" }}>
-              Outils d'exploitation
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Gérez le cycle complet de vos véhicules lourds, locations et livraisons
-            </Typography>
-          </Box>
-        </Stack>
+      {/* --- HERO SECTION SIRA --- */}
+      <Box sx={{ 
+        bgcolor: "#0f172a", color: "white", 
+        pt: { xs: 8, md: 10 }, pb: { xs: 12, md: 14 },
+        position: 'relative',
+        backgroundImage: 'radial-gradient(circle at 90% 10%, rgba(16, 185, 129, 0.1) 0%, transparent 40%)'
+      }}>
+        <Container maxWidth="lg">
+          <Typography variant="overline" sx={{ color: "#10b981", fontWeight: 900, letterSpacing: 2 }}>
+            SIRA LOGISTIQUE
+          </Typography>
+          <Typography variant="h2" sx={{ fontWeight: 900, mt: 1, mb: 3, fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
+            Gestion des Gros Porteurs
+          </Typography>
+          <Typography variant="h6" sx={{ color: "slate.400", opacity: 0.8, maxWidth: 600, fontWeight: 400, mb: 4 }}>
+            Centralisez le pilotage de votre flotte lourde, optimisez vos contrats de location et suivez vos livraisons en temps réel.
+          </Typography>
+        </Container>
+      </Box>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Fiches Techniques" 
-              description="Gestion complète des fiches techniques de votre flotte" 
-              icon={<LocalShipping color="primary" fontSize="large" />} 
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Suivi Kilométrique" 
-              description="Suivi précis du kilométrage et des trajets" 
-              icon={<Timeline color="primary" fontSize="large" />} 
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Maintenance Lourde" 
-              description="Planification et suivi des interventions" 
-              icon={<Engineering color="primary" fontSize="large" />} 
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Rentabilité" 
-              description="Optimisez vos coûts et marges par trajet" 
-              icon={<BarChart color="primary" fontSize="large" />} 
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Location de Véhicules" 
-              description="Louez vos camions et remorques selon vos besoins" 
-              icon={<LocalShipping color="primary" fontSize="large" />} 
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <FeatureCard 
-              title="Suivi Livraison" 
-              description="Suivi en temps réel de toutes vos livraisons" 
-              icon={<Timeline color="primary" fontSize="large" />} 
-            />
-          </Grid>
-        </Grid>
-
-        {/* SECTION 3: LISTE DE LA FLOTTE */}
-        <Box sx={{ mt: 5 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="h6" fontWeight="bold">État actuel de la flotte</Typography>
-          </Stack>
-          <InventoryList />
-        </Box>
-
-        {/* SECTION 4: CTA PARTENAIRE */}
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            mt: 8, p: 4, borderRadius: 4, bgcolor: "#1e293b", color: "white",
-            display: "flex", flexDirection: { xs: "column", md: "row" },
-            alignItems: "center", justifyContent: "space-between", gap: 3
-          }}
-        >
-          <Box>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Maintenance, Location & Livraison ?
-            </Typography>
-            <Typography variant="body1" sx={{ opacity: 0.8 }}>
-              Devenez prestataire ou partenaire pour l'entretien, la location et la livraison de gros porteurs.
-            </Typography>
-          </Box>
-          <Button 
-            variant="contained" 
-            size="large" 
-            onClick={handleOpen}
-            startIcon={<AppRegistration />}
-            sx={{ bgcolor: "#3b82f6", fontWeight: "bold", "&:hover": { bgcolor: "#2563eb" } }}
-          >
-            Rejoindre le réseau
-          </Button>
-        </Paper>
-
-        {/* SECTION 5: AVANTAGES FOURNISSEURS */}
-        <Grid container spacing={4} sx={{ mt: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: -8 }}>
+        
+        {/* --- SECTION 1: INDICATEURS --- */}
+        <Grid container spacing={3} sx={{ mb: 8 }}>
           {[
-            { title: "Flux constant", desc: "Assurez la disponibilité de vos camions et missions.", icon: <WorkspacePremium color="primary" /> },
-            { title: "Partenariat long terme", desc: "Contrats de maintenance et livraison optimisés.", icon: <Handshake color="primary" /> },
-            { title: "Support dédié", desc: "Interface directe avec notre équipe logistique.", icon: <SupportAgent color="primary" /> }
-          ].map((item, i) => (
-            <Grid item xs={12} md={4} key={i}>
-              <Stack direction="row" spacing={2} alignItems="center">
-                <Box sx={{ p: 1.5, bgcolor: "white", borderRadius: 2, boxShadow: 1 }}>{item.icon}</Box>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="bold">{item.title}</Typography>
-                  <Typography variant="body2" color="text.secondary">{item.desc}</Typography>
-                </Box>
-              </Stack>
+            { label: "Flotte Totale", value: "24", icon: <LocalShipping />, color: "#3b82f6" },
+            { label: "En Mission", value: "18", icon: <LocationOn />, color: "#10b981" },
+            { label: "Livraisons", value: "12", icon: <Assignment />, color: "#6366f1" },
+            { label: "Alertes", value: "02", icon: <Engineering />, color: "#ef4444" }
+          ].map((stat, idx) => (
+            <Grid item xs={12} sm={6} md={3} key={idx}>
+              <Paper sx={{ p: 3, borderRadius: 5, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                 <Stack direction="row" spacing={2} alignItems="center">
+                    <Box sx={{ p: 1.5, bgcolor: `${stat.color}15`, color: stat.color, borderRadius: 3 }}>
+                       {stat.icon}
+                    </Box>
+                    <Box>
+                       <Typography variant="h4" fontWeight="900">{stat.value}</Typography>
+                       <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ textTransform: 'uppercase' }}>{stat.label}</Typography>
+                    </Box>
+                 </Stack>
+              </Paper>
             </Grid>
           ))}
         </Grid>
+
+        {/* --- SECTION 2: TABLEAU DE BORD FLOTTE --- */}
+        <Paper sx={{ p: 4, borderRadius: 6, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', mb: 8 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+            <Box>
+              <Typography variant="h6" fontWeight="900">État Actuel de la Flotte</Typography>
+              <Typography variant="caption" color="text.secondary">Mise à jour via SIRA GPS</Typography>
+            </Box>
+            <Button startIcon={<Add />} variant="outlined" sx={{ borderRadius: 3, fontWeight: 'bold' }}>
+              Ajouter un véhicule
+            </Button>
+          </Stack>
+          <InventoryList />
+        </Paper>
+
+        {/* --- SECTION 3: CTA RÉSEAU --- */}
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            p: 6, borderRadius: 8, 
+            background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", 
+            color: "white"
+          }}
+        >
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={8}>
+              <Typography variant="h4" fontWeight="900" gutterBottom>
+                Développez votre activité Logistique
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.7 }}>
+                Intégrez le réseau SIRA pour accéder aux flux de transport nationaux.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={4} sx={{ textAlign: { md: 'right' } }}>
+              <Button 
+                variant="contained" 
+                size="large" 
+                onClick={handleOpen}
+                sx={{ bgcolor: "#10b981", px: 6, py: 2, borderRadius: 4, fontWeight: "bold", "&:hover": { bgcolor: "#059669" } }}
+              >
+                Rejoindre le réseau
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
       </Container>
 
-      {/* MODAL FORMULAIRE PARTENAIRE */}
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Candidature Partenaire Poids Lourds
-          <IconButton onClick={handleClose} size="small"><Close /></IconButton>
+      {/* --- DIALOG SIRA STYLE --- */}
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 6 } }}>
+        <DialogTitle sx={{ fontWeight: 900, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Partenariat SIRA Logistique
+          <IconButton onClick={handleClose}><Close /></IconButton>
         </DialogTitle>
         <DialogContent dividers>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <TextField label="Raison Sociale" fullWidth variant="outlined" />
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}><TextField label="SIRET" fullWidth /></Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField select label="Type de service" fullWidth defaultValue="meca">
-                  <MenuItem value="meca">Mécanique Générale PL</MenuItem>
-                  <MenuItem value="pneu">Pneumatiques Industriels</MenuItem>
-                  <MenuItem value="remorque">Remorquage / Dépannage</MenuItem>
-                  <MenuItem value="froid">Maintenance Frigorifique</MenuItem>
-                  <MenuItem value="location">Location de Véhicules</MenuItem>
-                  <MenuItem value="livraison">Services de Livraison</MenuItem>
-                </TextField>
-              </Grid>
-            </Grid>
-            <TextField label="Capacité d'accueil (Nombre de baies)" type="number" fullWidth />
-            <TextField label="Ville / Zone d'intervention" fullWidth />
-            <TextField label="Contact (Email/Tel)" fullWidth />
+          <Stack spacing={3} sx={{ mt: 2 }}>
+            <TextField label="Raison Sociale" fullWidth />
+            <TextField select label="Type de Partenariat" fullWidth defaultValue="livraison">
+              <MenuItem value="livraison">Services de Livraison / Fret</MenuItem>
+              <MenuItem value="location">Location de Véhicules</MenuItem>
+              <MenuItem value="meca">Garage Partenaire</MenuItem>
+            </TextField>
+            <TextField label="Zone d'intervention" fullWidth />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleClose} color="inherit">Fermer</Button>
-          <Button variant="contained" onClick={handleClose}>Soumettre mon dossier</Button>
+          <Button onClick={handleClose}>Annuler</Button>
+          <Button variant="contained" onClick={handleClose} sx={{ bgcolor: '#0f172a' }}>Envoyer</Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -1,21 +1,26 @@
 import React from "react";
 import { Head, Link } from "@inertiajs/react";
-import {
-  Bus, Truck, Tool, Ticket,
-  Package, ShieldCheck, BarChart3,
-  MapPin, CheckCircle
+import { 
+  Bus, 
+  Truck, 
+  Wrench, // Correction ici (Tool -> Wrench)
+  Ticket, 
+  Package, 
+  ShieldCheck, 
+  Search,
+  ArrowRight
 } from "lucide-react";
 
 export default function Welcome({ auth }) {
   return (
     <>
-      <Head title="SIRA MALI NUMÉRIQUE - Portail Officiel" />
+      <Head title="SIRA MALI NUMÉRIQUE - Portail" />
 
       <div className="min-h-screen bg-white font-sans text-slate-900">
-        {/* TOP BANNER REPUBLIQUE */}
+        {/* BARRE NATIONALE TRICOLORE */}
         <div className="bg-gradient-to-r from-[#009132] via-[#FCD116] to-[#CE1126] h-1.5 w-full"></div>
 
-        {/* HEADER & NAV */}
+        {/* NAVIGATION */}
         <nav className="border-b sticky top-0 bg-white/95 backdrop-blur-sm z-50">
           <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -51,28 +56,32 @@ export default function Welcome({ auth }) {
                 <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
                 Système Opérationnel 2026
               </div>
-              <h1 className="text-5xl lg:text-7xl font-black leading-[1.05] tracking-tight mb-8">
+              <h1 className="text-5xl lg:text-7xl font-black leading-[1.05] tracking-tight mb-8 text-slate-900">
                 L'écosystème <span className="text-green-600">numérique</span> au service du transport.
               </h1>
               <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-lg">
-                De la billetterie intelligente à la gestion des gros porteurs, SIRA Mali Numérique unifie le contrôle et la sécurité sur tout le territoire national.
+                De la billetterie intelligente à la gestion des gros porteurs, SIRA Mali Numérique unifie le contrôle et la sécurité sur tout le territoire.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href={route('register')} className="bg-green-600 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl shadow-green-100 hover:bg-green-700 transition transform hover:-translate-y-1">
-                  Enregistrer ma Compagnie
+                <Link href={route('register')} className="bg-green-600 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl shadow-green-100 hover:bg-green-700 transition transform hover:-translate-y-1 inline-flex items-center gap-2">
+                  Enregistrer ma Compagnie <ArrowRight size={20}/>
                 </Link>
               </div>
             </div>
 
-            {/* VÉRIFICATION RAPIDE (Code existant dans vos routes /check ou dashboard) */}
+            {/* VÉRIFICATION RAPIDE */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100">
               <h3 className="text-2xl font-black mb-6 flex items-center gap-2">
                 <Search className="text-green-600" /> Vérification Express
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold uppercase text-slate-400 mb-2 block">Numéro de Voyage ou Colis</label>
-                  <input type="text" placeholder="Ex: PK-2026-X4" className="w-full bg-slate-50 border-slate-200 rounded-xl py-4 px-5 focus:ring-green-500 focus:border-green-500 font-mono" />
+                  <label className="text-xs font-bold uppercase text-slate-400 mb-2 block tracking-widest">Numéro de Voyage ou Colis</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: PK-2026-X4" 
+                    className="w-full bg-slate-50 border-slate-200 rounded-xl py-4 px-5 focus:ring-green-500 focus:border-green-500 font-mono outline-none transition" 
+                  />
                 </div>
                 <button className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition">
                   Vérifier maintenant
@@ -82,7 +91,7 @@ export default function Welcome({ auth }) {
           </div>
         </section>
 
-        {/* SERVICES ISSUS DES ROUTES */}
+        {/* CARTES DE SERVICES */}
         <section className="py-24 max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-black uppercase tracking-tighter">Architecture du Réseau SIRA</h2>
@@ -98,37 +107,27 @@ export default function Welcome({ auth }) {
             <ServiceCard
               icon={<Package className="text-orange-600" />}
               title="Fret & Colis (Parcels)"
-              desc="Suivi en temps réel des expéditions, livraisons et transferts inter-urbains."
+              desc="Suivi en temps réel des expéditions (ParcelController), livraisons et transferts inter-urbains."
             />
             <ServiceCard
-              icon={<Tool className="text-red-600" />}
+              icon={<Wrench className="text-red-600" />} // Wrench utilisé ici
               title="Maintenance & Flotte"
-              desc="Suivi rigoureux des bus, des garages et des plans de maintenance pour réduire les accidents."
+              desc="Suivi rigoureux des bus, des garages et des plans de maintenance pour réduire les risques."
             />
           </div>
         </section>
 
-        {/* STATS - REFLET DU DASHBOARD CONTROLLER */}
+        {/* SECTION STATISTIQUES */}
         <section className="bg-slate-900 py-20 text-white rounded-[3rem] mx-6 mb-20 overflow-hidden relative">
           <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8 text-center relative z-10">
-            <div>
-              <div className="text-4xl font-black text-green-500 mb-2">+250</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Compagnies de transport</div>
-            </div>
-            <div>
-              <div className="text-4xl font-black text-green-500 mb-2">99%</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Traçabilité Colis</div>
-            </div>
-            <div>
-              <div className="text-4xl font-black text-green-500 mb-2">24/7</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Contrôle Routier</div>
-            </div>
-            <div>
-              <div className="text-4xl font-black text-green-500 mb-2">100%</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">SIRA Numérique</div>
-            </div>
+            <StatBox number="+250" label="Compagnies" />
+            <StatBox number="99%" label="Traçabilité Colis" />
+            <StatBox number="24/7" label="Contrôle Routier" />
+            <StatBox number="100%" label="SIRA Numérique" />
           </div>
-          <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+          <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
+             <div className="bg-white h-full w-full opacity-10 blur-3xl rounded-full translate-y-1/2"></div>
+          </div>
         </section>
 
         {/* FOOTER */}
@@ -138,7 +137,9 @@ export default function Welcome({ auth }) {
               <span className="font-black text-xl">SIRA MALI</span>
               <span className="bg-green-600 text-white px-2 py-0.5 rounded text-[10px] font-black italic">NUMÉRIQUE</span>
             </div>
-            <p className="text-xs text-slate-400 font-bold">© 2026 — MINISTÈRE DES TRANSPORTS ET DES INFRASTRUCTURES — RÉPUBLIQUE DU MALI</p>
+            <p className="text-xs text-slate-400 font-bold tracking-tight text-center md:text-left">
+               © 2026 — AFRICA TECH LABS  — RÉPUBLIQUE DU MALI
+            </p>
           </div>
         </footer>
       </div>
@@ -146,14 +147,24 @@ export default function Welcome({ auth }) {
   );
 }
 
+// COMPOSANTS INTERNES POUR PLUS DE CLARTÉ
 function ServiceCard({ icon, title, desc }) {
   return (
     <div className="p-10 bg-white border border-slate-100 rounded-[2rem] hover:shadow-2xl hover:shadow-slate-100 transition-all group">
       <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-        {icon}
+        {React.cloneElement(icon, { size: 32 })}
       </div>
-      <h3 className="text-xl font-black mb-4 uppercase tracking-tighter">{title}</h3>
+      <h3 className="text-xl font-black mb-4 uppercase tracking-tighter text-slate-800">{title}</h3>
       <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+function StatBox({ number, label }) {
+  return (
+    <div>
+      <div className="text-4xl font-black text-green-500 mb-2">{number}</div>
+      <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{label}</div>
     </div>
   );
 }
