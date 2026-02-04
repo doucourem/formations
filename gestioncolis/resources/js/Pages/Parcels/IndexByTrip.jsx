@@ -49,7 +49,7 @@ export default function IndexByTrip({ trip, parcels }) {
               <Table>
                 <TableHead sx={{ bgcolor: "#1565c0" }}>
                   <TableRow>
-                    {["ID", "Expéditeur", "Destinataire", "Description", "Poids (kg)", "Montant", "Statut"].map((col) => (
+                    {["Expéditeur", "Destinataire", "Description", "Poids (kg)", "Montant", "Statut"].map((col) => (
                       <TableCell key={col} sx={{ color: "white", fontWeight: "bold" }}>
                         {col}
                       </TableCell>
@@ -61,7 +61,6 @@ export default function IndexByTrip({ trip, parcels }) {
                   {parcels.data.length > 0 ? (
                     parcels.data.map((p) => (
                       <TableRow key={p.id} hover>
-                        <TableCell>{p.id}</TableCell>
                         <TableCell>{p.sender_name}</TableCell>
                         <TableCell>{p.recipient_name}</TableCell>
                         <TableCell>{p.description}</TableCell>

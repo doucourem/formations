@@ -1,24 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
-import GuestLayout from "@/Layouts/GuestLayout";
+import GuestLayout from "@/Layouts/GuestLayout"; // Utilisation du layout Pro
 import {
-  Box,
-  Card,
-  CardHeader,
-  CardContent,
-  Button,
-  TextField,
-  MenuItem,
-  Typography,
-  IconButton,
+  Box, Card, CardHeader, CardContent, Button, TextField, MenuItem,
+  Typography, IconButton, Grid, Divider, InputAdornment, Paper
 } from "@mui/material";
-import AutorenewIcon from "@mui/icons-material/Autorenew";
+import {
+  Autorenew as AutorenewIcon,
+  CloudUpload as UploadIcon,
+  Person as PersonIcon,
+  LocalShipping as ShippingIcon,
+  Payment as PaymentIcon
+} from "@mui/icons-material";
 
-export default function Create({ trips }) {
+export default function Create({ trips, agencies }) {
   const generateTracking = () => {
     const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    return `COLIS-${date}-${rand}`;
+    const date = new Date().toISOString().slice(2, 10).replace(/-/g, "");
+    return `FL-${date}-${rand}`; // Format FasoLogistique : FL-YYMMDD-XXXX
   };
 
   const [form, setForm] = useState({
@@ -33,36 +32,25 @@ export default function Create({ trips }) {
     price: "",
     payment_method: "",
     parcel_image: null,
-    status: "pending", // valeur par défaut
+    status: "pending",
+    departure_agency_id: "",
+    arrival_agency_id: "",
   });
 
   const [imagePreview, setImagePreview] = useState(null);
-  const PRICE_PER_KG = 12000;
 
-  useEffect(() => {
-    const weight = parseFloat(form.weight_kg) || 0;
-    setForm((prev) => ({ ...prev, price: weight * PRICE_PER_KG }));
-  }, [form.weight_kg]);
-
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: ["price", "weight_kg"].includes(name) ? (value === "" ? "" : Number(value)) : value,
+    }));
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
-      alert("Format non supporté (JPG/PNG seulement).");
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Image trop lourde (max 2 Mo).");
-      return;
-    }
-
     setForm({ ...form, parcel_image: file });
-
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
     reader.readAsDataURL(file);
@@ -70,186 +58,161 @@ export default function Create({ trips }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (!form.trip_id) {
-      alert("Veuillez sélectionner un voyage.");
+    if (form.departure_agency_id === form.arrival_agency_id) {
+      alert("L'agence de départ et d'arrivée doivent être différentes !");
       return;
     }
-    if (form.weight_kg <= 0) {
-      alert("Le poids doit être supérieur à 0.");
-      return;
-    }
-
     const data = new FormData();
     Object.keys(form).forEach((key) => {
       if (form[key] !== null) data.append(key, form[key]);
     });
-
     Inertia.post(route("parcels.store"), data);
   };
 
   return (
     <GuestLayout>
-      <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
-        <CardHeader
-          title={<Typography variant="h5">Créer un colis 📦</Typography>}
-        />
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <Box display="grid" gap={3}>
-              {/* Voyage */}
-              <TextField
-                select
-                label="Vol"
-                name="trip_id"
-                value={form.trip_id}
-                onChange={handleChange}
-                required
-              >
-                {Array.isArray(trips) &&
-                  trips.map((t) => (
-                    <MenuItem key={t.id} value={t.id}>
-                      {`${t.route?.departureCity?.name || "-"} → ${
-                        t.route?.arrivalCity?.name || "-"
-                      } (Départ ${t.departure_at})`}
-                    </MenuItem>
-                  ))}
-              </TextField>
+      <Box sx={{ maxWidth: 1000, mx: "auto", py: 4 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4" fontWeight="800" color="#1A237E">
+            Nouveau Colis
+          </Typography>
+          <Typography variant="h6" color="textSecondary">
+            Réf: <span style={{ color: '#FFD600' }}>{form.tracking_number}</span>
+          </Typography>
+        </Box>
 
-              {/* Numéro de tracking */}
-              <Box display="flex" alignItems="center" gap={1}>
-                <TextField
-                  label="Numéro de Tracking"
-                  name="tracking_number"
-                  value={form.tracking_number}
-                  fullWidth
-                  InputProps={{ readOnly: true }}
+        <form onSubmit={handleSubmit}>
+          <Grid container spacing={3}>
+            {/* --- SECTION LOGISTIQUE --- */}
+            <Grid item xs={12} md={8}>
+              <Card sx={{ borderRadius: 4, mb: 3 }}>
+                <CardHeader 
+                  avatar={<ShippingIcon color="primary" />} 
+                  title="Détails du Transport" 
+                  titleTypographyProps={{ fontWeight: 'bold' }}
                 />
-                <IconButton
-                  onClick={() =>
-                    setForm({ ...form, tracking_number: generateTracking() })
-                  }
-                >
-                  <AutorenewIcon />
-                </IconButton>
-              </Box>
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        select fullWidth label="Affecter à un voyage (Optionnel)"
+                        name="trip_id" value={form.trip_id} onChange={handleChange}
+                      >
+                        <MenuItem value=""><em>Aucun voyage pour le moment</em></MenuItem>
+                        {trips.map((t) => (
+                          <MenuItem key={t.id} value={t.id}>
+                            {`${t.route?.departureCity?.name} → ${t.route?.arrivalCity?.name} (${t.departure_at})`}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        select fullWidth label="Agence de départ" required
+                        name="departure_agency_id" value={form.departure_agency_id} onChange={handleChange}
+                      >
+                        {agencies.map((a) => (<MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        select fullWidth label="Agence d'arrivée" required
+                        name="arrival_agency_id" value={form.arrival_agency_id} onChange={handleChange}
+                      >
+                        {agencies.filter(a => a.id !== form.departure_agency_id).map((a) => (
+                          <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
 
-              {/* Expéditeur */}
-              <Typography variant="h6">Expéditeur</Typography>
-              <TextField
-                label="Nom de l'expéditeur"
-                name="sender_name"
-                value={form.sender_name}
-                onChange={handleChange}
-                required
-              />
-              <TextField
-                label="Téléphone expéditeur"
-                name="sender_phone"
-                value={form.sender_phone}
-                onChange={handleChange}
-                required
-              />
-
-              {/* Destinataire */}
-              <Typography variant="h6">Destinataire</Typography>
-              <TextField
-                label="Nom du destinataire"
-                name="recipient_name"
-                value={form.recipient_name}
-                onChange={handleChange}
-                required
-              />
-              <TextField
-                label="Téléphone destinataire"
-                name="recipient_phone"
-                value={form.recipient_phone}
-                onChange={handleChange}
-                required
-              />
-
-              {/* Poids */}
-              <TextField
-                label="Poids (kg)"
-                type="number"
-                name="weight_kg"
-                value={form.weight_kg}
-                onChange={handleChange}
-                required
-              />
-
-              {/* Description */}
-              <TextField
-                label="Description du colis"
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                multiline
-                rows={2}
-              />
-
-              {/* Montant calculé */}
-              <TextField
-                label="Montant (CFA)"
-                name="price"
-                type="number"
-                value={form.price}
-                InputProps={{ readOnly: true }}
-                sx={{ backgroundColor: "#f5f5f5" }}
-              />
-
-              {/* Image du colis */}
-              <Box>
-                <TextField
-                  type="file"
-                  label="Photo du colis"
-                  InputLabelProps={{ shrink: true }}
-                  onChange={handleFileChange}
+              <Card sx={{ borderRadius: 4 }}>
+                <CardHeader 
+                   avatar={<PersonIcon color="primary" />} 
+                   title="Informations Expéditeur & Destinataire" 
+                   titleTypographyProps={{ fontWeight: 'bold' }}
                 />
-                {imagePreview && (
-                  <Box mt={1} display="flex" flexDirection="column" alignItems="center">
-                    <img
-                      src={imagePreview}
-                      alt="Aperçu colis"
-                      style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8 }}
-                    />
-                    <Button
-                      size="small"
-                      color="secondary"
-                      onClick={() => {
-                        setForm({ ...form, parcel_image: null });
-                        setImagePreview(null);
-                      }}
-                      sx={{ mt: 1 }}
-                    >
-                      Supprimer l’image
-                    </Button>
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}><TextField fullWidth label="Nom Expéditeur" name="sender_name" onChange={handleChange} required /></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Tel Expéditeur" name="sender_phone" onChange={handleChange} required /></Grid>
+                    <Grid item xs={12}><Divider sx={{ my: 1 }}>Destinataire</Divider></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Nom Destinataire" name="recipient_name" onChange={handleChange} required /></Grid>
+                    <Grid item xs={6}><TextField fullWidth label="Tel Destinataire" name="recipient_phone" onChange={handleChange} required /></Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* --- SECTION COLIS & PAIEMENT (SIDEBAR) --- */}
+            <Grid item xs={12} md={4}>
+              <Card sx={{ borderRadius: 4, mb: 3, bgcolor: '#f8f9fa' }}>
+                <CardHeader title="Caractéristiques" titleTypographyProps={{ fontWeight: 'bold' }} />
+                <CardContent sx={{ display: 'grid', gap: 2 }}>
+                  <TextField 
+                    fullWidth label="Nombre de colis / Poids" name="weight_kg" type="number" 
+                    onChange={handleChange} required 
+                  />
+                  <TextField 
+                    fullWidth multiline rows={3} label="Description du contenu" 
+                    name="description" onChange={handleChange} 
+                  />
+                  
+                  <Box sx={{ textAlign: 'center', p: 2, border: '2px dashed #ccc', borderRadius: 2 }}>
+                    {!imagePreview ? (
+                      <Button component="label" startIcon={<UploadIcon />}>
+                        Photo du colis
+                        <input type="file" hidden accept="image/*" onChange={handleFileChange} />
+                      </Button>
+                    ) : (
+                      <Box>
+                        <img src={imagePreview} style={{ width: '100%', borderRadius: 8 }} />
+                        <Button color="error" size="small" onClick={() => setImagePreview(null)}>Changer</Button>
+                      </Box>
+                    )}
                   </Box>
-                )}
-              </Box>
+                </CardContent>
+              </Card>
 
-              {/* Paiement */}
-              <TextField
-                select
-                label="Mode de paiement"
-                name="payment_method"
-                value={form.payment_method}
-                onChange={handleChange}
-                required
-              >
-                <MenuItem value="cash">Cash</MenuItem>
-                <MenuItem value="orange_money">Orange Money</MenuItem>
-                <MenuItem value="wave">Wave</MenuItem>
-              </TextField>
-
-              {/* Bouton submit */}
-              <Button type="submit" variant="contained" color="primary">
-                Enregistrer et payer
-              </Button>
-            </Box>
-          </form>
-        </CardContent>
-      </Card>
+              <Card sx={{ borderRadius: 4, bgcolor: '#1A237E', color: 'white' }}>
+                <CardHeader 
+                  avatar={<PaymentIcon sx={{ color: '#FFD600' }} />} 
+                  title="Encaissement" 
+                />
+                <CardContent sx={{ display: 'grid', gap: 2 }}>
+                  <TextField
+                    fullWidth label="Prix Total" name="price" type="number"
+                    variant="filled" onChange={handleChange} required
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start" sx={{ color: 'white' }}>CFA</InputAdornment>,
+                      style: { backgroundColor: 'rgba(255,255,255,0.1)', color: 'white' }
+                    }}
+                  />
+                  <TextField
+                    select fullWidth label="Mode de paiement" name="payment_method"
+                    variant="filled" value={form.payment_method} onChange={handleChange} required
+                    InputProps={{ style: { backgroundColor: 'rgba(255,255,255,0.1)', color: 'white' } }}
+                  >
+                    <MenuItem value="cash">Espèces</MenuItem>
+                    <MenuItem value="orange_money">Orange Money</MenuItem>
+                    <MenuItem value="wave">Wave</MenuItem>
+                  </TextField>
+                  <Button 
+                    type="submit" variant="contained" fullWidth size="large"
+                    sx={{ bgcolor: '#FFD600', color: '#1A237E', fontWeight: 'bold', mt: 2, '&:hover': { bgcolor: '#FFC107' } }}
+                  >
+                    Valider l'Expédition
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </form>
+      </Box>
     </GuestLayout>
   );
 }

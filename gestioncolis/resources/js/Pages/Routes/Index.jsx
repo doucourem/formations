@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
-import GuestLayout from "@/Layouts/GuestLayout";
+import GuestLayout from "@/Layouts/GuestLayout"; // 🔄 Changé pour voir la Sidebar
 import {
   Box,
   Button,
@@ -16,10 +16,16 @@ import {
   IconButton,
   Pagination,
   TextField,
+  Card,
+  CardContent,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import AddIcon from "@mui/icons-material/Add";
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon,
+  Route as RouteIcon,
+} from "@mui/icons-material";
+import { indigo } from "@mui/material/colors";
 
 export default function RoutesIndex({ initialRoutes, initialFilters }) {
   const [routes, setRoutes] = useState(initialRoutes);
@@ -47,91 +53,128 @@ export default function RoutesIndex({ initialRoutes, initialFilters }) {
 
   return (
     <GuestLayout>
-      <Box sx={{ p: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4">Routes</Typography>
+      <Box sx={{ mb: 4 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Box>
+            <Typography variant="h4" fontWeight="bold" color={indigo[900]}>
+              Lignes & Trajets
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Configuration des axes de transport (Villes de départ et d'arrivée)
+            </Typography>
+          </Box>
           <Button
             variant="contained"
-            color="primary"
+            sx={{ bgcolor: indigo[700], "&:hover": { bgcolor: indigo[900] } }}
             startIcon={<AddIcon />}
             onClick={() => Inertia.visit(route("busroutes.create"))}
           >
-            Ajouter une route
+            Nouvelle Ligne
           </Button>
         </Stack>
+      </Box>
 
-        {/* Filtrage */}
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={2} alignItems="flex-end">
-          <TextField
-            label="Par page"
-            type="number"
-            value={perPage}
-            onChange={(e) => setPerPage(Number(e.target.value))}
-            size="small"
-            sx={{ width: 120 }}
-          />
-          <Button variant="contained" color="primary" onClick={filtrer}>
-            Filtrer
-          </Button>
-        </Stack>
+      <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E0E0E0" }}>
+        <CardContent>
+          {/* Section Filtrage */}
+          <Stack 
+            direction={{ xs: "column", sm: "row" }} 
+            spacing={2} 
+            mb={3} 
+            alignItems="center"
+            sx={{ p: 2, bgcolor: "#F8F9FA", borderRadius: 2 }}
+          >
+            <TextField
+              label="Résultats par page"
+              type="number"
+              value={perPage}
+              onChange={(e) => setPerPage(Number(e.target.value))}
+              size="small"
+              sx={{ width: 150, bgcolor: "white" }}
+            />
+            <Button 
+                variant="contained" 
+                sx={{ bgcolor: indigo[500] }} 
+                onClick={filtrer}
+            >
+              Appliquer
+            </Button>
+          </Stack>
 
-        {/* Tableau */}
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead sx={{ bgcolor: "#1976d2" }}>
-              <TableRow>
-                <TableCell sx={{ color: "#fff" }}><strong>ID</strong></TableCell>
-                <TableCell sx={{ color: "#fff" }}><strong>Ville de départ</strong></TableCell>
-                <TableCell sx={{ color: "#fff" }}><strong>Ville d'arrivée</strong></TableCell>
-                <TableCell sx={{ color: "#fff" }}><strong>Prix (FCFA)</strong></TableCell>
-                <TableCell sx={{ color: "#fff" }}><strong>Distance (km)</strong></TableCell>
-                <TableCell align="center" sx={{ color: "#fff" }}><strong>Actions</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {routes.data?.length > 0 ? (
-                routes.data.map((routeItem) => (
-                  <TableRow key={routeItem.id}>
-                    <TableCell>{routeItem.id}</TableCell>
-                    <TableCell>{routeItem.departureCity?.name || "-"}</TableCell>
-                    <TableCell>{routeItem.arrivalCity?.name || "-"}</TableCell>
-                    <TableCell>{routeItem.price || "-"}</TableCell>
-                    <TableCell>{routeItem.distance || "-"}</TableCell>
-                    <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
-                        <IconButton color="primary" size="small" href={routeItem.edit_url}>
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton color="error" size="small" onClick={() => handleDelete(routeItem.id)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Stack>
+          {/* Tableau */}
+          <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid #EEE" }}>
+            <Table>
+              <TableHead sx={{ bgcolor: indigo[50] }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: "bold", width: "80px" }}>ID</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>
+                    <Stack direction="row" alignItems="center" gap={1}>
+                        <RouteIcon fontSize="small" color="primary" /> Ville de départ
+                    </Stack>
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Ville d'arrivée</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: "bold" }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {routes.data?.length > 0 ? (
+                  routes.data.map((routeItem) => (
+                    <TableRow key={routeItem.id} hover>
+                      <TableCell>#{routeItem.id}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="500">
+                           {routeItem.departureCity?.name || "N/A"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="500">
+                           {routeItem.arrivalCity?.name || "N/A"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Stack direction="row" spacing={1} justifyContent="center">
+                          <IconButton 
+                            sx={{ color: indigo[500], bgcolor: indigo[50], "&:hover": { bgcolor: indigo[100] } }} 
+                            size="small" 
+                            onClick={() => Inertia.visit(route("busroutes.edit", routeItem.id))}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton 
+                            color="error" 
+                            size="small" 
+                            sx={{ bgcolor: "#FFEBEE", "&:hover": { bgcolor: "#FFCDD2" } }}
+                            onClick={() => handleDelete(routeItem.id)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center" sx={{ py: 5 }}>
+                      <Typography color="text.secondary">Aucune route configurée pour le moment.</Typography>
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    Aucune route trouvée.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-        {/* Pagination */}
-        <Box mt={3} display="flex" justifyContent="center">
-          <Pagination
-            count={routes.last_page || 1}
-            page={routes.current_page || 1}
-            onChange={(e, page) => handlePage(page)}
-            color="primary"
-            showFirstButton
-            showLastButton
-          />
-        </Box>
-      </Box>
+          {/* Pagination */}
+          <Box mt={4} display="flex" justifyContent="center">
+            <Pagination
+              count={routes.last_page || 1}
+              page={routes.current_page || 1}
+              onChange={(e, page) => handlePage(page)}
+              color="primary"
+              size="large"
+            />
+          </Box>
+        </CardContent>
+      </Card>
     </GuestLayout>
   );
 }

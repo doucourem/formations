@@ -19,13 +19,11 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
-import DirectionsBusIcon from "@mui/icons-material/DirectionsBus";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function EditTrip({ trip, routes, buses }) {
+export default function EditTrip({ trip, routes }) {
   const [form, setForm] = useState({
     route_id: trip.route_id || "",
-    bus_id: trip.bus_id || "",
     departure_at: trip.departure_at ? trip.departure_at.slice(0, 16) : "",
     arrival_at: trip.arrival_at ? trip.arrival_at.slice(0, 16) : "",
   });
@@ -59,9 +57,8 @@ export default function EditTrip({ trip, routes, buses }) {
           <CardHeader
             title={
               <Stack direction="row" alignItems="center" spacing={1}>
-                <DirectionsBusIcon color="primary" />
                 <Typography variant="h5">
-                  Modifier le voyage #{trip.id}
+                  Modifier le trajet #{trip.id}
                 </Typography>
               </Stack>
             }
@@ -83,22 +80,20 @@ export default function EditTrip({ trip, routes, buses }) {
               onSubmit={handleSubmit}
               sx={{ display: "flex", flexDirection: "column", gap: 3 }}
             >
-              {/* Sélection de la route */}
-              <FormControl fullWidth required>
+              {/* Route */}
+              <FormControl fullWidth required error={!!errors.route_id}>
                 <InputLabel id="route-label">Route</InputLabel>
                 <Select
                   labelId="route-label"
                   name="route_id"
                   value={form.route_id}
                   onChange={handleChange}
-                  error={!!errors.route_id}
                   label="Route"
                 >
                   {routes.length > 0 ? (
                     routes.map((r) => (
                       <MenuItem key={r.id} value={r.id}>
                         {r.departureCity || "-"} → {r.arrivalCity || "-"}
-                        
                       </MenuItem>
                     ))
                   ) : (
@@ -112,35 +107,7 @@ export default function EditTrip({ trip, routes, buses }) {
                 )}
               </FormControl>
 
-              {/* Sélection du bus */}
-              <FormControl fullWidth required>
-                <InputLabel id="bus-label">Avion</InputLabel>
-                <Select
-                  labelId="bus-label"
-                  name="bus_id"
-                  value={form.bus_id}
-                  onChange={handleChange}
-                  error={!!errors.bus_id}
-                  label="Bus"
-                >
-                  {buses.length > 0 ? (
-                    buses.map((b) => (
-                      <MenuItem key={b.id} value={b.id}>
-                        {b.name || b.registration_number || `Bus #${b.id}`}
-                      </MenuItem>
-                    ))
-                  ) : (
-                    <MenuItem disabled>Aucun avion disponible</MenuItem>
-                  )}
-                </Select>
-                {errors.bus_id && (
-                  <Typography variant="caption" color="error">
-                    {errors.bus_id}
-                  </Typography>
-                )}
-              </FormControl>
-
-              {/* Date de départ */}
+              {/* Départ */}
               <TextField
                 label="Heure de départ"
                 name="departure_at"
@@ -153,7 +120,7 @@ export default function EditTrip({ trip, routes, buses }) {
                 required
               />
 
-              {/* Date d'arrivée */}
+              {/* Arrivée */}
               <TextField
                 label="Heure d’arrivée"
                 name="arrival_at"
@@ -166,12 +133,11 @@ export default function EditTrip({ trip, routes, buses }) {
                 required
               />
 
-              {/* Bouton de soumission */}
+              {/* Bouton */}
               <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                 <Button
                   type="submit"
                   variant="contained"
-                  color="primary"
                   startIcon={<SaveIcon />}
                   disabled={loading}
                 >

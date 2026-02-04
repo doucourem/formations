@@ -1,33 +1,21 @@
 import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
-import GuestLayout from "@/Layouts/GuestLayout";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout"; // 🔄 Changé ici
 import {
-  Box,
-  Card,
-  CardHeader,
-  CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
-  Button,
-  TextField,
-  IconButton,
-  Pagination,
-  MenuItem,
+  Box, Card, CardHeader, CardContent, Table, TableBody,
+  TableCell, TableContainer, TableHead, TableRow,
+  Paper, Typography, Button, TextField, IconButton,
+  Pagination, MenuItem, Chip
 } from "@mui/material";
 
-import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import PaidIcon from "@mui/icons-material/Paid";
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import { green } from '@mui/material/colors';
-
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Paid as PaidIcon,
+  Visibility as VisibilityIcon
+} from "@mui/icons-material";
+import { green, indigo } from '@mui/material/colors';
 
 export default function Index({ transfers, filters }) {
   const [perPage, setPerPage] = useState(filters?.per_page || 10);
@@ -36,297 +24,157 @@ export default function Index({ transfers, filters }) {
   const [code, setCode] = useState(filters?.code || "");
   const [status, setStatus] = useState(filters?.status || "");
 
-  // Filtrer la liste
   const filtrer = () => {
-    Inertia.get(
-      route("transfers.index"),
+    Inertia.get(route("transfers.index"),
       { per_page: perPage, sender, receiver, code, status },
       { preserveState: true }
     );
   };
 
-  // Supprimer un transfert
-  const handleDelete = (id) => {
-    if (confirm("Voulez-vous supprimer ce transfert ?")) {
-      Inertia.delete(route("transfers.destroy", id), { preserveState: true });
-    }
-  };
-
-  // Pagination
   const handlePage = (page) => {
-    Inertia.get(
-      route("transfers.index"),
+    Inertia.get(route("transfers.index"),
       { per_page: perPage, sender, receiver, code, status, page },
       { preserveState: true }
     );
   };
 
-  // Paiement depuis la liste
- const handlePayment = async (transferId, amount) => {
-  if (!confirm("Confirmer le paiement ?")) return;
+  const handlePayment = async (transferId, amount) => {
+    if (!confirm("Confirmer le paiement ?")) return;
+    try {
+      const token = document.querySelector('meta[name="csrf-token"]').content;
+      const response = await fetch(route("payment.process"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": token,
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({ transfer_id: transferId, amount }),
+      });
 
-  try {
-    // Récupérer le token CSRF depuis la balise meta
-    const token = document.querySelector('meta[name="csrf-token"]').content;
-
-    const response = await fetch(route("payment.process"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-TOKEN": token, // 🔑 obligatoire pour Laravel
-      },
-      credentials: "same-origin", // 🔑 pour envoyer les cookies de session
-      body: JSON.stringify({ transfer_id: transferId, amount }),
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      alert("Paiement effectué !");
-      Inertia.reload(); // rafraîchit la liste
-    } else {
-      alert("Échec du paiement : " + data.message);
+      const data = await response.json();
+      if (data.success) {
+        alert("Paiement effectué !");
+        Inertia.reload();
+      } else {
+        alert("Échec : " + data.message);
+      }
+    } catch (error) {
+      alert("Erreur réseau");
     }
-  } catch (error) {
-    console.error(error);
-    alert("Erreur lors du paiement");
-  }
-};
-
+  };
 
   return (
-    <GuestLayout>
-      <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
-       <CardHeader
-  title={<Typography variant="h5">💸 Transferts d’argent</Typography>}
-  action={
-    <Box sx={{ display: "flex", gap: 1 }}>
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<AddIcon />}
-        onClick={() => Inertia.get(route("transfers.create"))}
-      >
-        Nouveau transfert
-      </Button>
+    <AuthenticatedLayout> {/* 🔑 Utilise maintenant le Layout avec Sidebar */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight="bold" color={indigo[900]}>
+          Transferts d'argent
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Gestion des envois et retraits de fonds
+        </Typography>
+      </Box>
 
-      <Button
-        variant="outlined"
-        color="secondary"
-        startIcon={<VisibilityIcon />}
-        onClick={() => Inertia.get(route("transfers.daily"))} // ← ici
-      >
-        Transferts par jour
-      </Button>
-    </Box>
-  }
-/>
-
+      <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #E0E0E0' }}>
+        <CardHeader
+          title={<Typography variant="h6">Liste des transactions</Typography>}
+          action={
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button
+                variant="contained"
+                sx={{ bgcolor: indigo[700] }}
+                startIcon={<AddIcon />}
+                onClick={() => Inertia.get(route("transfers.create"))}
+              >
+                Nouveau transfert
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<VisibilityIcon />}
+                onClick={() => Inertia.get(route("transfers.daily"))}
+              >
+                Journalier
+              </Button>
+            </Box>
+          }
+        />
 
         <CardContent>
-          {/* Filtres */}
-          <Box display="flex" gap={2} mb={3} alignItems="flex-end">
+          {/* Section Filtres */}
+          <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap", p: 2, bgcolor: '#F8F9FA', borderRadius: 2 }}>
+            <TextField size="small" label="Expéditeur" value={sender} onChange={(e) => setSender(e.target.value)} sx={{ flexGrow: 1 }} />
+            <TextField size="small" label="Destinataire" value={receiver} onChange={(e) => setReceiver(e.target.value)} sx={{ flexGrow: 1 }} />
+            <TextField size="small" label="Code" value={code} onChange={(e) => setCode(e.target.value)} sx={{ width: 150 }} />
             <TextField
-              label="Expéditeur"
-              value={sender}
-              onChange={(e) => setSender(e.target.value)}
-              fullWidth
-            />
-
-            <TextField
-              label="Destinataire"
-              value={receiver}
-              onChange={(e) => setReceiver(e.target.value)}
-              fullWidth
-            />
-
-            <TextField
-              label="Code retrait"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              fullWidth
-            />
-
-            <TextField
-              select
-              label="Statut"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              sx={{ minWidth: 150 }}
+              select size="small" label="Statut" value={status}
+              onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 150 }}
             >
               <MenuItem value="">Tous</MenuItem>
               <MenuItem value="pending">En attente</MenuItem>
-              <MenuItem value="sent">Envoyé</MenuItem>
-              <MenuItem value="ready">Prêt au retrait</MenuItem>
+              <MenuItem value="ready">Prêt</MenuItem>
               <MenuItem value="withdrawn">Retiré</MenuItem>
             </TextField>
-
-            <Button variant="contained" onClick={filtrer}>
-              Filtrer
-            </Button>
+            <Button variant="contained" onClick={filtrer} sx={{ bgcolor: indigo[500] }}>Filtrer</Button>
           </Box>
 
-          {/* Table des transferts */}
-          <TableContainer component={Paper}>
+          {/* Tableau */}
+          <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #EEE' }}>
             <Table>
-                <TableHead sx={{ bgcolor: "#1565c0" }}>
-  <TableRow>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}>#</TableCell>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Expéditeur</TableCell>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Destinataire</TableCell>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Montant</TableCell>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Code</TableCell>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Statut</TableCell>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Date</TableCell>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Paiement</TableCell>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Preuve</TableCell>
-    <TableCell align="right" sx={{ color: "white", fontWeight: "bold" }}>
-      Actions
-    </TableCell>
-  </TableRow>
-</TableHead>
-
-              
-
+              <TableHead sx={{ bgcolor: indigo[50] }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: "bold" }}>Réf</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Expéditeur</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Destinataire</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Montant</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Code</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Statut</TableCell>
+                  <TableCell sx={{ fontWeight: "bold" }}>Paiement</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: "bold" }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
               <TableBody>
                 {transfers.data.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell>{t.id}</TableCell>
+                  <TableRow key={t.id} hover>
+                    <TableCell>#{t.id}</TableCell>
                     <TableCell>{t.sender_name}</TableCell>
                     <TableCell>{t.receiver_name}</TableCell>
-                    <TableCell>{t.amount} CFA</TableCell>
-                    <TableCell>{t.code}</TableCell>
-                 <TableCell>
-  <Box
-    sx={{
-      display: "inline-flex",
-      px: 1.5,
-      py: 0.5,
-      borderRadius: 1,
-      fontWeight: "bold",
-      color: "white",
-      bgcolor:
-        t.status === "pending"
-          ? "warning.main"
-          : t.status === "sent"
-          ? "info.main"
-          : t.status === "ready"
-          ? "primary.main"
-          : t.status === "withdrawn"
-          ? "success.main"
-          : "grey.500",
-      textTransform: "capitalize",
-    }}
-  >
-    {t.status === "pending"
-      ? "En attente"
-      : t.status === "sent"
-      ? "Envoyé"
-      : t.status === "ready"
-      ? "Prêt au retrait"
-      : t.status === "withdrawn"
-      ? "Retiré"
-      : t.status}
-  </Box>
-</TableCell>
-
-                    <TableCell>{t.created_at}</TableCell>
-
-                    {/* Paiement */}
+                    <TableCell sx={{ fontWeight: 'bold' }}>{t.amount.toLocaleString()} CFA</TableCell>
+                    <TableCell><Chip label={t.code} size="small" sx={{ fontWeight: 'bold', bgcolor: '#FFF9C4' }} /></TableCell>
+                    <TableCell>
+                       <Chip 
+                        label={t.status} 
+                        size="small"
+                        color={t.status === 'withdrawn' ? 'success' : t.status === 'pending' ? 'warning' : 'primary'}
+                       />
+                    </TableCell>
                     <TableCell>
                       {t.paid ? (
-                        
-
-<Box
-  sx={{
-    display: 'inline-flex',
-    alignItems: 'center',
-    bgcolor: green[500],
-    color: 'white',
-    px: 1.5,
-    py: 0.5,
-    borderRadius: 1,
-    fontWeight: 'bold',
-  }}
->
-  <PaidIcon sx={{ mr: 0.5, fontSize: 16 }} />
-  Payé
-</Box>
-
+                        <Chip icon={<PaidIcon />} label="Payé" size="small" sx={{ bgcolor: green[100], color: green[800] }} />
                       ) : (
                         <Button
-                          variant="contained"
-                          color="success"
-                          size="small"
-                          startIcon={<PaidIcon />}
-                          sx={{
-                            fontWeight: "bold",
-                            textTransform: "none",
-                            boxShadow: 3,
-                            "&:hover": { boxShadow: 6 },
-                          }}
+                          variant="contained" color="success" size="small"
                           onClick={() => handlePayment(t.id, t.amount)}
                         >
                           Payer
                         </Button>
                       )}
                     </TableCell>
-
-                    {/* Preuve de paiement */}
-                    <TableCell>
-                      {t.payment_proof ? (
-                        <a
-                          href={`/storage/${t.payment_proof}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Voir
-                        </a>
-                      ) : (
-                        "Aucune"
-                      )}
-                    </TableCell>
-
-                    {/* Actions */}
                     <TableCell align="right">
-  {/* Voir le détail */}
-  <IconButton
-    color="info"
-    onClick={() => Inertia.get(route("transfers.show", t.id))}
-    title="Voir le détail"
-  >
-    <VisibilityIcon />
-  </IconButton>
-
-  {/* Modifier */}
-  <IconButton
-    color="primary"
-    onClick={() => Inertia.get(route("transfers.edit", t.id))}
-  >
-    <EditIcon />
-  </IconButton>
-
-  {/* Supprimer */}
-  <IconButton color="error" onClick={() => handleDelete(t.id)}>
-    <DeleteIcon />
-  </IconButton>
-</TableCell>
+                      <IconButton size="small" color="info" onClick={() => Inertia.get(route("transfers.show", t.id))}><VisibilityIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" color="primary" onClick={() => Inertia.get(route("transfers.edit", t.id))}><EditIcon fontSize="small" /></IconButton>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
 
-          {/* Pagination */}
           <Box mt={3} display="flex" justifyContent="center">
-            <Pagination
-              count={transfers.last_page}
-              page={transfers.current_page}
-              onChange={(e, page) => handlePage(page)}
-            />
+            <Pagination count={transfers.last_page} page={transfers.current_page} onChange={(e, page) => handlePage(page)} color="primary" />
           </Box>
         </CardContent>
       </Card>
-    </GuestLayout>
+    </AuthenticatedLayout>
   );
 }
