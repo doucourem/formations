@@ -16,29 +16,43 @@ class ParcelController extends Controller
     /**
      * List all parcels
      */
-public function index()
+public function index(Request $request)
 {
     $user = auth()->user();
 
     $query = Parcel::query();
 
-    // Si ce n'est pas un admin, filtrer par agence
-    if ($user->role !== 'admin' && $user->role !== 'super_admin') {
-        $agencyId = $user->agency_id;
-        $query->where(function($q) use ($agencyId) {
-            $q->where('departure_agency_id', $agencyId)
-              ->orWhere('arrival_agency_id', $agencyId);
-        });
+    // Filtre par numéro de suivi
+    if ($request->filled('tracking')) {
+        $query->where('tracking_number', 'like', "%{$request->tracking}%");
     }
 
-    $parcels = $query->orderBy('created_at', 'desc')
-                      ->paginate(20)
-                      ->withQueryString(); // conserve la pagination et filtres
+    // Filtre par numéro téléphone expéditeur
+    if ($request->filled('sender_phone')) {
+        $query->where('sender_phone', 'like', "%{$request->sender_phone}%");
+    }
 
-    return inertia('Parcels/Index', [
-        'parcels' => $parcels
+    // Filtre par date de création
+    if ($request->filled('date')) {
+        $query->whereDate('created_at', $request->date);
+    }
+
+    // Filtre par statut
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    // Pagination avec ordre descendant
+    $parcels = $query->orderBy('created_at', 'desc')
+                     ->paginate($request->per_page ?? 20)
+                     ->withQueryString(); // conserve les filtres dans l'URL
+
+    return Inertia::render('Parcels/Index', [
+        'parcels' => $parcels,
+        'filters' => $request->only(['tracking', 'sender_phone', 'date', 'status', 'per_page'])
     ]);
 }
+
 
 
   
@@ -157,7 +171,6 @@ public function store(Request $request)
 public function update(Request $request, Parcel $parcel)
 {
     $validated = $request->validate([
-        'trip_id' => 'nullable|exists:trips,id',
         'tracking_number' => 'required|string|max:255|unique:parcels,tracking_number,' . $parcel->id,
         'sender_name' => 'required|string|max:255',
         'sender_phone' => 'required|string|max:50',
@@ -168,8 +181,6 @@ public function update(Request $request, Parcel $parcel)
         'description' => 'nullable|string',
         'status' => 'required|string|max:100',
         'parcel_image' => 'nullable|image|mimes:jpeg,jpg,png|max:20480',
-        'departure_agency_id' => 'required|exists:agencies,id',
-        'arrival_agency_id' => 'required|exists:agencies,id',
     ]);
 
     if ($request->hasFile('parcel_image')) {
@@ -281,6 +292,8 @@ public function show(Parcel $parcel)
             'tracking_number' => $parcel->tracking_number,
             'sender_name' => $parcel->sender_name,
             'recipient_name' => $parcel->recipient_name,
+            'paid_amount' => $parcel->paid_amount ?? 0,
+            
             
             // URL publique via public_web
             'parcel_image' => $parcel->parcel_image 

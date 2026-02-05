@@ -33,8 +33,6 @@ export default function Create({ trips, agencies }) {
     payment_method: "",
     parcel_image: null,
     status: "pending",
-    departure_agency_id: "",
-    arrival_agency_id: "",
   });
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -104,24 +102,6 @@ export default function Create({ trips, agencies }) {
                           <MenuItem key={t.id} value={t.id}>
                             {`${t.route?.departureCity?.name} → ${t.route?.arrivalCity?.name} (${t.departure_at})`}
                           </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <TextField
-                        select fullWidth label="Agence de départ" required
-                        name="departure_agency_id" value={form.departure_agency_id} onChange={handleChange}
-                      >
-                        {agencies.map((a) => (<MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>))}
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <TextField
-                        select fullWidth label="Agence d'arrivée" required
-                        name="arrival_agency_id" value={form.arrival_agency_id} onChange={handleChange}
-                      >
-                        {agencies.filter(a => a.id !== form.departure_agency_id).map((a) => (
-                          <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
                         ))}
                       </TextField>
                     </Grid>

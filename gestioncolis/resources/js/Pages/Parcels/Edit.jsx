@@ -26,8 +26,6 @@ export default function Edit({ parcel, trips, agencies }) {
     description: parcel.description || "",
     status: parcel.status,
     parcel_image: null,
-    departure_agency_id: parcel.departure_agency_id || "",
-    arrival_agency_id: parcel.arrival_agency_id || "",
   });
 
   const [imagePreview, setImagePreview] = useState(
@@ -90,31 +88,7 @@ export default function Edit({ parcel, trips, agencies }) {
               <Card sx={{ borderRadius: 4, mb: 3, border: '1px solid #e0e0e0' }} elevation={0}>
                 <CardHeader title="Logistique et Destination" titleTypographyProps={{ fontWeight: 700 }} />
                 <Divider />
-                <CardContent>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <TextField select fullWidth label="Affecter au voyage" name="trip_id" value={form.trip_id} onChange={handleChange}>
-                        {trips.map((t) => (
-                          <MenuItem key={t.id} value={t.id}>
-                             {`${t.route?.departureCity?.name} → ${t.route?.arrivalCity?.name} (${t.departure_at})`}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <TextField select fullWidth label="Dépôt initial" name="departure_agency_id" value={form.departure_agency_id} onChange={handleChange} required>
-                        {agencies.map((a) => (<MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>))}
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <TextField select fullWidth label="Dépôt d'arrivée" name="arrival_agency_id" value={form.arrival_agency_id} onChange={handleChange} required>
-                        {agencies.filter(a => a.id !== form.departure_agency_id).map((a) => (
-                          <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                  </Grid>
-                </CardContent>
+              
               </Card>
 
               <Card sx={{ borderRadius: 4, border: '1px solid #e0e0e0' }} elevation={0}>

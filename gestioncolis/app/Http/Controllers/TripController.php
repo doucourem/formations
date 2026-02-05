@@ -8,6 +8,7 @@ use App\Models\Trip;
 use App\Models\Route as TripRoute;
 use Illuminate\Support\Facades\Redirect;
 use Carbon\Carbon;
+use App\Models\Bus;
 
 class TripController extends Controller
 {
@@ -62,6 +63,10 @@ class TripController extends Controller
 
     public function create()
     {
+
+      $buses = Bus::select('id', 'model', 'registration_number', 'capacity')
+        ->orderBy('model')
+        ->get();
         $routes = TripRoute::with(['departureCity:id,name', 'arrivalCity:id,name'])
             ->get()
             ->map(fn ($route) => [
@@ -72,6 +77,7 @@ class TripController extends Controller
 
         return Inertia::render('Trips/Create', [
             'routes' => $routes,
+            'buses' => $buses,
         ]);
     }
 
@@ -79,6 +85,7 @@ class TripController extends Controller
     {
         $validated = $request->validate([
             'route_id' => ['required', 'exists:routes,id'],
+              'bus_id' => ['required', 'exists:buses,id'],
             'departure_at' => ['required', 'date', 'after_or_equal:today'],
             'arrival_at' => ['required', 'date', 'after:departure_at'],
         ]);

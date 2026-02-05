@@ -24,7 +24,8 @@ use App\Http\Controllers\{
     ThirdPartyController,
     AccountingController,
     HistoryController,
-    ReportController
+    ReportController,
+    ParcelPaymentController
 };
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -52,6 +53,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Notifications SMS/WhatsApp
     Route::get('/send-sms', [NotificationController::class, 'sendSms']);
     Route::get('/send-whatsapp', [NotificationController::class, 'sendWhatsapp']);
+   Route::get('/parcels/{parcel}/payment', [ParcelPaymentController::class, 'edit'])
+    ->name('parcels.payment.edit');
+
+Route::post('/parcels/{parcel}/payment', [ParcelPaymentController::class, 'store'])
+    ->name('parcels.payment.store');
 
     // Profil utilisateur
     Route::prefix('profile')->name('profile.')->group(function () {

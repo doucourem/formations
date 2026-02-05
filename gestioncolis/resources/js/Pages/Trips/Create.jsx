@@ -18,9 +18,10 @@ import {
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import GuestLayout from "@/Layouts/GuestLayout";
 
-export default function CreateTrip({ routes = [] }) {
-  const [form, setForm] = useState({
+export default function CreateTrip({ routes = [], buses = [] }) {
+ const [form, setForm] = useState({
     route_id: "",
+    bus_id: "",
     departure_at: "",
     arrival_at: "",
   });
@@ -108,6 +109,20 @@ export default function CreateTrip({ routes = [] }) {
                   <Typography color="error" variant="caption">
                     {errors.route_id}
                   </Typography>
+                )}
+              </FormControl>
+<FormControl fullWidth required error={!!errors.bus_id}>
+                <InputLabel>Bus</InputLabel>
+                <Select name="bus_id" value={form.bus_id} onChange={handleChange}>
+                  <MenuItem value="">Choisir un bus</MenuItem>
+                  {buses.map((b) => (
+                    <MenuItem key={b.id} value={b.id}>
+                      {b.registration_number} ({b.model}) — {b.capacity} places
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.bus_id && (
+                  <Typography color="error" variant="caption">{errors.bus_id}</Typography>
                 )}
               </FormControl>
 

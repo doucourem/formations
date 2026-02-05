@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout"; // 🔄 Changé ici
+import GuestLayout from "@/Layouts/GuestLayout"; // 🔄 Changé ici
+
 import {
   Box, Card, CardHeader, CardContent, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow,
@@ -65,7 +66,7 @@ export default function Index({ transfers, filters }) {
   };
 
   return (
-    <AuthenticatedLayout> {/* 🔑 Utilise maintenant le Layout avec Sidebar */}
+    <GuestLayout> {/* 🔑 Utilise maintenant le Layout avec Sidebar */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight="bold" color={indigo[900]}>
           Transferts d'argent
@@ -175,6 +176,6 @@ export default function Index({ transfers, filters }) {
           </Box>
         </CardContent>
       </Card>
-    </AuthenticatedLayout>
+    </GuestLayout>
   );
 }
