@@ -21,6 +21,8 @@ public function index(Request $request)
     $user = auth()->user();
     abort_if(!$user, 403);
 
+    $userCompanyId = $user->agency?->company_id; // compagnie de l'utilisateur
+
     // Récupération des routes pour le select
     $routes = TripRoute::with(['departureCity:id,name', 'arrivalCity:id,name'])
         ->orderByDesc('id')
@@ -42,8 +44,9 @@ public function index(Request $request)
         ->with([
             'trip.route.departureCity:id,name',
             'trip.route.arrivalCity:id,name',
-            'baggages:id,ticket_id,description,weight',
-            'user:id,agence_id',
+            'trip.bus:company_id,id,registration_number,model,capacity',
+            'baggages:id,ticket_id,price,weight',
+            'user:id,agency_id',
         ])
         ->when($search, fn($q) => $q->where('client_name', 'like', "%{$search}%"))
         ->when($status, fn($q) => $q->where('status', $status))
@@ -52,13 +55,18 @@ public function index(Request $request)
         ))
         ->when($dateFrom, fn($q) => $q->whereHas('trip', fn($q) => $q->whereDate('departure_time', '>=', $dateFrom)))
         ->when($dateTo, fn($q) => $q->whereHas('trip', fn($q) => $q->whereDate('departure_time', '<=', $dateTo)))
-        ->when(true, function($q) use ($user) {
+        ->when(true, function($q) use ($user, $userCompanyId) {
             match ($user->role) {
                 'admin', 'manager','super_admin' => null,
                 'agent' => $q->where('user_id', $user->id),
-                'manageragence' => $q->whereHas('user', fn($u) => $u->where('agence_id', $user->agence_id)),
+                'manageragence' => $q->whereHas('user', fn($u) => $u->where('agency_id', $user->agency_id)),
                 default => $q->whereRaw('1 = 0'),
             };
+
+            // 🔹 Limiter aux tickets dont le bus appartient à la même compagnie que l'utilisateur
+            if ($userCompanyId) {
+                $q->whereHas('trip.bus', fn($b) => $b->where('company_id', $userCompanyId));
+            }
         })
         ->orderByDesc('id')
         ->paginate(10)
@@ -69,13 +77,14 @@ public function index(Request $request)
         'id' => $ticket->id,
         'client_name' => $ticket->client_name,
         'status' => $ticket->status,
-        'route_id' => $ticket->trip?->route->id, // <- pour select voyage
+        'price' => $ticket->price,
+        'route_id' => $ticket->trip?->route->id,
         'route_text' => $ticket->trip?->route
             ? ($ticket->trip->route->departureCity->name ?? '-') . ' → ' . ($ticket->trip->route->arrivalCity->name ?? '-')
             : '-',
         'baggages' => $ticket->baggages->map(fn($b) => [
             'id' => $b->id,
-            'description' => $b->description,
+            'description' => $b->price,
             'weight' => $b->weight,
         ]),
     ]);
@@ -93,6 +102,7 @@ public function index(Request $request)
         'routes' => $routes,
     ]);
 }
+
 
 
 
