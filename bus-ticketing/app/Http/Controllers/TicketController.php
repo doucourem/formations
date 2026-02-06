@@ -42,7 +42,7 @@ public function index(Request $request)
         ->with([
             'trip.route.departureCity:id,name',
             'trip.route.arrivalCity:id,name',
-            'baggages:id,ticket_id,price,weight',
+            'baggages:id,ticket_id,description,weight',
             'user:id,agence_id',
         ])
         ->when($search, fn($q) => $q->where('client_name', 'like', "%{$search}%"))
@@ -69,14 +69,13 @@ public function index(Request $request)
         'id' => $ticket->id,
         'client_name' => $ticket->client_name,
         'status' => $ticket->status,
-        'price' => $ticket->price,
         'route_id' => $ticket->trip?->route->id, // <- pour select voyage
         'route_text' => $ticket->trip?->route
             ? ($ticket->trip->route->departureCity->name ?? '-') . ' → ' . ($ticket->trip->route->arrivalCity->name ?? '-')
             : '-',
         'baggages' => $ticket->baggages->map(fn($b) => [
             'id' => $b->id,
-            'description' => $b->price,
+            'description' => $b->description,
             'weight' => $b->weight,
         ]),
     ]);

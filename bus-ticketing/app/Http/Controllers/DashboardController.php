@@ -140,8 +140,8 @@ public function stateData(Request $request)
     $startDate = match($period) {
         'today' => now()->startOfDay(),
         'week'  => now()->startOfWeek(),
-        'month' => now()->startOfMonth(),
-        default => now()->startOfMonth(),
+        'month' => Trip::min('departure_at'),
+        default => Trip::min('departure_at') ?? now()->startOfMonth(),
     };
     
     $endDate = now()->endOfDay();

@@ -19,15 +19,18 @@ public function index(Request $request)
     $busId = $request->input('bus_id');
     $routeId = $request->input('route_id');
     $user = auth()->user();
+    $userCompanyId = $user->agency?->company_id; // récupère la compagnie de l'utilisateur
 
     // 🔹 Récupération des trips avec relations nécessaires
     $trips = Trip::with([
-        'bus:id,model,registration_number,capacity',
+        'bus:id,model,registration_number,capacity,company_id',
         'expenses',
         'route.departureCity:id,name',
         'route.arrivalCity:id,name',
     ])
     ->withCount('tickets')
+    // 🔹 Filtrer par la compagnie du bus
+    ->when($userCompanyId, fn($q) => $q->whereHas('bus', fn($b) => $b->where('company_id', $userCompanyId)))
     ->when($busId, fn($q) => $q->where('bus_id', $busId))
     ->when($routeId, fn($q) => $q->where('route_id', $routeId))
     ->orderByDesc('departure_at')
@@ -55,8 +58,9 @@ public function index(Request $request)
         return $trip;
     });
 
-    // 🔹 Liste des bus pour filtre
-    $buses = Bus::select('id', 'model', 'registration_number', 'capacity')
+    // 🔹 Liste des bus pour filtre (uniquement ceux de la compagnie)
+    $buses = Bus::when($userCompanyId, fn($q) => $q->where('company_id', $userCompanyId))
+        ->select('id', 'model', 'registration_number', 'capacity')
         ->orderBy('model')
         ->get();
 
@@ -91,23 +95,33 @@ public function index(Request $request)
 
 
 
-    public function create()
-    {
-        $routes = TripRoute::with(['departureCity:id,name', 'arrivalCity:id,name'])
-            ->get()
-            ->map(fn($route) => [
-                'id' => $route->id,
-                'departure_city' => $route->departureCity?->name ?? '-',
-                'arrival_city' => $route->arrivalCity?->name ?? '-',
-            ]);
 
-        $buses = Bus::select('id', 'registration_number', 'model', 'capacity')->get();
+   public function create()
+{
+    $user = auth()->user();
+    $userCompanyId = $user->agency?->company_id; // compagnie de l'utilisateur
 
-        return Inertia::render('Trips/Create', [
-            'routes' => $routes,
-            'buses' => $buses,
+    // 🔹 Routes disponibles (toutes pour l'instant, tu peux filtrer par compagnie si nécessaire)
+    $routes = TripRoute::with(['departureCity:id,name', 'arrivalCity:id,name'])
+        ->get()
+        ->map(fn($route) => [
+            'id' => $route->id,
+            'departure_city' => $route->departureCity?->name ?? '-',
+            'arrival_city' => $route->arrivalCity?->name ?? '-',
         ]);
-    }
+
+    // 🔹 Buses disponibles uniquement pour la compagnie de l'utilisateur
+    $buses = Bus::when($userCompanyId, fn($q) => $q->where('company_id', $userCompanyId))
+        ->select('id', 'registration_number', 'model', 'capacity')
+        ->orderBy('model')
+        ->get();
+
+    return Inertia::render('Trips/Create', [
+        'routes' => $routes,
+        'buses' => $buses,
+    ]);
+}
+
 
     public function store(Request $request)
     {

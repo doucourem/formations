@@ -12,62 +12,87 @@ class MaintenanceAndGarageSeeder extends Seeder
     public function run(): void
     {
         $buses = Bus::all();
-        
-        // 1. Garages avec spécialisation
+
+        /*
+        |--------------------------------------------------------------------------
+        | 1. Garages
+        |--------------------------------------------------------------------------
+        */
         $garages = [
             ['name' => 'Garage Central SOTRAMA', 'address' => 'Zone Industrielle, Bamako'],
             ['name' => 'Atelier Poids Lourds Kayes', 'address' => 'Avenue de la Gare, Kayes'],
             ['name' => 'Sikasso Diesel Tech', 'address' => 'Route de Bougouni, Sikasso'],
         ];
-        
-        foreach ($garages as $g) {
-            DB::table('garages')->updateOrInsert(['name' => $g['name']], array_merge($g, [
-                'created_at' => now(), 'updated_at' => now()
-            ]));
+
+        foreach ($garages as $garage) {
+            DB::table('garages')->updateOrInsert(
+                ['name' => $garage['name']],
+                array_merge($garage, [
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ])
+            );
         }
 
         $garageIds = DB::table('garages')->pluck('id')->toArray();
 
-        // 2. Historique des Maintenances
+        /*
+        |--------------------------------------------------------------------------
+        | 2. Historique des maintenances
+        |--------------------------------------------------------------------------
+        */
         foreach ($buses as $bus) {
             $isHeavy = in_array($bus->product_type, ['truck', 'tanker']);
-            
-            for ($i = 0; $i < rand(1, 3); $i++) {
+
+            $maintenanceCount = rand(1, 3);
+
+            for ($i = 0; $i < $maintenanceCount; $i++) {
                 $date = Carbon::now()->subDays(rand(5, 45));
-                
+
                 $maintenanceId = DB::table('bus_maintenances')->insertGetId([
-                    'bus_id' => $bus->id,
-                    'garage_id' => $garageIds[array_rand($garageIds)],
-                    'maintenance_type' => fake()->randomElement(['Vidange', 'Pneumatique', 'Révision']),
-                    'description' => $isHeavy ? 'Révision système hydraulique et freinage' : 'Vidange moteur et changement filtres',
-                    'cost' => $isHeavy ? rand(150000, 400000) : rand(45000, 150000),
-                    'status' => 'completed',
-                    'maintenance_date' => $date,
-                    'created_at' => $date,
+                    'bus_id'            => $bus->id,
+                    'garage_id'         => $garageIds[array_rand($garageIds)],
+                    'type'              => fake()->randomElement(['Vidange', 'Pneumatique', 'Révision']),
+                    'maintenance_date'  => $date,
+                    'status'            => 'done',
+                    'cost'              => $isHeavy ? rand(150000, 400000) : rand(45000, 150000),
+                    'labour_cost'       => $isHeavy ? rand(50000, 120000) : rand(20000, 50000),
+                    'duration_hours'    => rand(2, 8),
+                    'mileage'           => rand(20000, 250000),
+                    'notes'             => $isHeavy
+                        ? 'Révision système hydraulique et freinage'
+                        : 'Vidange moteur et remplacement des filtres',
+                    'created_at'        => $date,
+                    'updated_at'        => $date,
                 ]);
 
-                DB::table('maintenance_tasks')->insert([
-                    ['maintenance_id' => $maintenanceId, 'task_name' => 'Main d\'œuvre', 'status' => 'done'],
-                    ['maintenance_id' => $maintenanceId, 'task_name' => 'Pièces détachées', 'status' => 'done'],
-                ]);
             }
         }
 
-        // 3. LE POINT CHOC : Maintenance Urgente en cours
-        $urgentBus = $buses->where('product_type', 'tanker')->first() ?? $buses->first();
-        
+        /*
+        |--------------------------------------------------------------------------
+        | 3. MAINTENANCE URGENTE (bus bloqué)
+        |--------------------------------------------------------------------------
+        */
+        $urgentBus = $buses->where('product_type', 'tanker')->first()
+            ?? $buses->first();
+
         DB::table('bus_maintenances')->insert([
-            'bus_id' => $urgentBus->id,
-            'garage_id' => $garageIds[0],
-            'maintenance_type' => 'Curative Urgente',
-            'description' => 'Alerte fuite réservoir - Réparation immédiate requise',
-            'cost' => 600000,
-            'status' => 'in_progress',
+            'bus_id'           => $urgentBus->id,
+            'garage_id'        => $garageIds[0],
+            'type'             => 'Curative Urgente',
             'maintenance_date' => now(),
-            'created_at' => now(),
+            'status'           => 'planned',
+            'cost'             => 600000,
+            'labour_cost'      => 200000,
+            'duration_hours'   => 12,
+            'mileage'          => rand(80000, 200000),
+            'notes'            => 'Alerte fuite réservoir – réparation immédiate requise',
+            'created_at'       => now(),
+            'updated_at'       => now(),
         ]);
-        
-        // On met à jour le statut du bus pour qu'il disparaisse des trajets disponibles
-        $urgentBus->update(['status' => 'maintenance']);
+
+        // Le bus disparaît des trajets disponibles
+       
     }
 }

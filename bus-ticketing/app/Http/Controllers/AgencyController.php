@@ -11,10 +11,13 @@ use App\Models\Companies;
 class AgencyController extends Controller
 {
     /**
-     * Liste des agences avec filtre par ville ou compagnie.
+     * Liste des agences avec filtre par ville ou compagnie
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
+        $userCompanyId = $user->agency?->company_id;
+
         $perPage = (int) $request->input('per_page', 10);
         $cityId = $request->input('city_id');
         $companyId = $request->input('company_id');
@@ -23,6 +26,9 @@ class AgencyController extends Controller
             ->withCount('tickets')
             ->when($cityId, fn($q) => $q->where('city_id', $cityId))
             ->when($companyId, fn($q) => $q->where('company_id', $companyId))
+            // 🔹 Filtrage par compagnie de l'utilisateur si nécessaire
+            ->when($userCompanyId && !in_array($user->role, ['etat']), 
+                fn($q) => $q->where('company_id', $userCompanyId))
             ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
@@ -52,21 +58,31 @@ class AgencyController extends Controller
     }
 
     /**
-     * Affiche le formulaire de création.
+     * Formulaire de création
      */
-    public function create()
-    {
-        $companies = Companies::select('id', 'name')->orderBy('name')->get();
-        $cities = City::select('id', 'name')->orderBy('name')->get();
+   public function create()
+{
+    $user = auth()->user();
 
-        return Inertia::render('Agencies/Create', [
-            'companies' => $companies,
-            'cities' => $cities,
-        ]);
-    }
+    // Si l'utilisateur n'est pas admin, on ne lui montre que sa propre compagnie
+    $companies = Companies::when(!in_array($user->role, ['etat']), fn($q) => 
+        $q->where('id', $user->agency?->company_id)
+    )
+    ->select('id', 'name')
+    ->orderBy('name')
+    ->get();
+
+    $cities = City::select('id', 'name')->orderBy('name')->get();
+
+    return Inertia::render('Agencies/Create', [
+        'companies' => $companies,
+        'cities' => $cities,
+    ]);
+}
+
 
     /**
-     * Stocke une nouvelle agence.
+     * Stocker une nouvelle agence
      */
     public function store(Request $request)
     {
@@ -78,33 +94,42 @@ class AgencyController extends Controller
 
         Agency::create($validated);
 
-        return redirect()
-            ->route('agencies.index')
+        return redirect()->route('agencies.index')
             ->with('success', 'Agence créée avec succès.');
     }
 
     /**
-     * Affiche le formulaire d'édition d'une agence.
+     * Formulaire d'édition
      */
-    public function edit(Agency $agency)
-    {
-        $companies = Companies::select('id', 'name')->orderBy('name')->get();
-        $cities = City::select('id', 'name')->orderBy('name')->get();
+  public function edit(Agency $agency)
+{
+    $user = auth()->user();
 
-        return Inertia::render('Agencies/Edit', [
-            'agency' => [
-                'id' => $agency->id,
-                'name' => $agency->name,
-                'company_id' => $agency->company_id,
-                'city_id' => $agency->city_id,
-            ],
-            'companies' => $companies,
-            'cities' => $cities,
-        ]);
-    }
+    // Filtrer les compagnies selon le rôle de l'utilisateur
+    $companies = Companies::when(!in_array($user->role, ['etat']), fn($q) => 
+        $q->where('id', $user->agency?->company_id)
+    )
+    ->select('id', 'name')
+    ->orderBy('name')
+    ->get();
+
+    $cities = City::select('id', 'name')->orderBy('name')->get();
+
+    return Inertia::render('Agencies/Edit', [
+        'agency' => [
+            'id' => $agency->id,
+            'name' => $agency->name,
+            'company_id' => $agency->company_id,
+            'city_id' => $agency->city_id,
+        ],
+        'companies' => $companies,
+        'cities' => $cities,
+    ]);
+}
+
 
     /**
-     * Met à jour une agence existante.
+     * Mise à jour d'une agence
      */
     public function update(Request $request, Agency $agency)
     {
@@ -116,20 +141,18 @@ class AgencyController extends Controller
 
         $agency->update($validated);
 
-        return redirect()
-            ->route('agencies.index')
+        return redirect()->route('agencies.index')
             ->with('success', 'Agence mise à jour avec succès.');
     }
 
     /**
-     * Supprime une agence.
+     * Supprimer une agence
      */
     public function destroy(Agency $agency)
     {
         $agency->delete();
 
-        return redirect()
-            ->route('agencies.index')
+        return redirect()->route('agencies.index')
             ->with('success', 'Agence supprimée avec succès.');
     }
 }
