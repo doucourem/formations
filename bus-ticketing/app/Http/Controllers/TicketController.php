@@ -46,7 +46,7 @@ public function index(Request $request)
             'trip.route.arrivalCity:id,name',
             'trip.bus:company_id,id,registration_number,model,capacity',
             'baggages:id,ticket_id,price,weight',
-            'user:id,agency_id',
+            'user:id,agence_id',
         ])
         ->when($search, fn($q) => $q->where('client_name', 'like', "%{$search}%"))
         ->when($status, fn($q) => $q->where('status', $status))
@@ -59,7 +59,7 @@ public function index(Request $request)
             match ($user->role) {
                 'admin', 'manager','super_admin' => null,
                 'agent' => $q->where('user_id', $user->id),
-                'manageragence' => $q->whereHas('user', fn($u) => $u->where('agency_id', $user->agency_id)),
+                'manageragence' => $q->whereHas('user', fn($u) => $u->where('agence_id', $user->agency_id)),
                 default => $q->whereRaw('1 = 0'),
             };
 
@@ -113,71 +113,130 @@ public function index(Request $request)
 
 public function dailySummary(Request $request)
 {
-    // 🔹 Base query
-    $ticketsQuery = Ticket::query();
+    $user = Auth::user();
+    abort_if(!$user, 403);
 
-    // 🔹 Filtrage par dates si fourni
+    // 🔹 Compagnie de l'utilisateur via son agence
+    $userCompanyId = $user->agency?->company_id;
+
+    // 🔹 Base query
+    $ticketsQuery = Ticket::query()
+        ->with('trip.bus')
+        ->when(true, function ($q) use ($user, $userCompanyId) {
+
+            match ($user->role) {
+                'super_admin', 'admin', 'manager' => null,
+
+                'agent' =>
+                    $q->where('user_id', $user->id),
+
+                'manageragence' =>
+                    $q->whereHas('user', fn ($u) =>
+                        $u->where('agence_id', $user->agency_id)
+                    ),
+
+                default =>
+                    $q->whereRaw('1 = 0'),
+            };
+
+            // 🔐 Limite à la compagnie de l'utilisateur (via le bus)
+            if ($userCompanyId) {
+                $q->whereHas('trip.bus', fn ($b) =>
+                    $b->where('company_id', $userCompanyId)
+                );
+            }
+        });
+
+    // 🔹 Filtrage par dates
     if ($request->filled('from') && $request->filled('to')) {
         $from = Carbon::parse($request->from)->startOfDay();
-        $to = Carbon::parse($request->to)->endOfDay();
+        $to   = Carbon::parse($request->to)->endOfDay();
+
         $ticketsQuery->whereBetween('created_at', [$from, $to]);
     }
 
-    // 🔹 Récupération tickets avec tri DESC
+    // 🔹 Récupération tickets
     $tickets = $ticketsQuery
         ->select('id', 'created_at', 'price')
         ->orderBy('created_at', 'asc')
         ->get();
 
-    // 🔹 Retour vers Inertia
     return Inertia::render('Tickets/DailyTicketsSummary', [
         'tickets' => $tickets,
     ]);
 }
 
+
     /**
      * ➕ Formulaire de création
      */
-    public function create()
-    {
-        $this->authorizeAgent();
+   public function create()
+{
+    $this->authorizeAgent();
 
-        Carbon::setLocale('fr');
-        $today = Carbon::now();
+    $user = Auth::user();
+    abort_if(!$user, 403);
 
-        $trips = Trip::with([
+    // 🔹 Compagnie de l'utilisateur (via son agence)
+    $userCompanyId = $user->agency?->company_id;
+
+    Carbon::setLocale('fr');
+    $today = Carbon::now();
+
+    $trips = Trip::with([
             'route.departureCity',
             'route.arrivalCity',
             'route.stops.city',
             'route.stops.toCity',
             'bus',
         ])
-            ->whereDate('departure_at', '>=', $today)
-            ->get()
-            ->map(fn($t) => [
-                'id' => $t->id,
-                'departure_at' => Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
-                'bus' => [
-                    'capacity' => $t->bus?->capacity ?? 0,
-                    'model' => $t->bus?->model,
-                    'registration_number' => $t->bus?->registration_number,
-                ],
-                'route' => [
-                    'departureCity' => $t->route->departureCity ? ['name' => $t->route->departureCity->name] : null,
-                    'arrivalCity' => $t->route->arrivalCity ? ['name' => $t->route->arrivalCity->name] : null,
-                    'stops' => $t->route->stops->map(fn($s) => [
-                        'id' => $s->id,
-                        'distance_from_start' => $s->distance_from_start,
-                        'price' => $s->partial_price,
-                        'order' => $s->order,
-                        'city' => $s->city ? ['name' => $s->city->name] : null,
-                        'toCity' => $s->toCity ? ['name' => $s->toCity->name] : null,
-                    ]),
-                ],
-            ]);
+        ->whereDate('departure_at', '>=', $today)
 
-        return Inertia::render('Tickets/Form', ['trips' => $trips]);
-    }
+        // 🔐 Limiter aux bus de la compagnie du user
+        ->when($userCompanyId, fn ($q) =>
+            $q->whereHas('bus', fn ($b) =>
+                $b->where('company_id', $userCompanyId)
+            )
+        )
+
+        ->orderBy('departure_at')
+        ->get()
+        ->map(fn ($t) => [
+            'id' => $t->id,
+            'departure_at' => Carbon::parse($t->departure_at)
+                ->translatedFormat('l d F Y H:i'),
+
+            'bus' => [
+                'capacity' => $t->bus?->capacity ?? 0,
+                'model' => $t->bus?->model,
+                'registration_number' => $t->bus?->registration_number,
+            ],
+
+            'route' => [
+                'departureCity' => $t->route->departureCity
+                    ? ['name' => $t->route->departureCity->name]
+                    : null,
+
+                'arrivalCity' => $t->route->arrivalCity
+                    ? ['name' => $t->route->arrivalCity->name]
+                    : null,
+
+                'stops' => $t->route->stops->map(fn ($s) => [
+                    'id' => $s->id,
+                    'distance_from_start' => $s->distance_from_start,
+                    'price' => $s->partial_price,
+                    'order' => $s->order,
+                    'city' => $s->city ? ['name' => $s->city->name] : null,
+                    'toCity' => $s->toCity ? ['name' => $s->toCity->name] : null,
+                ]),
+            ],
+        ]);
+
+    return Inertia::render('Tickets/Form', [
+        'trips' => $trips,
+    ]);
+}
+
 
     /**
      * 💾 Enregistrement d’un ticket
