@@ -22,11 +22,11 @@ export default function Login({ status, canResetPassword }) {
     };
 
     return (
-        <Box sx={{ 
-            minHeight: '100vh', 
-            display: 'flex', 
+        <Box sx={{
+            minHeight: '100vh',
+            display: 'flex',
             flexDirection: 'column',
-            bgcolor: '#F8FAFC' 
+            bgcolor: '#F8FAFC'
         }}>
             <Head title="Connexion - SIRA MALI" />
 
@@ -38,7 +38,7 @@ export default function Login({ status, canResetPassword }) {
                             <GppGood className="text-white" sx={{ fontSize: 20 }} />
                         </div>
                         <span className="text-xl font-black tracking-tighter uppercase">
-                            SIRA MALI <span className="text-green-600">NUMÉRIQUE</span>
+                            NILA <span className="text-green-600">TOULELTRANS</span>
                         </span>
                     </Link>
                 </Container>
@@ -47,7 +47,7 @@ export default function Login({ status, canResetPassword }) {
             <div className="flex-grow flex items-center justify-center p-6">
                 <div className="w-full max-w-md">
                     <Paper elevation={0} sx={{ p: 5, borderRadius: 6, border: '1px solid #e2e8f0', bgcolor: 'white' }}>
-                        
+
                         <Stack spacing={1} sx={{ mb: 4, textAlign: 'center' }}>
                             <Typography variant="h5" fontWeight="900" color="#0f172a">
                                 Espace Sécurisé
@@ -115,8 +115,8 @@ export default function Login({ status, canResetPassword }) {
                             </div>
 
                             <div className="pt-2">
-                                <PrimaryButton 
-                                    className="w-full justify-center py-3 bg-slate-900 hover:bg-slate-800 rounded-xl text-base font-bold transition-all shadow-lg shadow-slate-200" 
+                                <PrimaryButton
+                                    className="w-full justify-center py-3 bg-slate-900 hover:bg-slate-800 rounded-xl text-base font-bold transition-all shadow-lg shadow-slate-200"
                                     disabled={processing}
                                 >
                                     Accéder au portail

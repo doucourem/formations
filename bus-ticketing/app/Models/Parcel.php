@@ -5,30 +5,55 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Route;
-use Illuminate\Support\Facades\DB;
 
 class Parcel extends Model
 {
     use HasFactory;
 
-   protected $fillable = [
+    protected $fillable = [
         'trip_id',
         'tracking_number',
+
+        // Expéditeur
         'sender_name',
         'sender_phone',
+
+        // Destinataire
         'recipient_name',
         'recipient_phone',
+
+        // Marchandise
         'weight_kg',
+        'merchandise_value', // ✅ valeur marchandise
+
+        // Prix
         'price',
+
+        // Autres
         'description',
         'status',
         'parcel_image',
-        'departure_agency_id', // ✅ ajout
-        'arrival_agency_id',   // ✅ ajout
+
+        // Agences
+        'departure_agency_id',
+        'arrival_agency_id',
     ];
 
+    /* ============================
+     | Relations
+     ============================ */
 
-public function departureAgency()
+    public function trip()
+    {
+        return $this->belongsTo(Trip::class);
+    }
+
+    public function ticket()
+    {
+        return $this->belongsTo(Ticket::class);
+    }
+
+    public function departureAgency()
     {
         return $this->belongsTo(Agency::class, 'departure_agency_id');
     }
@@ -38,43 +63,42 @@ public function departureAgency()
         return $this->belongsTo(Agency::class, 'arrival_agency_id');
     }
 
-    // Relation vers le voyage
-    public function trip()
+    /* ============================
+     | Statistiques par route
+     ============================ */
+
+    public static function getStatsByRoute()
     {
-        return $this->belongsTo(Trip::class);
+        return Route::with([
+                'trips.parcels',
+                'departureCity',
+                'arrivalCity'
+            ])
+            ->get()
+            ->map(function ($route) {
+
+                $parcelsCount = $route->trips
+                    ->sum(fn ($trip) => $trip->parcels->count());
+
+                $revenue = $route->trips
+                    ->sum(fn ($trip) => $trip->parcels->sum('price'));
+
+                $merchandiseValue = $route->trips
+                    ->sum(fn ($trip) => $trip->parcels->sum('merchandise_value'));
+
+                return [
+                    'route' => ($route->departureCity->name ?? '-')
+                             . ' → '
+                             . ($route->arrivalCity->name ?? '-'),
+
+                    'parcels_count'     => $parcelsCount,
+                    'revenue'           => $revenue,
+                    'merchandise_value' => $merchandiseValue,
+                ];
+            })
+            ->sortByDesc('parcels_count')
+            ->take(5)
+            ->values()
+            ->toArray();
     }
-
-    // Relation vers le ticket
-    public function ticket()
-    {
-        return $this->belongsTo(Ticket::class);
-    }
-
-
-
-public static function getStatsByRoute()
-{
-    return Route::with(['trips.parcels', 'departureCity', 'arrivalCity'])
-        ->get()
-        ->map(function($r) {
-            $parcelsCount = $r->trips->sum(fn($t) => $t->parcels->count());
-            $revenue = $r->trips->sum(fn($t) => $t->parcels->sum('price'));
-
-            return [
-                'route' => ($r->departureCity->name ?? '-') . ' → ' . ($r->arrivalCity->name ?? '-'),
-                'parcels_count' => $parcelsCount,
-                'revenue' => $revenue,
-            ];
-        })
-        ->sortByDesc('parcels_count')
-        ->take(5)
-        ->values()
-        ->toArray();
-}
-
-
-
-
-
-
 }

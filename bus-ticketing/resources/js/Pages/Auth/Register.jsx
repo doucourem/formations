@@ -33,7 +33,7 @@ export default function Register() {
                             <GppGood className="text-white" sx={{ fontSize: 20 }} />
                         </div>
                         <span className="text-xl font-black tracking-tighter uppercase">
-                            SIRA MALI <span className="text-green-600">NUMÉRIQUE</span>
+                            NILA <span className="text-green-600">TOULETTRANS</span>
                         </span>
                     </Link>
                     <Link href={route('login')} className="text-sm font-bold text-slate-600 hover:text-green-600">
@@ -45,7 +45,7 @@ export default function Register() {
             <div className="flex-grow flex items-center justify-center p-6">
                 <div className="w-full max-w-2xl">
                     <Paper elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                        
+
                         <Stack spacing={1} sx={{ mb: 5, textAlign: 'center' }}>
                             <PersonAddAlt1 sx={{ fontSize: 40, color: '#10b981', mx: 'auto', mb: 1 }} />
                             <Typography variant="h4" fontWeight="900" color="#0f172a">
@@ -124,8 +124,8 @@ export default function Register() {
                             </Grid>
 
                             <Box sx={{ mt: 5 }}>
-                                <PrimaryButton 
-                                    className="w-full justify-center py-4 bg-slate-900 hover:bg-slate-800 rounded-xl text-lg font-bold transition-all shadow-xl shadow-slate-200" 
+                                <PrimaryButton
+                                    className="w-full justify-center py-4 bg-slate-900 hover:bg-slate-800 rounded-xl text-lg font-bold transition-all shadow-xl shadow-slate-200"
                                     disabled={processing}
                                 >
                                     Finaliser l'inscription
@@ -133,7 +133,7 @@ export default function Register() {
                             </Box>
                         </form>
                     </Paper>
-                    
+
                     <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 4 }}>
                         En vous inscrivant, vous acceptez les conditions d'utilisation du système SIRA.
                     </Typography>

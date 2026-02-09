@@ -95,92 +95,111 @@ const numberToWordsFR = (n) => {
 ================================ */
 export default function ParcelDetail({ parcel }) {
     const amount = Number(parcel.price) || 0;
-  const handleDownloadPDF = async () => {
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    
+// Fonction utilitaire pour formater les nombres pour le PDF
+const formatNumberPDF = (num) => {
+  if (num === null || num === undefined) return "0";
+  const parts = Number(num).toFixed(2).split("."); // 2 décimales
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " "); // séparateur milliers
+  return parts.join(","); // décimales séparées par ","
+};
 
-    /* HEADER */
-    doc.setFillColor(...BLUE_MUI);
-    doc.rect(0, 0, 210, 35, "F");
-    doc.setFontSize(20);
-    doc.setTextColor(255);
-    doc.setFont("helvetica", "bold");
-    doc.text("REÇU DE TRANSPORT - COLIS", 20, 23);
+const handleDownloadPDF = async () => {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
 
-    let y = 50;
-    doc.setTextColor(40);
-    doc.setFontSize(12);
-    doc.text(`Tracking : ${parcel.tracking_number || parcel.id}`, 20, y);
-    doc.setFontSize(10);
-    doc.text(`Émis le : ${new Date().toLocaleString("fr-FR")}`, 140, y);
+  const BLUE = [33, 150, 243];
+  const price = Number(parcel.price) || 0;
+  const value = Number(parcel.merchandise_value) || 0;
+  const invoiceNo = `FAC-${parcel.id}-${new Date().getFullYear()}`;
 
-    /* IMAGE */
-    if (parcel.parcel_image) {
-      try {
-        const img = await getBase64ImageFromURL(`/storage/${parcel.parcel_image}`);
-        doc.addImage(img, "PNG", 150, 60, 40, 40);
-      } catch {}
-    }
+  /* HEADER */
+  doc.setFillColor(...BLUE);
+  doc.rect(0, 0, 210, 35, "F");
 
-    y += 20;
-    doc.line(20, y, 190, y);
+  doc.setTextColor(255);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("FACTURE DE TRANSPORT", 20, 22);
 
-    /* EXP / DEST */
-    y += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text("EXPÉDITEUR", 20, y);
-    doc.text("DESTINATAIRE", 110, y);
+  doc.setFontSize(10);
+  doc.text("Société de Transport", 20, 28);
 
-    y += 7;
-    doc.setFont("helvetica", "normal");
-    doc.text(parcel.sender_name || "-", 20, y);
-    doc.text(parcel.recipient_name || "-", 110, y);
+  /* META */
+  doc.setTextColor(0);
+  doc.setFontSize(10);
+  doc.text(`Facture N° : ${invoiceNo}`, 140, 45);
+  doc.text(`Date : ${new Date().toLocaleDateString("fr-FR")}`, 140, 52);
+  doc.text(`Tracking : ${parcel.tracking_number}`, 140, 59);
 
-    y += 6;
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Agence : ${parcel.senderAgency?.name || "-"}`, 20, y);
-    doc.text(`Agence : ${parcel.recipientAgency?.name || "-"}`, 110, y);
+  let y = 70;
 
-    /* DETAILS */
-    y += 15;
-    doc.setTextColor(0);
-    doc.setFontSize(11);
-    doc.text(`Poids : ${parcel.weight_kg ?? "-"} kg`, 20, y);
-    y += 6;
-    doc.text(`Statut : ${STATUS_FR[parcel.status]}`, 20, y);
+  /* CLIENTS */
+  doc.setFont("helvetica", "bold");
+  doc.text("EXPÉDITEUR", 20, y);
+  doc.text("DESTINATAIRE", 110, y);
 
-    /* MONTANT */
-    y += 12;
-    doc.setFillColor(240);
-    doc.rect(20, y, 170, 15, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text(
-      `MONTANT PAYÉ : ${amount.toLocaleString("fr-FR")} FCFA`,
-      25,
-      y + 10
-    );
+  y += 7;
+  doc.setFont("helvetica", "normal");
+  doc.text(parcel.sender_name || "-", 20, y);
+  doc.text(parcel.recipient_name || "-", 110, y);
 
-    y += 25;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "italic");
-    const words = doc.splitTextToSize(
-      `Arrêté le présent reçu à la somme de : ${numberToWordsFR(
-        amount
-      )} francs CFA`,
-      170
-    );
-    doc.text(words, 20, y);
+  y += 6;
+  doc.setFontSize(9);
+  doc.setTextColor(90);
+  doc.text(parcel.senderAgency?.name || "-", 20, y);
+  doc.text(parcel.recipientAgency?.name || "-", 110, y);
 
-    /* QR CODE */
-    const qr = await getQRCodeBase64(parcel.tracking_number || parcel.id);
-    doc.addImage(qr, "PNG", 85, 240, 40, 40);
-    doc.setFontSize(8);
-    doc.text("Scanner pour le suivi", 105, 283, { align: "center" });
+  /* TABLE */
+  y += 15;
+  doc.setTextColor(0);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
 
-    doc.save(`recu_colis_${parcel.tracking_number || parcel.id}.pdf`);
-  };
+  doc.rect(20, y, 170, 10);
+  doc.text("DÉSIGNATION", 22, y + 7);
+  doc.text("MONTANT (FCFA)", 150, y + 7, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+
+  y += 10;
+  doc.rect(20, y, 170, 10);
+  doc.text("Prix du transport", 22, y + 7);
+  doc.text(formatNumberPDF(price), 150, y + 7, { align: "right" });
+
+  y += 10;
+  doc.rect(20, y, 170, 10);
+  doc.text("Valeur déclarée de la marchandise", 22, y + 7);
+  doc.text(formatNumberPDF(value), 150, y + 7, { align: "right" });
+
+  /* TOTAL */
+  y += 15;
+  doc.setFillColor(240);
+  doc.rect(20, y, 170, 12, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.text("TOTAL PAYÉ", 22, y + 8);
+  doc.text(`${formatNumberPDF(price)} FCFA`, 150, y + 8, { align: "right" });
+
+  /* MENTION */
+  y += 20;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "italic");
+  doc.text(
+    "La valeur de la marchandise est déclarative et n’inclut aucune indemnisation automatique.",
+    20,
+    y,
+    { maxWidth: 170 }
+  );
+
+  /* QR CODE */
+  const qr = await getQRCodeBase64(parcel.tracking_number);
+  doc.addImage(qr, "PNG", 85, 245, 40, 40);
+  doc.setFontSize(8);
+  doc.text("Scanner pour le suivi", 105, 288, { align: "center" });
+
+  doc.save(`facture_${parcel.tracking_number}.pdf`);
+};
+
+
 
   /* ===============================
      UI
@@ -190,9 +209,9 @@ export default function ParcelDetail({ parcel }) {
             <Box p={4} sx={{ maxWidth: 900, mx: 'auto' }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                     <Typography variant="h4" fontWeight="bold">Détails de l'expédition</Typography>
-                    <Button 
-                        variant="contained" 
-                        startIcon={<DownloadIcon />} 
+                    <Button
+                        variant="contained"
+                        startIcon={<DownloadIcon />}
                         onClick={handleDownloadPDF}
                         size="large"
                     >
@@ -201,7 +220,7 @@ export default function ParcelDetail({ parcel }) {
                 </Box>
 
                 <Card elevation={4} sx={{ borderRadius: 4 }}>
-                    <CardHeader 
+                    <CardHeader
                         avatar={<LocalShipping color="primary" />}
                         title={<Typography variant="h6">Colis #{parcel.tracking_number || parcel.id}</Typography>}
                         subheader={`Statut actuel : ${STATUS_FR[parcel.status]}`}

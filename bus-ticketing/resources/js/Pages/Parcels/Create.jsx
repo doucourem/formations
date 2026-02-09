@@ -30,41 +30,39 @@ export default function Create({ trips, agencies }) {
     recipient_phone: "",
     weight_kg: "",
     description: "",
-    price: "",
+    merchandise_value: "", // ✅ valeur marchandise
+    price: "",              // ✅ prix transport
     payment_method: "",
     parcel_image: null,
     status: "pending",
-    departure_agency_id: "", // ajout
-    arrival_agency_id: "",   // ajout
+    departure_agency_id: "",
+    arrival_agency_id: "",
   });
 
   const [imagePreview, setImagePreview] = useState(null);
-  const PRICE_PER_KG = 12000;
 
- const handleChange = (e) => {
-  const { name, value } = e.target;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-  setForm((prev) => ({
-    ...prev,
-    // convertir automatiquement certains champs en nombre
-    [name]: ["price", "quantity_loaded", "quantity_delivered", "distance_km"].includes(name)
-      ? Number(value)
-      : value,
-  }));
-};
-
+    setForm((prev) => ({
+      ...prev,
+      [name]: ["price", "merchandise_value", "weight_kg"].includes(name)
+        ? Number(value)
+        : value,
+    }));
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
-      alert("Format non supporté (JPG/PNG seulement).");
+      alert("Format non supporté (JPG / PNG uniquement)");
       return;
     }
 
     if (file.size > 20 * 1024 * 1024) {
-      alert("Image trop lourde (max 20 Mo).");
+      alert("Image trop lourde (max 20 Mo)");
       return;
     }
 
@@ -78,13 +76,23 @@ export default function Create({ trips, agencies }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    
-     if (form.departure_agency_id === form.arrival_agency_id) {
-    alert("L'agence de départ et d'arrivée doivent être différentes !");
-    return;
-  }
+    if (form.departure_agency_id === form.arrival_agency_id) {
+      alert("Les agences de départ et d'arrivée doivent être différentes");
+      return;
+    }
+
     if (form.weight_kg <= 0) {
-      alert("Le poids doit être supérieur à 0.");
+      alert("Le poids doit être supérieur à 0");
+      return;
+    }
+
+    if (form.merchandise_value <= 0) {
+      alert("La valeur de la marchandise est obligatoire");
+      return;
+    }
+
+    if (form.price <= 0) {
+      alert("Le prix du transport est invalide");
       return;
     }
 
@@ -105,6 +113,7 @@ export default function Create({ trips, agencies }) {
         <CardContent>
           <form onSubmit={handleSubmit}>
             <Box display="grid" gap={3}>
+
               {/* Voyage */}
               <TextField
                 select
@@ -112,57 +121,55 @@ export default function Create({ trips, agencies }) {
                 name="trip_id"
                 value={form.trip_id}
                 onChange={handleChange}
-            
+                required
               >
                 {Array.isArray(trips) &&
                   trips.map((t) => (
                     <MenuItem key={t.id} value={t.id}>
-                      {`${t.route?.departureCity?.name || "-"} → ${
-                        t.route?.arrivalCity?.name || "-"
+                      {`${t.route?.departureCity || "-"} → ${
+                        t.route?.arrivalCity|| "-"
                       } (Départ ${t.departure_at})`}
                     </MenuItem>
                   ))}
               </TextField>
 
-              {/* Agence de départ */}
-             <TextField
-  select
-  label="Agence de départ"
-  name="departure_agency_id"
-  value={form.departure_agency_id}
-  onChange={handleChange}
-  required
->
-  {agencies.map((a) => (
-    <MenuItem key={a.id} value={a.id}>
-      {a.name}
-    </MenuItem>
-  ))}
-</TextField>
+              {/* Agences */}
+              <TextField
+                select
+                label="Agence de départ"
+                name="departure_agency_id"
+                value={form.departure_agency_id}
+                onChange={handleChange}
+                required
+              >
+                {agencies.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.name}
+                  </MenuItem>
+                ))}
+              </TextField>
 
-<TextField
-  select
-  label="Agence d'arrivée"
-  name="arrival_agency_id"
-  value={form.arrival_agency_id}
-  onChange={handleChange}
-  required
->
-  {agencies
-    .filter((a) => a.id !== form.departure_agency_id) // ❌ Exclure la même que départ
-    .map((a) => (
-      <MenuItem key={a.id} value={a.id}>
-        {a.name}
-      </MenuItem>
-    ))}
-</TextField>
+              <TextField
+                select
+                label="Agence d'arrivée"
+                name="arrival_agency_id"
+                value={form.arrival_agency_id}
+                onChange={handleChange}
+                required
+              >
+                {agencies
+                  .filter((a) => a.id !== form.departure_agency_id)
+                  .map((a) => (
+                    <MenuItem key={a.id} value={a.id}>
+                      {a.name}
+                    </MenuItem>
+                  ))}
+              </TextField>
 
-
-              {/* Numéro de tracking */}
+              {/* Tracking */}
               <Box display="flex" alignItems="center" gap={1}>
                 <TextField
-                  label="Numéro de Tracking"
-                  name="tracking_number"
+                  label="Numéro de tracking"
                   value={form.tracking_number}
                   fullWidth
                   InputProps={{ readOnly: true }}
@@ -179,7 +186,7 @@ export default function Create({ trips, agencies }) {
               {/* Expéditeur */}
               <Typography variant="h6">Expéditeur</Typography>
               <TextField
-                label="Nom de l'expéditeur"
+                label="Nom expéditeur"
                 name="sender_name"
                 value={form.sender_name}
                 onChange={handleChange}
@@ -196,7 +203,7 @@ export default function Create({ trips, agencies }) {
               {/* Destinataire */}
               <Typography variant="h6">Destinataire</Typography>
               <TextField
-                label="Nom du destinataire"
+                label="Nom destinataire"
                 name="recipient_name"
                 value={form.recipient_name}
                 onChange={handleChange}
@@ -212,7 +219,7 @@ export default function Create({ trips, agencies }) {
 
               {/* Poids */}
               <TextField
-                label="Nbre"
+                label="Poids (kg)"
                 type="number"
                 name="weight_kg"
                 value={form.weight_kg}
@@ -230,58 +237,41 @@ export default function Create({ trips, agencies }) {
                 rows={2}
               />
 
-              {/* Montant calculé */}
-             {/* Montant saisi manuellement */}
-<TextField
-  label="Montant (CFA)"
-  name="price"
-  type="number"
-  value={form.price}
-  onChange={handleChange} // L'utilisateur saisit le prix lui-même
-  required // Optionnel : oblige la saisie d'un prix
-  fullWidth
-  placeholder="Ex: 15000"
-  InputProps={{
-    inputProps: { min: 0 }
-  }}
-  error={form.price !== "" && form.price <= 0}
-  helperText={form.price !== "" && form.price <= 0 ? "Le prix doit être positif" : ""}
-/>
+              {/* Valeur marchandise */}
+              <TextField
+                label="Valeur de la marchandise (CFA)"
+                name="merchandise_value"
+                type="number"
+                value={form.merchandise_value}
+                onChange={handleChange}
+                required
+              />
 
-              {/* Image du colis */}
-              <Box>
-                <TextField
-                  type="file"
-                  label="Photo du colis"
-                  InputLabelProps={{ shrink: true }}
-                  onChange={handleFileChange}
+              {/* Prix transport */}
+              <TextField
+                label="Prix du transport (CFA)"
+                name="price"
+                type="number"
+                value={form.price}
+                onChange={handleChange}
+                required
+              />
+
+              {/* Image */}
+              <TextField
+                type="file"
+                label="Photo du colis"
+                InputLabelProps={{ shrink: true }}
+                onChange={handleFileChange}
+              />
+
+              {imagePreview && (
+                <img
+                  src={imagePreview}
+                  alt="Aperçu colis"
+                  style={{ maxHeight: 200, borderRadius: 8 }}
                 />
-                {imagePreview && (
-                  <Box
-                    mt={1}
-                    display="flex"
-                    flexDirection="column"
-                    alignItems="center"
-                  >
-                    <img
-                      src={imagePreview}
-                      alt="Aperçu colis"
-                      style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8 }}
-                    />
-                    <Button
-                      size="small"
-                      color="secondary"
-                      onClick={() => {
-                        setForm({ ...form, parcel_image: null });
-                        setImagePreview(null);
-                      }}
-                      sx={{ mt: 1 }}
-                    >
-                      Supprimer l’image
-                    </Button>
-                  </Box>
-                )}
-              </Box>
+              )}
 
               {/* Paiement */}
               <TextField
@@ -297,8 +287,7 @@ export default function Create({ trips, agencies }) {
                 <MenuItem value="wave">Wave</MenuItem>
               </TextField>
 
-              {/* Bouton submit */}
-              <Button type="submit" variant="contained" color="primary">
+              <Button type="submit" variant="contained">
                 Enregistrer et payer
               </Button>
             </Box>

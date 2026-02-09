@@ -15,7 +15,7 @@ import {
   LocalShipping as LocalShippingIcon, SyncAlt as SyncAltIcon,
   Logout as LogoutIcon, AccountCircle as AccountCircleIcon,
   ExpandLess, ExpandMore, Build as BuildIcon,
-  AltRoute as AltRouteIcon, DriveEta as DriveEtaIcon, 
+  AltRoute as AltRouteIcon, DriveEta as DriveEtaIcon,
   Commute as CommuteIcon, NotificationsNone as NotificationsIcon,
   GppGood
 } from "@mui/icons-material";
@@ -42,21 +42,21 @@ export default function AuthenticatedLayout({ children }) {
 
   // Gestion des menus (Votre logique de rôles est conservée)
   // Blocs de menus réutilisables
-const commonCommercial = { 
-  title: "Gestion commerciale", 
+const commonCommercial = {
+  title: "Gestion commerciale",
   items: [
     { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
     { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
     { text: "Livraison", icon: <SyncAltIcon />, route: route("deliveries.index") },
     { text: "Location", icon: <DriveEtaIcon />, route: route("vehicle-rentals.index") },
     { text: "Transfers", icon: <AttachMoneyIcon />, route: route("transfers.index") }
-  ] 
+  ]
 };
 
 const commonTransport = {
   title: "Transport",
-  items: [{ 
-    text: "Transport", icon: <DirectionsBusIcon />, 
+  items: [{
+    text: "Transport", icon: <DirectionsBusIcon />,
     children: [
       { text: "Bus", route: route("buses.index"), icon: <DirectionsBusIcon /> },
       { text: "Chauffeurs", route: route("drivers.index"), icon: <GroupIcon /> },
@@ -83,7 +83,7 @@ const menusByRole = {
         { title: "Utilisateurs", items: [{ text: "Utilisateurs", icon: <GroupIcon />, route: route("users.index") }] }
     ],
     admin: [dashboardItem, commonTransport, commonCommercial, { title: "Utilisateurs", items: [{ text: "Utilisateurs", icon: <GroupIcon />, route: route("users.index") }] }],
-    
+
     // On regroupe les rôles identiques
     manager: [dashboardItem, commonCommercial],
     manageragence: [dashboardItem, commonCommercial],
@@ -107,38 +107,38 @@ const menusByRole = {
             <GppGood sx={{ color: '#fff', fontSize: 24 }} />
         </div>
         <Typography variant="h6" sx={{ fontWeight: 900, letterSpacing: -0.5, color: '#0f172a' }}>
-            SIRA <span style={{ color: '#10b981' }}>MALI</span>
+            NILA <span style={{ color: '#10b981' }}>ToulTrans</span>
         </Typography>
       </Box>
-      
+
       <Divider sx={{ borderStyle: 'dashed' }} />
 
       <List sx={{ px: 2, py: 2, flexGrow: 1 }}>
         {menuData.map((section, i) => (
           <Box key={i} sx={{ mb: 2 }}>
-            <ListSubheader sx={{ 
-                bgcolor: 'transparent', 
-                lineHeight: '30px', 
-                fontSize: '0.7rem', 
-                fontWeight: 800, 
-                textTransform: 'uppercase', 
+            <ListSubheader sx={{
+                bgcolor: 'transparent',
+                lineHeight: '30px',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
                 color: 'slate.400',
                 mb: 1
             }}>
               {section.title}
             </ListSubheader>
-            
+
             {section.items.map((item, j) =>
               !item.children ? (
-                <ListItemButton 
+                <ListItemButton
                     key={j}
-                    component={Link} 
-                    href={item.route} 
+                    component={Link}
+                    href={item.route}
                     sx={{ borderRadius: '12px', mb: 0.5, '&.Mui-selected': { bgcolor: '#f0fdf4' } }}
                 >
                   <ListItemIcon sx={{ minWidth: 40, color: '#64748b' }}>{item.icon}</ListItemIcon>
                   <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }} />
-                  
+
                   {item.text === "Billetterie" && counters.tickets > 0 && <Chip label={counters.tickets} size="small" sx={{ bgcolor: '#dcfce7', color: '#166534', fontWeight: 700, height: 20 }} />}
                   {item.text === "Fret & Colis" && counters.parcels > 0 && <Chip label={counters.parcels} size="small" sx={{ bgcolor: '#fef9c3', color: '#854d0e', fontWeight: 700, height: 20 }} />}
                 </ListItemButton>
@@ -175,13 +175,13 @@ const menusByRole = {
   return (
     <Box sx={{ display: "flex", bgcolor: '#f8fafc', minHeight: '100vh' }}>
       <CssBaseline />
-      
+
       {/* --- NAVBAR --- */}
-      <AppBar 
-        position="fixed" 
+      <AppBar
+        position="fixed"
         elevation={0}
-        sx={{ 
-            width: { sm: `calc(100% - ${drawerWidth}px)` }, 
+        sx={{
+            width: { sm: `calc(100% - ${drawerWidth}px)` },
             ml: { sm: `${drawerWidth}px` },
             bgcolor: 'rgba(255,255,255,0.8)',
             backdropFilter: 'blur(8px)',
@@ -193,16 +193,16 @@ const menusByRole = {
           <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(!mobileOpen)} sx={{ mr: 2, display: { sm: "none" } }}>
             <MenuIcon />
           </IconButton>
-          
+
           <Typography variant="subtitle1" fontWeight="700">Système de Suivi Intégré</Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Tooltip title="Notifications">
                 <IconButton size="small"><Badge badgeContent={4} color="error"><NotificationsIcon /></Badge></IconButton>
             </Tooltip>
-            
+
             <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 24, my: 'auto' }} />
-            
+
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={(e) => setAnchorEl(e.currentTarget)}>
                 <Box sx={{ textAlign: 'right', display: { xs: 'none', md: 'block' } }}>
                     <Typography variant="body2" fontWeight="800" lineHeight={1}>{user.name}</Typography>
