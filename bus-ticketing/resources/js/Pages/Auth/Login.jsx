@@ -132,7 +132,7 @@ export default function Login({ status, canResetPassword }) {
                     </Paper>
 
                     <p className="mt-6 text-center text-xs text-gray-400 uppercase tracking-widest font-bold">
-                        &copy; 2026 SIRA MALI • Système de Suivi Intégré
+                        &copy; 2026 nilatouteltrans • Système de Suivi Intégré
                     </p>
                 </div>
             </div>
