@@ -121,45 +121,118 @@ class ParcelController extends Controller
     /* ============================
      | SHOW
      ============================ */
-    public function show(Parcel $parcel)
-    {
-        $parcel->load([
-            'trip.route.departureCity',
-            'trip.route.arrivalCity',
-            'trip.bus',
-            'departureAgency',
-            'arrivalAgency',
-        ]);
+       public function show(Parcel $parcel)
+{
+    $parcel->load([
+        'trip.route.departureCity',
+        'trip.route.arrivalCity',
+        'trip.bus',
+        'departureAgency',
+        'arrivalAgency',
+    ]);
 
-        return Inertia::render('Parcels/Show', [
-            'parcel' => [
-                'id' => $parcel->id,
-                'tracking_number' => $parcel->tracking_number,
-                'sender_name' => $parcel->sender_name,
-                'recipient_name' => $parcel->recipient_name,
-                'sender_phone' => $parcel->sender_phone,
-                'recipient_phone' => $parcel->recipient_phone,
-                'weight_kg' => $parcel->weight_kg,
-                'price' => $parcel->price,
-                'merchandise_value'=> $parcel->merchandise_value,
-                'status' => $parcel->status,
-                'description' => $parcel->description,
-                'parcel_image' => $parcel->parcel_image
-                    ? Storage::disk('public_web')->url($parcel->parcel_image)
-                    : null,
-                'departureAgency' => $parcel->departureAgency?->name,
-                'arrivalAgency' => $parcel->arrivalAgency?->name,
-                'trip' => $parcel->trip ? [
-                    'route' => $parcel->trip->route
-                        ? $parcel->trip->route->departureCity?->name . ' → ' .
-                          $parcel->trip->route->arrivalCity?->name
-                        : null,
-                    'departure_at' => optional($parcel->trip->departure_at)->format('d/m/Y H:i'),
-                    'bus' => $parcel->trip->bus?->registration_number,
-                ] : null,
+    return Inertia::render('Parcels/Show', [
+        'parcel' => [
+            'id' => $parcel->id,
+            'tracking_number' => $parcel->tracking_number,
+
+            'sender_name' => $parcel->sender_name,
+            'sender_phone' => $parcel->sender_phone,
+            'recipient_name' => $parcel->recipient_name,
+            'recipient_phone' => $parcel->recipient_phone,
+
+            'weight_kg' => $parcel->weight_kg,
+            'price' => (float) $parcel->price,
+            'merchandise_value' => (float) $parcel->merchandise_value,
+
+            'status' => $parcel->status,
+            'description' => $parcel->description,
+
+            'parcel_image' => $parcel->parcel_image
+                ? Storage::disk('public_web')->url($parcel->parcel_image)
+                : null,
+
+            /* =========================
+               AGENCES (JAMAIS NULL)
+            ========================= */
+            'senderAgency' => [
+                'id'   => $parcel->departureAgency->id ?? null,
+                'name' => $parcel->departureAgency->name ?? 'Agence non définie',
             ],
-        ]);
-    }
+
+            'recipientAgency' => [
+                'id'   => $parcel->arrivalAgency->id ?? null,
+                'name' => $parcel->arrivalAgency->name ?? 'Agence non définie',
+            ],
+
+            /* =========================
+               VOYAGE
+            ========================= */
+            'trip' => $parcel->trip ? [
+                'departureCity' => $parcel->trip->route->departureCity->name ?? null,
+                'arrivalCity'   => $parcel->trip->route->arrivalCity->name ?? null,
+                'departure_at'  => optional($parcel->trip->departure_at)->format('d/m/Y H:i'),
+                'bus'           => $parcel->trip->bus->registration_number ?? null,
+            ] : null,
+        ],
+    ]);
+}
+
+
+public function indexByTrip(Trip $trip)
+{
+    // Charger les relations nécessaires
+    $trip->load([
+        'route.departureCity',
+        'route.arrivalCity',
+        'bus',
+    ]);
+
+    // Récupérer les colis liés au trajet, paginés
+    $parcels = Parcel::where('trip_id', $trip->id)
+        ->orderByDesc('created_at')
+        ->paginate(20);
+
+    return Inertia::render('Parcels/IndexByTrip', [
+        'trip' => [
+            'id' => $trip->id,
+            'departure_time' => $trip->departure_at
+                ? Carbon::parse($trip->departure_at)->format('d/m/Y H:i')
+                : null,
+            'arrival_time' => $trip->arrival_at
+                ? Carbon::parse($trip->arrival_at)->format('d/m/Y H:i')
+                : null,
+            'bus' => $trip->bus ? [
+                'registration_number' => $trip->bus->registration_number,
+            ] : null,
+            'route' => $trip->route ? [
+                'departureCity' => $trip->route->departureCity?->name ?? '-',
+                'arrivalCity' => $trip->route->arrivalCity?->name ?? '-',
+                'price' => $trip->route->price ?? 0,
+            ] : null,
+        ],
+
+        // Transformation des colis pour le front
+        'parcels' => $parcels->through(fn($parcel) => [
+            'id' => $parcel->id,
+            'description' => $parcel->description,
+            'weight' => $parcel->weight,
+            'price' => $parcel->price ?? 0,
+            'sender_name' => $parcel->sender_name,
+            'recipient_name' => $parcel->recipient_name,
+            'recipient_phone' => $parcel->recipient_phone,
+            'status' => $parcel->status,
+        ]),
+
+        // Pagination meta pour le front (pratique si tu veux TablePagination MUI)
+        'pagination' => [
+            'current_page' => $parcels->currentPage(),
+            'last_page' => $parcels->lastPage(),
+            'per_page' => $parcels->perPage(),
+            'total' => $parcels->total(),
+        ],
+    ]);
+}
 
     /* ============================
      | EXPORT EXCEL
