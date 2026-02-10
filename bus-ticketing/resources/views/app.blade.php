@@ -6,7 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
 
-        <title inertia> FasoBillet</title>
+        <title inertia> NILATOUTELTRANS</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
