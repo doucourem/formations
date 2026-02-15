@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -33,7 +33,7 @@ class DashboardController extends Controller
     else{
 return Inertia::render('Dashboard/Index'); // Vue React principale
     }
-        
+
 
     }
 
@@ -136,14 +136,14 @@ public function stateData(Request $request)
 {
     // 1. Déterminer la période de filtrage
     $period = $request->query('period', 'month'); // 'month' par défaut
-    
+
     $startDate = match($period) {
         'today' => now()->startOfDay(),
         'week'  => now()->startOfWeek(),
         'month' => Trip::min('departure_at'),
         default => Trip::min('departure_at') ?? now()->startOfMonth(),
     };
-    
+
     $endDate = now()->endOfDay();
 
     // 2. 🎟️ Tickets vendus (Filtrés par période)

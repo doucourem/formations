@@ -46,7 +46,7 @@ const commonCommercial = {
   title: "Gestion commerciale",
   items: [
     { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
-    { text: "Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
+    { text: "Livraison & Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
     { text: "Livraison", icon: <SyncAltIcon />, route: route("deliveries.index") },
     { text: "Location", icon: <DriveEtaIcon />, route: route("vehicle-rentals.index") },
     { text: "Transfers", icon: <AttachMoneyIcon />, route: route("transfers.index") }
@@ -86,9 +86,8 @@ const menusByRole = {
 
     // On regroupe les rôles identiques
     manager: [dashboardItem, commonCommercial],
-    manageragence: [dashboardItem, commonCommercial],
-    agent: [dashboardItem, commonCommercial],
-
+    manageragence: [dashboardItem,commonTransport, commonCommercial],
+    agent: [dashboardItem,commonTransport, commonCommercial],
     garage: [{ title: "Maintenance", items: [{ text: "Garage", icon: <BuildIcon />, route: route("garages.index") }, { text: "Bus en maintenance", icon: <DirectionsBusIcon />, route: route("buses.index") }] }],
     chauffeur: [{ title: "Mes voyages", items: [{ text: "Voyages assignés", icon: <CommuteIcon />, route: route("trips.index") }] }],
     logistique: [{ title: "Livraison & Colis", items: commonCommercial.items.filter(i => i.text !== "Billets vendus") }] // Exemple de filtrage

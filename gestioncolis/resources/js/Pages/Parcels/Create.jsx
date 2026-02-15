@@ -56,10 +56,7 @@ export default function Create({ trips, agencies }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (form.departure_agency_id === form.arrival_agency_id) {
-      alert("L'agence de départ et d'arrivée doivent être différentes !");
-      return;
-    }
+
     const data = new FormData();
     Object.keys(form).forEach((key) => {
       if (form[key] !== null) data.append(key, form[key]);
@@ -84,9 +81,9 @@ export default function Create({ trips, agencies }) {
             {/* --- SECTION LOGISTIQUE --- */}
             <Grid item xs={12} md={8}>
               <Card sx={{ borderRadius: 4, mb: 3 }}>
-                <CardHeader 
-                  avatar={<ShippingIcon color="primary" />} 
-                  title="Détails du Transport" 
+                <CardHeader
+                  avatar={<ShippingIcon color="primary" />}
+                  title="Détails du Transport"
                   titleTypographyProps={{ fontWeight: 'bold' }}
                 />
                 <Divider />
@@ -110,9 +107,9 @@ export default function Create({ trips, agencies }) {
               </Card>
 
               <Card sx={{ borderRadius: 4 }}>
-                <CardHeader 
-                   avatar={<PersonIcon color="primary" />} 
-                   title="Informations Expéditeur & Destinataire" 
+                <CardHeader
+                   avatar={<PersonIcon color="primary" />}
+                   title="Informations Expéditeur & Destinataire"
                    titleTypographyProps={{ fontWeight: 'bold' }}
                 />
                 <Divider />
@@ -133,15 +130,15 @@ export default function Create({ trips, agencies }) {
               <Card sx={{ borderRadius: 4, mb: 3, bgcolor: '#f8f9fa' }}>
                 <CardHeader title="Caractéristiques" titleTypographyProps={{ fontWeight: 'bold' }} />
                 <CardContent sx={{ display: 'grid', gap: 2 }}>
-                  <TextField 
-                    fullWidth label="Nombre de colis / Poids" name="weight_kg" type="number" 
-                    onChange={handleChange} required 
+                  <TextField
+                    fullWidth label="Nombre de colis / Poids" name="weight_kg" type="number"
+                    onChange={handleChange} required
                   />
-                  <TextField 
-                    fullWidth multiline rows={3} label="Description du contenu" 
-                    name="description" onChange={handleChange} 
+                  <TextField
+                    fullWidth multiline rows={3} label="Description du contenu"
+                    name="description" onChange={handleChange}
                   />
-                  
+
                   <Box sx={{ textAlign: 'center', p: 2, border: '2px dashed #ccc', borderRadius: 2 }}>
                     {!imagePreview ? (
                       <Button component="label" startIcon={<UploadIcon />}>
@@ -159,9 +156,9 @@ export default function Create({ trips, agencies }) {
               </Card>
 
               <Card sx={{ borderRadius: 4, bgcolor: '#1A237E', color: 'white' }}>
-                <CardHeader 
-                  avatar={<PaymentIcon sx={{ color: '#FFD600' }} />} 
-                  title="Encaissement" 
+                <CardHeader
+                  avatar={<PaymentIcon sx={{ color: '#FFD600' }} />}
+                  title="Encaissement"
                 />
                 <CardContent sx={{ display: 'grid', gap: 2 }}>
                   <TextField
@@ -181,7 +178,7 @@ export default function Create({ trips, agencies }) {
                     <MenuItem value="orange_money">Orange Money</MenuItem>
                     <MenuItem value="wave">Wave</MenuItem>
                   </TextField>
-                  <Button 
+                  <Button
                     type="submit" variant="contained" fullWidth size="large"
                     sx={{ bgcolor: '#FFD600', color: '#1A237E', fontWeight: 'bold', mt: 2, '&:hover': { bgcolor: '#FFC107' } }}
                   >

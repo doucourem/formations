@@ -68,6 +68,12 @@ export default function IndexByTrip({ trip, parcels }) {
     }
   };
 
+  const formatNumberPDF = (num) => {
+  if (num === null || num === undefined) return "0";
+  const parts = Number(num).toFixed(2).split("."); // 2 décimales
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " "); // séparateur milliers
+  return parts.join(","); // décimales séparées par ","
+};
   // -------------------------------
   // PDF avec logo et total
   // -------------------------------
@@ -95,7 +101,7 @@ export default function IndexByTrip({ trip, parcels }) {
     // -------------------------------
     doc.setFontSize(12);
     doc.text(
-      `Trajet #${trip.id} : ${trip.route?.departureCity || "-"} → ${
+      `Trajet #${trip.id} : ${trip.route?.departureCity || "-"} ${
         trip.route?.arrivalCity || "-"
       }`,
       14,
@@ -154,7 +160,7 @@ export default function IndexByTrip({ trip, parcels }) {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text("TOTAL :", 130, finalY);
-    doc.text(`${total.toLocaleString()} FCFA`, 170, finalY, { align: "right" });
+    doc.text(`${formatNumberPDF(total)} FCFA`, 170, finalY, { align: "right" });
 
     doc.line(120, finalY + 2, 196, finalY + 2);
 

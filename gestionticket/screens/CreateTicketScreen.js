@@ -8,7 +8,6 @@ import {
   useTheme,
   Surface,
   Divider,
-  Menu,
   Provider,
 } from "react-native-paper";
 import { useFocusEffect } from "@react-navigation/native";
@@ -20,7 +19,6 @@ export default function CreateTicketScreen({ navigation, route }) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
-  /* ================= ÉTATS ================= */
   const [clientName, setClientName] = useState("");
   const [seats, setSeats] = useState([]);
   const [selectedSeat, setSelectedSeat] = useState(null);
@@ -30,19 +28,16 @@ export default function CreateTicketScreen({ navigation, route }) {
   const [stops, setStops] = useState([]);
   const [startStop, setStartStop] = useState(null);
   const [endStop, setEndStop] = useState(null);
-  const [departureMenuVisible, setDepartureMenuVisible] = useState(false);
-  const [arrivalMenuVisible, setArrivalMenuVisible] = useState(false);
 
   const numColumns = width > 600 ? 5 : 4;
 
-  /* ================= LOAD SEATS & STOPS ================= */
   const loadData = async () => {
     try {
       const seatsRes = await api.get(`/trips/${tripId}/seats`);
-      setSeats(seatsRes.data);
+      setSeats(seatsRes.data || []);
 
       const stopsRes = await api.get(`/trips/${tripId}/stops`);
-      setStops(stopsRes.data);
+      setStops(stopsRes.data || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -58,7 +53,6 @@ export default function CreateTicketScreen({ navigation, route }) {
     }, [tripId])
   );
 
-  /* ================= SELECTION ================= */
   const handleSeatSelection = (seat) => {
     if (!clientName.trim()) {
       Alert.alert("Nom requis", "Veuillez entrer le nom du client.");
@@ -68,14 +62,9 @@ export default function CreateTicketScreen({ navigation, route }) {
     setSelectedSeat(seat.seat_number);
   };
 
-  /* ================= VALIDATION ================= */
   const handleValidate = async () => {
-    if (!clientName || !selectedSeat || !startStop || !endStop) {
-      return Alert.alert("Incomplet", "Nom, siège, départ et arrivée requis.");
-    }
-
-    if (startStop === endStop) {
-      return Alert.alert("Erreur", "Le départ et l'arrivée ne peuvent pas être identiques.");
+    if (!clientName || !selectedSeat) {
+      return Alert.alert("Incomplet", "Nom et siège requis.");
     }
 
     setProcessing(true);
@@ -84,8 +73,8 @@ export default function CreateTicketScreen({ navigation, route }) {
         trip_id: tripId,
         client_name: clientName,
         seat_number: selectedSeat,
-        start_stop_id: startStop,
-        end_stop_id: endStop,
+        start_stop_id: startStop ?? null,
+        end_stop_id: endStop ?? null,
         status: "paid",
       });
 
@@ -99,7 +88,6 @@ export default function CreateTicketScreen({ navigation, route }) {
     }
   };
 
-  /* ================= RENDER SEAT ================= */
   const renderSeat = ({ item }) => {
     const isSelected = selectedSeat === item.seat_number;
     const isSold = item.status === "sold";
@@ -117,11 +105,12 @@ export default function CreateTicketScreen({ navigation, route }) {
     return (
       <Surface style={styles.seatWrapper}>
         <Button
+          compact
           mode={isSelected ? "contained" : "outlined"}
           disabled={isSold || isReserved}
           onPress={() => handleSeatSelection(item)}
           style={[styles.seat, { backgroundColor: bg }]}
-          labelStyle={{ color }}
+          labelStyle={{ color, fontSize: 12 }}
         >
           {item.seat_number}
         </Button>
@@ -129,7 +118,6 @@ export default function CreateTicketScreen({ navigation, route }) {
     );
   };
 
-  /* ================= LOADING ================= */
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -139,10 +127,10 @@ export default function CreateTicketScreen({ navigation, route }) {
     );
   }
 
-  /* ================= UI ================= */
   return (
     <Provider>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        
         {/* CLIENT */}
         <Surface style={styles.card}>
           <TextInput
@@ -150,81 +138,69 @@ export default function CreateTicketScreen({ navigation, route }) {
             value={clientName}
             onChangeText={setClientName}
             mode="outlined"
+            dense
             left={<TextInput.Icon icon="account" />}
           />
         </Surface>
 
-        {/* DÉPART / ARRIVÉE */}
+        {/* TRAJET COMPACT */}
         <Surface style={styles.card}>
-          {/* Départ */}
-<Menu
-  visible={departureMenuVisible}
-  onDismiss={() => setDepartureMenuVisible(false)}
-  anchor={
-    <Button mode="outlined" onPress={() => setDepartureMenuVisible(true)}>
-      {startStop
-        ? (() => {
-            const s = stops.find(st => st.id === startStop);
-            return s ? `${s.city.name} ` : "Sélectionner le départ";
-          })()
-        : "Sélectionner le départ"}
-    </Button>
-  }
->
-  {stops.map(s => (
-    <Menu.Item
-      key={s.id}
-      onPress={() => {
-        setStartStop(s.id);
-        setEndStop(null); // reset arrivée
-        setDepartureMenuVisible(false);
-      }}
-      title={`${s.order}. ${s.city.name}`}
-    />
-  ))}
-</Menu>
+          <Text style={styles.sectionTitle}>Trajet</Text>
 
-{/* Arrivée */}
-<Menu
-  visible={arrivalMenuVisible}
-  onDismiss={() => setArrivalMenuVisible(false)}
-  anchor={
-    <Button
-      mode="outlined"
-      onPress={() => setArrivalMenuVisible(true)}
-      style={{ marginTop: 10 }}
-    >
-      {endStop
-        ? (() => {
-            const s = stops.find(st => st.id === endStop);
-            return s ? `${s.to_city.name} ` : "Sélectionner l'arrivée";
-          })()
-        : "Sélectionner l'arrivée"}
-    </Button>
-  }
->
-  {stops
-    .filter(
-      s => s.order >= (stops.find(st => st.id === startStop)?.order || 0)
-    )
-    .map(s => (
-      <Menu.Item
-        key={s.id}
-        onPress={() => {
-          setEndStop(s.id);
-          setArrivalMenuVisible(false);
-        }}
-        title={`${s.order}. ${s.to_city.name}`}
-      />
-    ))}
-</Menu>
+          <Text style={styles.label}>Départ</Text>
+          <FlatList
+            horizontal
+            data={stops}
+            keyExtractor={(i) => i.id.toString()}
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => {
+              const selected = startStop === item.id;
+              return (
+                <Button
+                  compact
+                  mode={selected ? "contained" : "outlined"}
+                  onPress={() => {
+                    setStartStop(item.id);
+                    setEndStop(null);
+                  }}
+                  style={styles.chip}
+                  labelStyle={styles.chipText}
+                >
+                  {item.city?.name ?? "Ville"}
+                </Button>
+              );
+            }}
+          />
 
+          <Text style={[styles.label, { marginTop: 8 }]}>Arrivée</Text>
+          <FlatList
+            horizontal
+            data={stops.filter(
+              s => s.order >= (stops.find(st => st.id === startStop)?.order || 0)
+            )}
+            keyExtractor={(i) => i.id.toString()}
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => {
+              const selected = endStop === item.id;
+              return (
+                <Button
+                  compact
+                  mode={selected ? "contained" : "outlined"}
+                  onPress={() => setEndStop(item.id)}
+                  style={styles.chip}
+                  labelStyle={styles.chipText}
+                >
+                  {item.to_city?.name ?? "Ville"}
+                </Button>
+              );
+            }}
+          />
         </Surface>
 
         {/* BUS */}
         <Surface style={styles.busContainer}>
           <View style={styles.busHeader}>
-            <Icon name="bus" size={28} />
+            <Icon name="bus" size={24} />
             <Text style={styles.busTitle}>PLAN DU BUS</Text>
           </View>
 
@@ -236,8 +212,7 @@ export default function CreateTicketScreen({ navigation, route }) {
             keyExtractor={(i) => i.seat_number.toString()}
             numColumns={numColumns}
             columnWrapperStyle={{ justifyContent: "space-around" }}
-            contentContainerStyle={{ paddingVertical: 15 }}
-            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingVertical: 12 }}
           />
         </Surface>
 
@@ -246,7 +221,7 @@ export default function CreateTicketScreen({ navigation, route }) {
           mode="contained"
           onPress={handleValidate}
           loading={processing}
-          disabled={!selectedSeat || !startStop || !endStop || processing}
+          disabled={!selectedSeat || processing}
           style={styles.payBtn}
         >
           Valider & Payer
@@ -256,48 +231,37 @@ export default function CreateTicketScreen({ navigation, route }) {
   );
 }
 
-/* ================= STYLES ================= */
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 15 },
+  container: { flex: 1, padding: 12 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  card: {
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
+  card: { padding: 12, borderRadius: 10, marginBottom: 12 },
+
+  sectionTitle: { fontSize: 15, fontWeight: "600", marginBottom: 6 },
+  label: { fontSize: 12, opacity: 0.6, marginBottom: 2 },
+
+  chip: {
+    marginRight: 6,
+    height: 32,
+    borderRadius: 18,
+    justifyContent: "center",
   },
 
-  busContainer: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 15,
-  },
+  chipText: { fontSize: 12 },
+
+  busContainer: { flex: 1, padding: 8, borderRadius: 12 },
 
   busHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 6,
   },
 
-  busTitle: {
-    fontSize: 12,
-    fontWeight: "bold",
-    opacity: 0.6,
-  },
+  busTitle: { fontSize: 11, fontWeight: "bold", opacity: 0.6 },
 
-  seatWrapper: {
-    width: "22%",
-    marginVertical: 6,
-  },
+  seatWrapper: { width: "22%", marginVertical: 5 },
+  seat: { width: "100%" },
 
-  seat: {
-    width: "100%",
-  },
-
-  payBtn: {
-    marginTop: 10,
-    borderRadius: 10,
-    paddingVertical: 6,
-  },
+  payBtn: { marginTop: 8, borderRadius: 10, paddingVertical: 4 },
 });

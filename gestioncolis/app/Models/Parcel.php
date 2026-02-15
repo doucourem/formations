@@ -24,9 +24,7 @@ class Parcel extends Model
         'remaining_amount',  // Montant restant à payer
         'description',
         'status',
-        'parcel_image',
-        'departure_agency_id', 
-        'arrival_agency_id',
+        'parcel_image'
     ];
 
     // 🔹 Relations

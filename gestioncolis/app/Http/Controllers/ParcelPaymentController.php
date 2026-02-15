@@ -72,9 +72,9 @@ class ParcelPaymentController extends Controller
 
             $parcel->save();
         });
+return redirect()
+    ->route('parcels.payment.edit', $parcel)
+    ->with('success', 'Paiement enregistré avec succès.');
 
-        return redirect()
-            ->route('parcels.editPayment', $parcel)
-            ->with('success', 'Paiement enregistré avec succès.');
     }
 }

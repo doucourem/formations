@@ -25,7 +25,8 @@ use App\Http\Controllers\{
     GarageController,
     CompanyController,
     DeliveryController,
-    VehicleRentalController
+    VehicleRentalController,
+    MaintenanceController
 };
 
 use Illuminate\Support\Facades\Route;
@@ -181,6 +182,7 @@ Route::prefix('deliveries/{delivery}/expenses')->group(function () {
         'drivers' => DriverController::class, // <-- Garde cette ligne avant les préfixes driver/{driver}
         'transfers' => TransferController::class,
         'trip-expenses' => TripExpenseController::class,
+        'maintenance' => MaintenanceController::class,
     ]);
 
 

@@ -55,7 +55,7 @@ public function index(Request $request)
 
 
 
-  
+
 
 
 public function create()
@@ -141,9 +141,7 @@ public function store(Request $request)
         'description' => 'nullable|string',
         'status' => 'required|string|max:100',
         'parcel_image' => 'nullable|image|mimes:jpeg,jpg,png|max:20480',
-        'departure_agency_id' => 'required|exists:agencies,id', // ✅ nouvelle validation
-        'arrival_agency_id' => 'required|exists:agencies,id',   // ✅ nouvelle validation
-    ]);
+            ]);
 
     if ($request->hasFile('parcel_image')) {
         $validated['parcel_image'] = $request->file('parcel_image')->store('parcels', 'public');
@@ -293,11 +291,11 @@ public function show(Parcel $parcel)
             'sender_name' => $parcel->sender_name,
             'recipient_name' => $parcel->recipient_name,
             'paid_amount' => $parcel->paid_amount ?? 0,
-            
-            
+
+
             // URL publique via public_web
-            'parcel_image' => $parcel->parcel_image 
-                ? Storage::disk('public_web')->url($parcel->parcel_image) 
+            'parcel_image' => $parcel->parcel_image
+                ? Storage::disk('public_web')->url($parcel->parcel_image)
                 : null,
 
             'senderAgency' => $parcel->departureAgency ? [
