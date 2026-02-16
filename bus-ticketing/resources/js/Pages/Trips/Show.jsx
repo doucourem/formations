@@ -25,6 +25,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { TripPDFDownload } from "@/Components/TripPDF";
+import { TripPDFDetails } from "@/Components/TripPDFDetail";
 
 export default function TripShow({ trip }) {
   if (!trip) {
@@ -109,6 +110,7 @@ export default function TripShow({ trip }) {
               Billets vendus
             </Typography>
             <TripPDFDownload trip={trip} />
+            <TripPDFDetails trip={trip} />
           </Stack>
 
           {trip.tickets?.length > 0 ? (
@@ -164,7 +166,7 @@ export default function TripShow({ trip }) {
 
         {/* Bouton modifier */}
         <Box sx={{ mt: 3, textAlign: "right" }}>
-        
+
         </Box>
       </Box>
     </GuestLayout>

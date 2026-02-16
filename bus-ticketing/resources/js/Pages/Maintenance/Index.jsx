@@ -15,7 +15,7 @@ import {
   Stack,
   Button,
 } from "@mui/material";
-
+import GuestLayout from "@/Layouts/GuestLayout";
 // Format FCFA
 const formatMoney = (n) =>
   Number(n || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0 });
@@ -42,6 +42,7 @@ export default function MaintenanceIndex({ maintenances, buses, garages, filters
   };
 
   return (
+    <GuestLayout>
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" sx={{ mb: 3, textAlign: "center" }}>
         Liste des maintenances
@@ -157,5 +158,6 @@ export default function MaintenanceIndex({ maintenances, buses, garages, filters
         {formatMoney(maintList.reduce((sum, m) => sum + Number(m.cost || 0), 0))} FCFA
       </Typography>
     </Box>
+    </GuestLayout>
   );
 }
