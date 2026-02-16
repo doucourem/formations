@@ -121,7 +121,6 @@ export default function Create({ trips, agencies }) {
                 name="trip_id"
                 value={form.trip_id}
                 onChange={handleChange}
-                required
               >
                 {Array.isArray(trips) &&
                   trips.map((t) => (

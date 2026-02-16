@@ -120,7 +120,6 @@ export default function Edit({ parcel, trips, agencies }) {
                 name="trip_id"
                 value={form.trip_id}
                 onChange={handleChange}
-                required
               >
                 {trips.map((t) => (
                   <MenuItem key={t.id} value={t.id}>

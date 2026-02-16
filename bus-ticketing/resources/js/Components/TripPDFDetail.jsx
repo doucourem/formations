@@ -6,113 +6,201 @@ import {
   View,
   StyleSheet,
   PDFDownloadLink,
+  Image,
 } from "@react-pdf/renderer";
 
-// ---- FORMAT FCFA ----
-const money = (n) =>
-  Number(n || 0)
-    .toFixed(0)
-    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-
-// ---- FORMAT DATE FR ----
-const dateFR = (d) => {
-  if (!d) return "-";
-  const x = new Date(d);
-  return `${x.getDate().toString().padStart(2, "0")}/${
-    (x.getMonth() + 1).toString().padStart(2, "0")
-  }/${x.getFullYear()} ${x.getHours().toString().padStart(2, "0")}:${x
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
+// ✅ Fonction de formatage des nombres (évite les bugs de toLocaleString)
+const formatNumber = (num) => {
+  if (!num && num !== 0) return "0";
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); // espace insécable
 };
 
+// ✅ Format date FR
+const formatDateFR = (dateStr) => {
+  if (!dateStr) return "-";
+  const date = new Date(dateStr);
+  return `${date.getDate().toString().padStart(2, "0")}/${
+    (date.getMonth() + 1).toString().padStart(2, "0")
+  }/${date.getFullYear()} ${date
+    .getHours()
+    .toString()
+    .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+};
+
+// ✅ Styles PDF
 const styles = StyleSheet.create({
-  page: { padding: 28, fontSize: 11 },
-  header: { fontSize: 16, textAlign: "center", fontWeight: "bold", marginBottom: 10 },
-  table: { display: "table", width: "auto", borderWidth: 1, borderRightWidth: 0, borderBottomWidth: 0, marginBottom: 10 },
-  row: { flexDirection: "row" },
-  col: { width: "25%", borderWidth: 1, borderLeftWidth: 0, borderTopWidth: 0, padding: 4 },
-  head: { backgroundColor: "#e3f2fd", fontWeight: "bold" },
-  summary: { marginTop: 4, fontWeight: "bold" },
+  page: { padding: 30, fontSize: 12, fontFamily: "Helvetica" },
+  header: {
+    backgroundColor: "#1976d2",
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+    padding: 10,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  logo: { width: 100, height: 50, marginBottom: 10, objectFit: "contain" },
+  section: { marginBottom: 15 },
+  label: { fontWeight: "bold" },
+  table: {
+    display: "table",
+    width: "auto",
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    marginBottom: 20,
+  },
+  tableRow: { flexDirection: "row" },
+  tableCol: {
+    width: "25%",
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    padding: 5,
+  },
+  tableCellHeader: {
+    fontWeight: "bold",
+    backgroundColor: "#1976d2",
+    color: "white",
+  },
+  tableRowOdd: { backgroundColor: "#f2f2f2" },
+  summary: { marginTop: 5, fontWeight: "bold" },
 });
 
-// ---- DOCUMENT PDF SIMPLIFIE ----
-export const TripPDF = ({ trip }) => {
-  const tickets = trip.tickets || [];
-  const expenses = trip.expenses || [];
+// ✅ Calcul résumé par agence
+const computeAgenceSummary = (tickets) => {
+  const summary = {};
+  tickets.forEach((t) => {
+    const agence = t.user?.agency?.name || "Sans agence";
+    if (!summary[agence]) summary[agence] = { count: 0, total: 0 };
+    summary[agence].count += 1;
+    summary[agence].total += Number(t.price || 0);
+  });
+  return summary;
+};
 
-  const totalRecettes = tickets.reduce((s, t) => s + Number(t.price || 0), 0);
-  const totalDepenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const resultat = totalRecettes - totalDepenses;
+// ✅ Document PDF
+export const TripPDFDetail = ({ trip, companyLogo }) => {
+  const placesDispo = (trip.bus?.capacity || 0) - (trip.tickets?.length || 0);
+  const totalRevenue = trip.tickets?.reduce(
+    (sum, t) => sum + Number(t.price || 0),
+    0
+  );
+  const agenceSummary = computeAgenceSummary(trip.tickets || []);
 
   return (
     <Document>
       <Page style={styles.page}>
-        <Text style={styles.header}>RAPPORT FINANCIER DU TRAJET #{trip.id}</Text>
+        {companyLogo && <Image src={companyLogo} style={styles.logo} />}
+        <Text style={styles.header}>Détails du trajet #{trip.id}</Text>
 
-        {/* RECETTES BILLETS */}
-        <Text style={{ marginBottom: 6 }}>Montants billets vendus :</Text>
-        <View style={styles.table}>
-          <View style={styles.row}>
-            <Text style={[styles.col, styles.head]}>Client</Text>
-            <Text style={[styles.col, styles.head]}>Montant</Text>
-          </View>
-          {tickets.map((t) => (
-            <View style={styles.row} key={t.id}>
-              <Text style={styles.col}>{t.client_name}</Text>
-              <Text style={styles.col}>{money(t.price)} FCFA</Text>
-            </View>
-          ))}
+        {/* Infos trajet */}
+        <View style={styles.section}>
+          <Text>
+            <Text style={styles.label}>Route : </Text>
+            {trip.route?.departureCity || "-"} → {trip.route?.arrivalCity || "-"}
+          </Text>
+          <Text>
+            <Text style={styles.label}>Bus : </Text>
+            {trip.bus?.model || "-"} ({trip.bus?.registration_number || "N/A"})
+          </Text>
+          <Text>
+            <Text style={styles.label}>Départ : </Text>
+            {formatDateFR(trip.departure_at)}
+          </Text>
+          <Text>
+            <Text style={styles.label}>Arrivée : </Text>
+            {formatDateFR(trip.arrival_at)}
+          </Text>
+          <Text>
+            <Text style={styles.label}>Prix de base : </Text>
+            {trip.route?.price ? `${formatNumber(trip.route.price)} FCFA` : "-"}
+          </Text>
+          <Text>
+            <Text style={styles.label}>Places disponibles : </Text>
+            {placesDispo}
+          </Text>
         </View>
-        <Text style={styles.summary}>TOTAL RECETTES : {money(totalRecettes)} FCFA</Text>
 
-        {/* DEPENSES */}
-        <Text style={{ marginTop: 10, marginBottom: 6 }}>Détails des dépenses :</Text>
-        {expenses.length > 0 ? (
+        {/* Billets vendus */}
+        <Text style={[styles.header, { fontSize: 16, marginBottom: 10 }]}>
+          Billets vendus
+        </Text>
+
+        {trip.tickets?.length > 0 ? (
           <View style={styles.table}>
-            <View style={styles.row}>
-              <Text style={[styles.col, styles.head]}>Description</Text>
-              <Text style={[styles.col, styles.head]}>Agent</Text>
-              <Text style={[styles.col, styles.head]}>Date</Text>
-              <Text style={[styles.col, styles.head]}>Montant</Text>
+            <View style={styles.tableRow}>
+              <Text style={[styles.tableCol, styles.tableCellHeader]}>Client</Text>
+              <Text style={[styles.tableCol, styles.tableCellHeader]}>Siège</Text>
+              <Text style={[styles.tableCol, styles.tableCellHeader]}>Prix</Text>
+              <Text style={[styles.tableCol, styles.tableCellHeader]}>Statut</Text>
             </View>
-            {expenses.map((e) => (
-              <View style={styles.row} key={e.id}>
-                <Text style={styles.col}>{e.label || e.description}</Text>
-                <Text style={styles.col}>{e.user?.name || "-"}</Text>
-                <Text style={styles.col}>{dateFR(e.created_at)}</Text>
-                <Text style={styles.col}>{money(e.amount)} FCFA</Text>
+
+            {trip.tickets.map((ticket, index) => (
+              <View
+                style={[styles.tableRow, index % 2 === 1 && styles.tableRowOdd]}
+                key={ticket.id}
+              >
+                <Text style={styles.tableCol}>
+                  {ticket.client_name}{" "}
+                  {ticket.user?.agency?.name ? `(${ticket.user.agency.name})` : ""}
+                </Text>
+                <Text style={styles.tableCol}>{ticket.seat_number || "-"}</Text>
+                <Text style={styles.tableCol}>
+                  {ticket.price ? `${formatNumber(ticket.price)} FCFA` : "-"}
+                </Text>
+                <Text style={styles.tableCol}>
+                  {ticket.status === "paid"
+                    ? "Payé"
+                    : ticket.status === "cancelled"
+                    ? "Annulé"
+                    : "Réservé"}
+                </Text>
               </View>
             ))}
           </View>
         ) : (
-          <Text>Aucune dépense enregistrée</Text>
+          <Text>Aucun billet vendu pour ce trajet.</Text>
         )}
-        <Text style={styles.summary}>TOTAL DEPENSES : {money(totalDepenses)} FCFA</Text>
 
-        {/* RESULTAT NET */}
-        <Text style={[styles.summary, { marginTop: 6, fontSize: 13 }]}>
-          RESULTAT NET : {money(resultat)} FCFA
-        </Text>
+        {/* Résumé global */}
+        <Text style={styles.summary}>Total billets vendus : {trip.tickets?.length || 0}</Text>
+        <Text style={styles.summary}>Recette totale : {formatNumber(totalRevenue)} FCFA</Text>
+
+        {/* Résumé par agence */}
+        {Object.keys(agenceSummary).length > 0 && (
+          <View style={{ marginTop: 15 }}>
+            <Text style={[styles.header, { fontSize: 14, marginBottom: 10 }]}>
+              Résumé par agence
+            </Text>
+            {Object.entries(agenceSummary).map(([agence, data]) => (
+              <Text key={agence} style={styles.summary}>
+                {agence} : {data.count} billet(s) – {formatNumber(data.total)} FCFA
+              </Text>
+            ))}
+          </View>
+        )}
       </Page>
     </Document>
   );
 };
 
-// ---- BOUTON PDF ----
-export const TripPDFDetails = ({ trip }) => (
+// ✅ Lien de téléchargement
+export const TripPDFDetails = ({ trip, companyLogo }) => (
   <PDFDownloadLink
-    document={<TripPDF trip={trip} />}
-    fileName={`Rapport_Comptable_Trajet_${trip.id}.pdf`}
+    document={<TripPDFDetail trip={trip} companyLogo={companyLogo} />}
+    fileName={`Trajet_${trip.id}.pdf`}
     style={{
-      padding: "10px 18px",
-      backgroundColor: "#2e7d32",
+      textDecoration: "none",
+      padding: "10px 20px",
       color: "#fff",
+      backgroundColor: "#1976d2",
       borderRadius: 5,
       fontWeight: "bold",
-      textDecoration: "none",
     }}
   >
-    {({ loading }) => (loading ? "Génération rapport..." : "Télécharger PDF")}
+    {({ loading }) => (loading ? "Chargement PDF..." : "Télécharger PDF")}
   </PDFDownloadLink>
 );
