@@ -46,7 +46,7 @@ const commonCommercial = {
   title: "Gestion commerciale",
   items: [
     { text: "Billets vendus", icon: <ConfirmationNumberIcon />, route: route("ticket.index") },
-    { text: "Livraison & Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
+    { text: "Courriers & Colis", icon: <LocalShippingIcon />, route: route("parcels.index") },
     { text: "Livraison", icon: <SyncAltIcon />, route: route("deliveries.index") },
     { text: "Location", icon: <DriveEtaIcon />, route: route("vehicle-rentals.index") },
     { text: "Transfers", icon: <AttachMoneyIcon />, route: route("transfers.index") }

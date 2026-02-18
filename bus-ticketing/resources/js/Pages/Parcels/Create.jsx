@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import GuestLayout from "@/Layouts/GuestLayout";
 import {
@@ -14,15 +14,17 @@ import {
 } from "@mui/material";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 
-export default function Create({ trips, agencies }) {
+export default function Create({ trips = [], agencies = [] }) {
+
   const generateTracking = () => {
     const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    return `COLIS-${date}-${rand}`;
+    const time = Date.now().toString().slice(-4);
+    return `COL-${date}-${rand}${time}`;
   };
 
   const [form, setForm] = useState({
-    trip_id: "",
+    trip_id: "", // 👈 optionnel
     tracking_number: generateTracking(),
     sender_name: "",
     sender_phone: "",
@@ -30,8 +32,8 @@ export default function Create({ trips, agencies }) {
     recipient_phone: "",
     weight_kg: "",
     description: "",
-    merchandise_value: "", // ✅ valeur marchandise
-    price: "",              // ✅ prix transport
+    merchandise_value: "",
+    price: "",
     payment_method: "",
     parcel_image: null,
     status: "pending",
@@ -43,13 +45,7 @@ export default function Create({ trips, agencies }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: ["price", "merchandise_value", "weight_kg"].includes(name)
-        ? Number(value)
-        : value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
@@ -57,7 +53,7 @@ export default function Create({ trips, agencies }) {
     if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
-      alert("Format non supporté (JPG / PNG uniquement)");
+      alert("Format non supporté (JPG / PNG)");
       return;
     }
 
@@ -66,91 +62,100 @@ export default function Create({ trips, agencies }) {
       return;
     }
 
-    setForm({ ...form, parcel_image: file });
+    setForm((prev) => ({ ...prev, parcel_image: file }));
 
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
     reader.readAsDataURL(file);
   };
 
+  const validate = () => {
+
+    if (form.departure_agency_id === form.arrival_agency_id)
+      return "Les agences doivent être différentes";
+
+    if (!form.weight_kg || Number(form.weight_kg) <= 0)
+      return "Poids invalide";
+
+    if (!form.merchandise_value || Number(form.merchandise_value) <= 0)
+      return "Valeur marchandise obligatoire";
+
+    if (!form.price || Number(form.price) <= 0)
+      return "Prix transport invalide";
+
+    if (!form.sender_phone || form.sender_phone.length < 8)
+      return "Téléphone expéditeur invalide";
+
+    if (!form.recipient_phone || form.recipient_phone.length < 8)
+      return "Téléphone destinataire invalide";
+
+    return null;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (form.departure_agency_id === form.arrival_agency_id) {
-      alert("Les agences de départ et d'arrivée doivent être différentes");
-      return;
-    }
-
-    if (form.weight_kg <= 0) {
-      alert("Le poids doit être supérieur à 0");
-      return;
-    }
-
-    if (form.merchandise_value <= 0) {
-      alert("La valeur de la marchandise est obligatoire");
-      return;
-    }
-
-    if (form.price <= 0) {
-      alert("Le prix du transport est invalide");
+    const error = validate();
+    if (error) {
+      alert(error);
       return;
     }
 
     const data = new FormData();
-    Object.keys(form).forEach((key) => {
-      if (form[key] !== null) data.append(key, form[key]);
+
+    Object.entries(form).forEach(([key, value]) => {
+      if (value !== null && value !== "")
+        data.append(key, value);
     });
 
-    Inertia.post(route("parcels.store"), data);
+    Inertia.post(route("parcels.store"), data, {
+      forceFormData: true,
+    });
   };
+
+  const formInvalid = validate() !== null;
 
   return (
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
-        <CardHeader
-          title={<Typography variant="h5">Créer un colis 📦</Typography>}
-        />
+        <CardHeader title={<Typography variant="h5">Créer un colis 📦</Typography>} />
         <CardContent>
           <form onSubmit={handleSubmit}>
             <Box display="grid" gap={3}>
 
-              {/* Voyage */}
+              {/* Voyage OPTIONNEL */}
               <TextField
                 select
-                label="Voyage"
+                label="Voyage (optionnel)"
                 name="trip_id"
                 value={form.trip_id}
                 onChange={handleChange}
               >
-                {Array.isArray(trips) &&
-                  trips.map((t) => (
-                    <MenuItem key={t.id} value={t.id}>
-                      {`${t.route?.departureCity || "-"} → ${
-                        t.route?.arrivalCity|| "-"
-                      } (Départ ${t.departure_at})`}
-                    </MenuItem>
-                  ))}
+                <MenuItem value="">Aucun voyage</MenuItem>
+                {trips.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {`${t.route?.departureCity || "-"} → ${t.route?.arrivalCity || "-"} (${t.departure_at})`}
+                  </MenuItem>
+                ))}
               </TextField>
 
               {/* Agences */}
               <TextField
                 select
-                label="Agence de départ"
+                label="Agence départ"
                 name="departure_agency_id"
                 value={form.departure_agency_id}
                 onChange={handleChange}
                 required
               >
                 {agencies.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>
-                    {a.name}
-                  </MenuItem>
+                  <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
                 ))}
               </TextField>
 
               <TextField
                 select
-                label="Agence d'arrivée"
+                label="Agence arrivée"
                 name="arrival_agency_id"
                 value={form.arrival_agency_id}
                 onChange={handleChange}
@@ -159,123 +164,49 @@ export default function Create({ trips, agencies }) {
                 {agencies
                   .filter((a) => a.id !== form.departure_agency_id)
                   .map((a) => (
-                    <MenuItem key={a.id} value={a.id}>
-                      {a.name}
-                    </MenuItem>
+                    <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
                   ))}
               </TextField>
 
               {/* Tracking */}
-              <Box display="flex" alignItems="center" gap={1}>
+              <Box display="flex" gap={1}>
                 <TextField
-                  label="Numéro de tracking"
+                  label="Tracking"
                   value={form.tracking_number}
                   fullWidth
                   InputProps={{ readOnly: true }}
                 />
                 <IconButton
                   onClick={() =>
-                    setForm({ ...form, tracking_number: generateTracking() })
+                    setForm((p) => ({ ...p, tracking_number: generateTracking() }))
                   }
                 >
                   <AutorenewIcon />
                 </IconButton>
               </Box>
 
-              {/* Expéditeur */}
               <Typography variant="h6">Expéditeur</Typography>
-              <TextField
-                label="Nom expéditeur"
-                name="sender_name"
-                value={form.sender_name}
-                onChange={handleChange}
-                required
-              />
-              <TextField
-                label="Téléphone expéditeur"
-                name="sender_phone"
-                value={form.sender_phone}
-                onChange={handleChange}
-                required
-              />
+              <TextField label="Nom" name="sender_name" value={form.sender_name} onChange={handleChange} required />
+              <TextField label="Téléphone" name="sender_phone" value={form.sender_phone} onChange={handleChange} required />
 
-              {/* Destinataire */}
               <Typography variant="h6">Destinataire</Typography>
-              <TextField
-                label="Nom destinataire"
-                name="recipient_name"
-                value={form.recipient_name}
-                onChange={handleChange}
-                required
-              />
-              <TextField
-                label="Téléphone destinataire"
-                name="recipient_phone"
-                value={form.recipient_phone}
-                onChange={handleChange}
-                required
-              />
+              <TextField label="Nom" name="recipient_name" value={form.recipient_name} onChange={handleChange} required />
+              <TextField label="Téléphone" name="recipient_phone" value={form.recipient_phone} onChange={handleChange} required />
 
-              {/* Poids */}
-              <TextField
-                label="Poids (kg)"
-                type="number"
-                name="weight_kg"
-                value={form.weight_kg}
-                onChange={handleChange}
-                required
-              />
+              <TextField label="Poids (kg)" type="number" name="weight_kg" value={form.weight_kg} onChange={handleChange} required />
+              <TextField label="Description" name="description" value={form.description} onChange={handleChange} multiline rows={2} />
+              <TextField label="Valeur marchandise (CFA)" type="number" name="merchandise_value" value={form.merchandise_value} onChange={handleChange} required />
+              <TextField label="Prix transport (CFA)" type="number" name="price" value={form.price} onChange={handleChange} required />
 
-              {/* Description */}
-              <TextField
-                label="Description du colis"
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                multiline
-                rows={2}
-              />
-
-              {/* Valeur marchandise */}
-              <TextField
-                label="Valeur de la marchandise (CFA)"
-                name="merchandise_value"
-                type="number"
-                value={form.merchandise_value}
-                onChange={handleChange}
-                required
-              />
-
-              {/* Prix transport */}
-              <TextField
-                label="Prix du transport (CFA)"
-                name="price"
-                type="number"
-                value={form.price}
-                onChange={handleChange}
-                required
-              />
-
-              {/* Image */}
-              <TextField
-                type="file"
-                label="Photo du colis"
-                InputLabelProps={{ shrink: true }}
-                onChange={handleFileChange}
-              />
+              <TextField type="file" InputLabelProps={{ shrink: true }} onChange={handleFileChange} />
 
               {imagePreview && (
-                <img
-                  src={imagePreview}
-                  alt="Aperçu colis"
-                  style={{ maxHeight: 200, borderRadius: 8 }}
-                />
+                <img src={imagePreview} alt="Aperçu" style={{ maxHeight: 200, borderRadius: 8 }} />
               )}
 
-              {/* Paiement */}
               <TextField
                 select
-                label="Mode de paiement"
+                label="Paiement"
                 name="payment_method"
                 value={form.payment_method}
                 onChange={handleChange}
@@ -286,7 +217,7 @@ export default function Create({ trips, agencies }) {
                 <MenuItem value="wave">Wave</MenuItem>
               </TextField>
 
-              <Button type="submit" variant="contained">
+              <Button type="submit" variant="contained" disabled={formInvalid}>
                 Enregistrer et payer
               </Button>
             </Box>

@@ -41,21 +41,7 @@ export default function AuthenticatedLayout({ header, children }) {
                             </div>
 
                             {/* Menu Desktop */}
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink href={route('dashboard')} active={route().current('dashboard')} className="text-white hover:text-yellow-400">
-                                    <Dashboard fontSize="small" className="mr-2" /> Dashboard
-                                </NavLink>
-                                <NavLink href={route('parcels.index')} active={route().current('parcels.*')} className="text-white hover:text-yellow-400">
-                                    <LocalShipping fontSize="small" className="mr-2" /> Colis
-                                </NavLink>
-                                <NavLink href={route('trips.index')} active={route().current('trips.*')} className="text-white hover:text-yellow-400">
-                                    <Map fontSize="small" className="mr-2" /> Voyages
-                                </NavLink>
-                                {/* Nouveau lien Transferts */}
-                                <NavLink href={route('transfers.index')} active={route().current('transfers.*')} className="text-white hover:text-yellow-400">
-                                    <Paid fontSize="small" className="mr-2" /> Transferts
-                                </NavLink>
-                            </div>
+                           
                         </div>
 
                         {/* Profil Utilisateur */}
