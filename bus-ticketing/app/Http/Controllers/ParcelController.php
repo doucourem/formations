@@ -23,13 +23,12 @@ class ParcelController extends Controller
 
         $query = Parcel::with(['departureAgency', 'arrivalAgency', 'trip.route']);
 
-        /*if (!in_array($user->role, ['admin', 'super_admin'])) {
+        if (!in_array($user->role, ['admin', 'super_admin'])) {
             $query->where(function ($q) use ($user) {
                 $q->where('departure_agency_id', $user->agency_id)
                   ->orWhere('arrival_agency_id', $user->agency_id);
             });
         }
-            */
 
         return Inertia::render('Parcels/Index', [
             'parcels' => $query->latest()->paginate(20)->withQueryString()

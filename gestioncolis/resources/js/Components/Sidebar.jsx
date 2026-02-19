@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import { usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
+
 import {
     Box, List, ListItemButton, ListItemIcon, ListItemText, 
     Collapse, Typography, Divider
@@ -17,7 +19,8 @@ import {
     ExpandMore,
     Map as MapIcon,
     EventNote as EventIcon,
-    DirectionsBus as FleetIcon
+    DirectionsBus as FleetIcon,
+    Logout as LogoutIcon, 
 } from '@mui/icons-material';
 import { indigo } from '@mui/material/colors';
 
@@ -136,6 +139,23 @@ export default function Sidebar() {
                     </Box>
                 ))}
             </List>
+            <Divider sx={{ mt: 2 }} />
+
+<List sx={{ px: 2 }}>
+    <ListItemButton 
+        onClick={() => router.post(route('logout'))}
+        sx={{ borderRadius: 2, color: 'error.main' }}
+    >
+        <ListItemIcon sx={{ minWidth: 40, color: 'error.main' }}>
+            <LogoutIcon />
+        </ListItemIcon>
+        <ListItemText 
+            primary="Déconnexion" 
+            primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }}
+        />
+    </ListItemButton>
+</List>
+
         </Box>
     );
 }
