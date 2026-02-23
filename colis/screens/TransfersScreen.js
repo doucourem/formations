@@ -102,6 +102,8 @@ export default function TransfersScreen() {
   )}
   contentContainerStyle={{ paddingBottom: 20 }}
 />
+
+
       {/* Modal */}
       <TransferModal
         visible={modalVisible}

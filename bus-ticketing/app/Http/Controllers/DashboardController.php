@@ -63,65 +63,116 @@ private function parcelByRoute()
 
 
 
+
+
 public function data()
 {
-    // 🔹 Ventes jour/semaine/mois (dernier mois)
-    $sales = Ticket::selectRaw('DATE(created_at) as date, SUM(price) as revenue, COUNT(*) as tickets')
-        ->where('created_at', '>=', now()->subMonth())
-        ->groupBy('date')
-        ->orderBy('date')
-        ->get()
-        ->toArray();
+    $user = auth()->user();
+    abort_if(!$user, 403);
 
-    // 🔹 Taux de remplissage bus
-    $buses = Bus::with('trips.tickets')->get()->map(function ($bus) {
-        $capacity = $bus->capacity ?? 0;
-        $sold = $bus->trips->sum(fn($t) => optional($t->tickets)->count() ?? 0);
-        return [
-            'bus' => $bus->registration_number ?? '-',
-            'fill_rate' => $capacity ? round($sold / $capacity * 100, 2) : 0,
-            'tickets_sold' => $sold,
-            'capacity' => $capacity,
-        ];
-    })->values()->toArray();
+    // 🔹 Base query tickets filtrée par rôle
+    $tickets = Ticket::query();
+
+    switch ($user->role) {
+
+        case 'agent':
+            $tickets->where('user_id', $user->id);
+            break;
+
+        case 'chauffeur':
+            $tickets->whereHas('trip', fn($q) => $q->where('driver_id', $user->id));
+            break;
+
+        case 'manageragence':
+            $tickets->where('agency_id', $user->agency_id);
+            break;
+
+        case 'garage':
+            return response()->json([
+                'maintenances' => Maintenance::with('bus')->get()->map(fn($m) => [
+                    'bus' => $m->bus->registration_number ?? '-',
+                    'date' => $m->date,
+                    'type' => $m->type,
+                    'cost' => $m->cost,
+                ])
+            ]);
+
+        case 'etat':
+        case 'manager':
+        case 'admin':
+        case 'super_admin':
+        case 'logistique':
+            // accès global
+            break;
+
+        default:
+            abort(403);
+    }
+
+    // 🔹 Ventes journalières (corrigé SQL strict)
+    $sales = $tickets->clone()
+        ->selectRaw('DATE(created_at) as date, SUM(price) as revenue, COUNT(*) as tickets')
+        ->where('created_at', '>=', now()->subMonth())
+        ->groupBy(DB::raw('DATE(created_at)'))
+        ->orderBy(DB::raw('DATE(created_at)'))
+        ->get();
 
     // 🔹 KPI
-    $totalRevenue = Ticket::sum('price') ?? 0;
-    $totalParcels = Ticket::count();
+    $totalRevenue = $tickets->clone()->sum('price');
+    $totalTickets = $tickets->clone()->count();
     $totalBuses = Bus::count();
-    $averageFillRate = $buses ? round(collect($buses)->avg('fill_rate'), 2) : 0;
+
+    // 🔹 Bus stats
+    $buses = Bus::with('trips.tickets')->get()->map(function ($bus) {
+        $sold = $bus->trips->sum(fn($t) => $t->tickets->count());
+        $capacityTotal = ($bus->capacity ?? 0) * $bus->trips->count();
+        return [
+            'bus' => $bus->registration_number,
+            'fill_rate' => $capacityTotal ? round(($sold/$capacityTotal)*100,2) : 0,
+            'tickets_sold' => $sold,
+            'capacity' => $bus->capacity,
+        ];
+    });
+
+    $averageFillRate = round($buses->avg('fill_rate'),2);
 
     $kpis = [
         'revenue' => $totalRevenue,
-        'parcels' => $totalParcels,
+        'tickets' => $totalTickets,
         'buses' => $totalBuses,
         'fill_rate' => $averageFillRate,
     ];
 
     // 🔹 Top chauffeurs
-    $drivers = Driver::with('trips.tickets')->get()->map(fn($d) => [
-        'first_name' => trim(($d->first_name ?? '').' '.($d->last_name ?? '')),
-        'revenue' => $d->trips->sum(fn($t) => optional($t->tickets)->sum('price') ?? 0),
-        'tickets' => $d->trips->sum(fn($t) => optional($t->tickets)->count() ?? 0),
-    ])->sortByDesc('revenue')->take(10)->values()->toArray();
+    $drivers = Driver::with('trips.tickets')->get()
+        ->map(fn($d) => [
+            'name' => trim(($d->first_name ?? '').' '.($d->last_name ?? '')),
+            'revenue' => $d->trips->sum(fn($t) => $t->tickets->sum('price')),
+            'tickets' => $d->trips->sum(fn($t) => $t->tickets->count()),
+        ])
+        ->sortByDesc('revenue')
+        ->take(10)
+        ->values();
 
     // 🔹 Top routes
-    $routes = RouteModel::with('trips.tickets', 'departureCity', 'arrivalCity')->get()->map(fn($r) => [
-        'route' => (optional($r->departureCity)->name ?? '-') . ' → ' . (optional($r->arrivalCity)->name ?? '-'),
-        'revenue' => $r->trips->sum(fn($t) => optional($t->tickets)->sum('price') ?? 0),
-        'tickets_sold' => $r->trips->sum(fn($t) => optional($t->tickets)->count() ?? 0),
-    ])->sortByDesc('revenue')->take(10)->values()->toArray();
-
-    // 🔹 Parcels par route
-    $parcel_routes = $this->parcelByRoute() ?? [];
+    $routes = RouteModel::with('trips.tickets','departureCity','arrivalCity')
+        ->get()
+        ->map(fn($r) => [
+            'route' => ($r->departureCity->name ?? '-') . ' → ' . ($r->arrivalCity->name ?? '-'),
+            'revenue' => $r->trips->sum(fn($t) => $t->tickets->sum('price')),
+            'tickets_sold' => $r->trips->sum(fn($t) => $t->tickets->count()),
+        ])
+        ->sortByDesc('revenue')
+        ->take(10)
+        ->values();
 
     return response()->json([
+        'kpis' => $kpis,
         'sales' => $sales,
         'buses' => $buses,
         'top_drivers' => $drivers,
         'top_routes' => $routes,
-        'parcel_routes' => $parcel_routes,
-        'kpis' => $kpis, // <-- ajouté !
+        'parcel_routes' => $this->parcelByRoute(),
     ]);
 }
 
