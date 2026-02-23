@@ -138,7 +138,7 @@ public function data()
 
     $kpis = [
         'revenue' => $totalRevenue,
-        'tickets' => $totalTickets,
+        'parcels' => $totalTickets,
         'buses' => $totalBuses,
         'fill_rate' => $averageFillRate,
     ];

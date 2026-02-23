@@ -22,6 +22,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import dayjs from "dayjs";
 import { route } from "ziggy-js";
+import Logo from "@/assets/logo.png";
 
 export default function VehicleRentalShow() {
   const { rental } = usePage().props;
@@ -92,7 +93,96 @@ const formatMoney = (value) => `${formatNumberPDF(value || 0)} CFA`;
 
     doc.save(`location-${rental.id}.pdf`);
   };
+const handleExportPDFStyled = () => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginLeft = 14;
+  const marginRight = 14;
 
+  // -------------------------------
+  // LOGO + TITRE
+  // -------------------------------
+  const logoWidth = 30;
+  const logoHeight = 20;
+  doc.addImage(Logo, "PNG", marginLeft, 10, logoWidth, logoHeight); // logo
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Détails de la location 🚗", pageWidth / 2, 20, { align: "center" });
+
+  doc.setLineWidth(0.5);
+  doc.line(marginLeft, 35, pageWidth - marginRight, 35);
+
+  // -------------------------------
+  // TABLEAU INFOS PRINCIPALES
+  // -------------------------------
+  const info = [
+    ["Véhicule", rental.vehicle_name],
+    ["Modèle de contrat", rental.contract_model || "—"],
+    ["Chauffeur", rental.driver_name || "—"],
+    ["Client", rental.customer_name],
+    ["Lieu départ", rental.departure_location],
+    ["Lieu arrivée", rental.arrival_location],
+    ["Date début", formatDate(rental.rental_start)],
+    ["Date fin", formatDate(rental.rental_end)],
+    ["Statut", statusProps.label],
+  ];
+
+  autoTable(doc, {
+    startY: 38,
+    head: [["Champ", "Valeur"]],
+    body: info,
+    styles: { fontSize: 10, cellPadding: 2, valign: "middle" },
+    headStyles: { fillColor: [21, 101, 192], textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+  });
+
+  // -------------------------------
+  // TABLEAU DÉPENSES
+  // -------------------------------
+  if (expenses.length) {
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Dépenses 💸", marginLeft, doc.lastAutoTable.finalY + 10);
+
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 14,
+      head: [["Type", "Description", "Montant (CFA)"]],
+      body: expenses.map((e) => [
+        e.type,
+        e.description || "-",
+        Number(e.amount).toLocaleString(),
+      ]),
+      foot: [["Total", "", totalExpenses.toLocaleString() + " CFA"]],
+      styles: { fontSize: 10, cellPadding: 2, valign: "middle" },
+      headStyles: { fillColor: [21, 101, 192], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    });
+
+    // -------------------------------
+    // BLOC TOTAL NET
+    // -------------------------------
+    const finalY = doc.lastAutoTable.finalY + 15;
+    const netAmount = rental.price - totalExpenses;
+    const blockWidth = 60;
+    const blockHeight = 12;
+    const blockX = pageWidth - marginRight - blockWidth;
+    const blockY = finalY;
+
+    doc.setFillColor(21, 101, 192);
+    doc.setDrawColor(0);
+    doc.rect(blockX, blockY, blockWidth, blockHeight, "FD");
+
+    doc.setTextColor(255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(`Net : ${netAmount.toLocaleString()} CFA`, blockX + blockWidth / 2, blockY + 8, { align: "center" });
+  }
+
+  // -------------------------------
+  // EXPORT PDF
+  // -------------------------------
+  doc.save(`location-${rental.id}_Styled.pdf`);
+};
   return (
     <GuestLayout>
       <Box sx={{ maxWidth: 900, mx: "auto", mt: 4 }}>
@@ -103,7 +193,7 @@ const formatMoney = (value) => `${formatNumberPDF(value || 0)} CFA`;
               <Stack direction="row" spacing={1}>
                 <Button variant="contained" onClick={() => Inertia.get(route("vehicle-rentals.index"))}>Retour</Button>
                 <Button variant="outlined" color="primary" onClick={() => Inertia.get(route("vehicle-rentals.edit", rental.id))}>Éditer</Button>
-                <Button variant="outlined" color="secondary" onClick={handleExportPDF}>Exporter PDF</Button>
+                <Button variant="outlined" color="secondary" onClick={handleExportPDFStyled}>Exporter PDF</Button>
               </Stack>
             }
           />

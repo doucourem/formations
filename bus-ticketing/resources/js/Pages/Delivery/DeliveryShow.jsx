@@ -22,6 +22,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/fr";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import Logo from "@/assets/logo.png";
 
 dayjs.locale("fr");
 
@@ -68,52 +69,233 @@ const formatMoney = (value) => `${formatNumberPDF(value || 0)} CFA`;
   return map[type] || type;
 };
 
+const handleExportPDFStyled = () => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginLeft = 14;
+  const marginRight = 14;
 
-  // ================== EXPORT PDF ==================
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
+  // -------------------------------
+  // LOGO + TITRE CENTRÉ
+  // -------------------------------
+  const logoWidth = 30;
+  const logoHeight = 20;
+  doc.addImage(Logo, "PNG", marginLeft, 10, logoWidth, logoHeight);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Détails de la livraison", pageWidth / 2, 20, { align: "center" });
 
-    doc.setFontSize(18);
-    doc.text("Détails de la livraison", 14, 20);
+  // Ligne sous le titre
+  doc.setLineWidth(0.5);
+  doc.line(marginLeft, 35, pageWidth - marginRight, 35);
 
-    autoTable(doc, {
-      startY: 30,
-      head: [["Champ", "Valeur"]],
-      body: [
-        ["Véhicule", delivery.bus?.registration_number || "—"],
-        [
-          "Chauffeur",
-          `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`,
-        ],
-        ["Produit", delivery.product_name],
-        ["Lot", delivery.product_lot || "—"],
-        ["Quantité chargée", delivery.quantity_loaded],
-        ["Quantité livrée", delivery.quantity_delivered ?? "—"],
-        ["Distance (km)", delivery.distance_km ?? "—"],
-        ["Prix", formatMoney(delivery.price)],
-        ["Total dépenses", formatMoney(totalExpenses)],
-        ["Résultat net", formatMoney(netResult)],
-        ["Statut", statusProps.label],
-        ["Départ", formatDate(delivery.departure_at)],
-        ["Arrivée", formatDate(delivery.arrival_at)],
+  // -------------------------------
+  // TABLEAU PRINCIPAL
+  // -------------------------------
+  const totalSales = delivery.price ?? 0;
+  const netResult = totalSales - (totalExpenses ?? 0);
+
+  autoTable(doc, {
+    startY: 40,
+    head: [["Champ", "Valeur"]],
+    body: [
+      ["Véhicule", delivery.bus?.registration_number || "—"],
+      [
+        "Chauffeur",
+        `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`,
       ],
+      ["Produit", delivery.product_name],
+      ["Lot", delivery.product_lot || "—"],
+      ["Quantité chargée", delivery.quantity_loaded],
+      ["Quantité livrée", delivery.quantity_delivered ?? "—"],
+      ["Distance (km)", delivery.distance_km ?? "—"],
+      ["Prix total ventes", formatMoney(totalSales)],
+      ["Total dépenses", formatMoney(totalExpenses)],
+      ["Statut", statusProps.label],
+      ["Départ", formatDate(delivery.departure_at)],
+      ["Arrivée", formatDate(delivery.arrival_at)],
+    ],
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [21, 101, 192],
+      textColor: 255,
+      fontStyle: "bold",
+    },
+    alternateRowStyles: {
+      fillColor: [245, 247, 250],
+    },
+  });
+
+  // -------------------------------
+  // TABLEAU DES DÉPENSES (si existant)
+  // -------------------------------
+  if (delivery.expenses?.length) {
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 10,
+      head: [["Type", "Montant (CFA)", "Description", "Date"]],
+      body: delivery.expenses.map((e) => [
+        e.type,
+        formatMoney(e.amount),
+        e.description || "—",
+        formatDate(e.created_at),
+      ]),
+      styles: {
+        fontSize: 10,
+        cellPadding: 2,
+        valign: "middle",
+      },
+      headStyles: {
+        fillColor: [21, 101, 192],
+        textColor: 255,
+        fontStyle: "bold",
+      },
+      alternateRowStyles: {
+        fillColor: [245, 247, 250],
+      },
     });
+  }
 
-    if (delivery.expenses?.length) {
-      autoTable(doc, {
-        startY: doc.lastAutoTable.finalY + 10,
-        head: [["Type", "Montant (CFA)", "Description", "Date"]],
-        body: delivery.expenses.map((e) => [
-          e.type,
-          formatMoney(e.amount),
-          e.description || "—",
-          formatDate(e.created_at),
-        ]),
-      });
-    }
+  // -------------------------------
+  // BLOC NET RESULT
+  // -------------------------------
+  const finalY = doc.lastAutoTable.finalY + 15;
+  const blockWidth = 60;
+  const blockHeight = 12;
+  const blockX = pageWidth - marginRight - blockWidth;
+  const blockY = finalY;
 
-    doc.save(`Livraison_${delivery.id}.pdf`);
-  };
+  // Bloc encadré avec fond coloré
+  doc.setFillColor(21, 101, 192); // bleu
+  doc.setDrawColor(0); // bordure noire
+  doc.rect(blockX, blockY, blockWidth, blockHeight, "FD"); // Fill + Draw
+
+  // Texte résultat net
+  doc.setTextColor(255); // blanc
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text(`Net : ${formatMoney(netResult)} CFA`, blockX + blockWidth / 2, blockY + 8, { align: "center" });
+
+  // -------------------------------
+  // SIGNATURE
+  // -------------------------------
+  const signY = blockY + blockHeight + 20;
+  doc.setTextColor(0); // noir
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("Signature & Cachet", marginLeft, signY);
+  doc.rect(marginLeft, signY + 3, 60, 25);
+
+  // -------------------------------
+  // EXPORT PDF
+  // -------------------------------
+  doc.save(`Livraison_${delivery.id}_Styled.pdf`);
+};
+  // ================== EXPORT PDF ==================
+const handleExportPDF = () => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginLeft = 14;
+  const marginRight = 14;
+
+  // -------------------------------
+  // LOGO + TITRE
+  // -------------------------------
+  doc.addImage(Logo, "PNG", marginLeft, 10, 30, 20); // Logo à gauche
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Détails de la livraison", marginLeft + 35, 20); // titre à côté du logo
+
+  // -------------------------------
+  // TABLEAU PRINCIPAL
+  // -------------------------------
+  const totalSales = delivery.price ?? 0;
+  const netResult = totalSales - (totalExpenses ?? 0);
+
+  autoTable(doc, {
+    startY: 35,
+    head: [["Champ", "Valeur"]],
+    body: [
+      ["Véhicule", delivery.bus?.registration_number || "—"],
+      [
+        "Chauffeur",
+        `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`,
+      ],
+      ["Produit", delivery.product_name],
+      ["Lot", delivery.product_lot || "—"],
+      ["Quantité chargée", delivery.quantity_loaded],
+      ["Quantité livrée", delivery.quantity_delivered ?? "—"],
+      ["Distance (km)", delivery.distance_km ?? "—"],
+      ["Prix total ventes", formatMoney(totalSales)],
+      ["Total dépenses", formatMoney(totalExpenses)],
+      ["Résultat net", formatMoney(netResult)],
+      ["Statut", statusProps.label],
+      ["Départ", formatDate(delivery.departure_at)],
+      ["Arrivée", formatDate(delivery.arrival_at)],
+    ],
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [21, 101, 192],
+      textColor: 255,
+      fontStyle: "bold",
+    },
+    alternateRowStyles: {
+      fillColor: [245, 247, 250],
+    },
+  });
+
+  // -------------------------------
+  // TABLEAU DES DÉPENSES (si existant)
+  // -------------------------------
+  if (delivery.expenses?.length) {
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 10,
+      head: [["Type", "Montant (CFA)", "Description", "Date"]],
+      body: delivery.expenses.map((e) => [
+        e.type,
+        formatMoney(e.amount),
+        e.description || "—",
+        formatDate(e.created_at),
+      ]),
+      styles: {
+        fontSize: 10,
+        cellPadding: 2,
+        valign: "middle",
+      },
+      headStyles: {
+        fillColor: [21, 101, 192],
+        textColor: 255,
+        fontStyle: "bold",
+      },
+      alternateRowStyles: {
+        fillColor: [245, 247, 250],
+      },
+    });
+  }
+
+  // -------------------------------
+  // TOTAL NET AU DESSUS DU TABLEAU (optionnel)
+  // -------------------------------
+  const finalY = doc.lastAutoTable.finalY + 12;
+  const totalText = `Résultat net : ${formatMoney(netResult)} CFA`;
+  const textWidth = doc.getTextWidth(totalText);
+  doc.setFillColor(245, 247, 250);
+  doc.rect(pageWidth - marginRight - textWidth - 6, finalY - 6, textWidth + 4, 8, "F");
+  doc.setFont("helvetica", "bold");
+  doc.text(totalText, pageWidth - marginRight, finalY, { align: "right" });
+
+  // -------------------------------
+  // EXPORT PDF
+  // -------------------------------
+  doc.save(`Livraison_${delivery.id}.pdf`);
+};
 
   // ================== RENDER ==================
   return (
