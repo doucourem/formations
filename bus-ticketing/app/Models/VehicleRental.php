@@ -47,5 +47,10 @@ class VehicleRental extends Model
     {
         return $this->status === 'active';
     }
+
+    public function payments()
+{
+    return $this->hasMany(VehicleRentalPayment::class);
+}
 }
 

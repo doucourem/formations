@@ -269,37 +269,70 @@ public function totalByType($rentalId)
 
 public function show($id)
 {
-    $rental = VehicleRental::with(['bus', 'driver', 'expenses'])->findOrFail($id);
+    $rental = VehicleRental::with([
+        'bus',
+        'driver',
+        'expenses',
+        'payments.user'   // ✅ IMPORTANT
+    ])->findOrFail($id);
+
+    // 🔹 Totaux
+    $totalPaid = $rental->payments->sum('amount');
+    $totalExpenses = $rental->expenses->sum('amount');
+    $balance = $rental->price - $totalPaid;
+
+    // 🔹 Statut paiement
+    $paymentStatus = match(true) {
+        $totalPaid <= 0 => 'unpaid',
+        $balance <= 0 => 'paid',
+        default => 'partial'
+    };
 
     return Inertia::render('VehicleRentals/show', [
         'rental' => [
             'id' => $rental->id,
             'vehicle_name' => $rental->bus->registration_number ?? '-',
-            'driver_name' => $rental->driver ? $rental->driver->first_name . ' ' . $rental->driver->last_name : '-',
+            'driver_name' => $rental->driver
+                ? $rental->driver->first_name.' '.$rental->driver->last_name
+                : '-',
+
             'customer_name' => $rental->client_name ?? '-',
             'contract_model' => $rental->contract_model ?? '-',
             'departure_location' => $rental->departure_location ?? '-',
             'arrival_location' => $rental->arrival_location ?? '-',
 
-            // ⛔ garder les vraies dates pour React
             'rental_start' => $rental->rental_start,
             'rental_end' => $rental->rental_end,
-
             'status' => $rental->status,
 
-            // ✅ LES DÉPENSES
-            'expenses' => $rental->expenses->map(function ($expense) {
-                return [
-                    'id' => $expense->id,
-                    'type' => $expense->type,
-                    'amount' => $expense->amount,
-                    'description' => $expense->description,
-                ];
-            }),
+            // 🔹 FINANCIER
+            'price' => $rental->price,
+            'total_paid' => $totalPaid,
+            'balance' => $balance,
+            'payment_status' => $paymentStatus,
+
+            // 🔹 DEPENSES
+            'expenses' => $rental->expenses->map(fn ($e) => [
+                'id' => $e->id,
+                'type' => $e->type,
+                'amount' => $e->amount,
+                'description' => $e->description,
+            ]),
+
+            // 🔹 PAIEMENTS
+            'payments' => $rental->payments->map(fn ($p) => [
+                'id' => $p->id,
+                'amount' => $p->amount,
+                'method' => $p->method,
+                'note' => $p->note,
+                'created_at' => $p->created_at,
+                'user' => [
+                    'name' => $p->user->name ?? '—'
+                ]
+            ]),
         ],
     ]);
 }
-
 
 
 

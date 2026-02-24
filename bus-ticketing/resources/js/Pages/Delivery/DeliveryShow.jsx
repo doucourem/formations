@@ -23,6 +23,7 @@ import "dayjs/locale/fr";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Logo from "@/assets/logo.png";
+import DeliveryPaymentForm from "./DeliveryPaymentForm";
 
 dayjs.locale("fr");
 
@@ -469,6 +470,42 @@ const handleExportPDF = () => {
               </Grid>
             </Grid>
 
+<Divider sx={{ my: 2 }} />
+<Typography variant="h6">Paiements</Typography>
+
+{delivery.payments?.length ? (
+  <Table size="small">
+    <TableHead>
+      <TableRow>
+        <TableCell>Montant</TableCell>
+        <TableCell>Méthode</TableCell>
+        <TableCell>Note</TableCell>
+        <TableCell>Effectué par</TableCell>
+        <TableCell>Date</TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {delivery.payments.map((p) => (
+        <TableRow key={p.id}>
+          <TableCell>{formatMoney(p.amount)}</TableCell>
+          <TableCell>{p.method}</TableCell>
+          <TableCell>{p.note || "—"}</TableCell>
+          <TableCell>
+            {p.user?.name || p.user_id || "—"}
+          </TableCell>
+          <TableCell>{formatDate(p.created_at)}</TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+) : (
+  <Typography color="text.secondary">
+    Aucun paiement enregistré
+  </Typography>
+)}
+{delivery.balance > 0 && (
+    <DeliveryPaymentForm delivery={delivery} />
+)}
             <Box mt={2}>
               <Button
                 variant="outlined"

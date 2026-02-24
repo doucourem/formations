@@ -8,12 +8,15 @@ use App\Models\Bus;
 use App\Models\Driver;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use App\Models\DeliveryPayment;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DeliveryController extends Controller
 {
     public function index(Request $request)
     {
-        $deliveries = Delivery::with(['bus','driver','logs','expenses'])
+      $deliveries = Delivery::with(['bus','driver','logs','expenses','user'])
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -51,7 +54,9 @@ class DeliveryController extends Controller
             'arrival_at' => 'nullable|date|after:departure_at',
         ]);
 
-        
+        $data['user_id'] = Auth::id();
+
+$delivery = Delivery::create($data);
 
         $delivery = Delivery::create($data);
 
@@ -68,15 +73,23 @@ class DeliveryController extends Controller
 
 public function show(Delivery $delivery)
 {
-    $delivery->load([
-        'bus',
-        'driver',
-        'logs',
-        'expenses',
-    ]);
+   $delivery->load([
+    'bus',
+    'driver',
+    'logs',
+    'expenses',
+    'payments.user'
+]);
 
-    // 🔴 AJOUT OBLIGATOIRE
-    $delivery->total_expenses = $delivery->expenses->sum('amount');
+$delivery->total_paid = $delivery->payments->sum('amount');
+$delivery->balance = $delivery->price - $delivery->total_paid;
+
+$delivery->payment_status = match(true) {
+    $delivery->total_paid >= $delivery->price => 'paid',
+    $delivery->total_paid > 0 => 'partial',
+    default => 'unpaid'
+};
+$delivery->total_expenses = $delivery->expenses->sum('amount');
 
     return Inertia::render('Delivery/DeliveryShow', [
         'delivery' => $delivery,
@@ -161,4 +174,31 @@ public function totalByType($deliveryId)
         return redirect()->back()
             ->with('success', 'Log ajouté et statut mis à jour.');
     }
+
+ 
+
+public function addPayment(Request $request, Delivery $delivery)
+{
+    $data = $request->validate([
+        'amount' => 'required|numeric|min:1',
+        'method' => 'nullable|string|max:50',
+        'note' => 'nullable|string|max:255',
+    ]);
+
+    $data['delivery_id'] = $delivery->id;
+    $data['user_id'] = Auth::id();
+
+    DeliveryPayment::create($data);
+
+    return back()->with('success','Paiement ajouté.');
+}
+
+public function invoicePdf(Delivery $delivery)
+{
+    $delivery->load(['driver','bus','payments','expenses']);
+
+    $pdf = Pdf::loadView('pdf.delivery_invoice', compact('delivery'));
+
+    return $pdf->download("Facture_Livraison_{$delivery->id}.pdf");
+}
 }
