@@ -25,6 +25,13 @@ export default function ParcelDetail({ parcel }) {
   const amount = Number(parcel.price) || 0;
   const remainingAmount = Number(parcel.remaining_amount) || 0;
 
+    const formatNumberPDF = (num) => {
+  if (num === null || num === undefined) return "0";
+  const parts = Number(num).toFixed(2).split("."); // 2 décimales
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " "); // séparateur milliers
+  return parts.join(","); // décimales séparées par ","
+};
+
   const handleDownloadPDF = async () => {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const BLUE_FL = [26, 35, 126]; // #1A237E
@@ -75,7 +82,7 @@ export default function ParcelDetail({ parcel }) {
     doc.rect(20, y, 170, 20, "F");
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text(`TOTAL PAYÉ: ${amount.toLocaleString()} FCFA`, 105, y + 13, { align: "center" });
+    doc.text(`TOTAL PAYÉ: ${formatNumberPDF(amount)} FCFA`, 105, y + 13, { align: "center" });
 
     doc.setFontSize(8);
     doc.text("Merci de votre confiance en FasoLogistique", 105, 285, { align: "center" });

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import GuestLayout from '@/Layouts/GuestLayout';
+
 import {
   Box, Card, CardHeader, CardContent, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Typography, Button,
@@ -16,9 +17,11 @@ import {
   Search as SearchIcon,
   Payments as PaymentsIcon
 } from '@mui/icons-material';
+
 import { indigo } from '@mui/material/colors';
 
 export default function Index({ parcels, filters }) {
+
   const [parPage, setParPage] = useState(filters?.per_page || 10);
   const [tracking, setTracking] = useState(filters?.tracking || '');
   const [status, setStatus] = useState(filters?.status || '');
@@ -26,15 +29,8 @@ export default function Index({ parcels, filters }) {
   const [date, setDate] = useState(filters?.date || '');
 
   const filtrer = () => {
-    Inertia.get(
-      route('parcels.index'),
-      {
-        per_page: parPage,
-        tracking,
-        status,
-        sender_phone: senderPhone,
-        date,
-      },
+    Inertia.get(route('parcels.index'),
+      { per_page: parPage, tracking, status, sender_phone: senderPhone, date },
       { preserveState: true }
     );
   };
@@ -46,25 +42,20 @@ export default function Index({ parcels, filters }) {
   };
 
   const handlePage = (page) => {
-    Inertia.get(
-      route('parcels.index'),
-      {
-        per_page: parPage,
-        tracking,
-        status,
-        sender_phone: senderPhone,
-        date,
-        page,
-      },
+    Inertia.get(route('parcels.index'),
+      { per_page: parPage, tracking, status, sender_phone: senderPhone, date, page },
       { preserveState: true }
     );
   };
 
   return (
     <GuestLayout>
+
       <Box sx={{ p: { xs: 1, md: 3 } }}>
+
         <Card elevation={0} sx={{ borderRadius: 4, border: '1px solid #E0E0E0' }}>
-          {/* HEADER */}
+
+          {/* HEADER RESPONSIVE */}
           <CardHeader
             sx={{ bgcolor: '#F8F9FA', py: 3 }}
             title={
@@ -73,14 +64,14 @@ export default function Index({ parcels, filters }) {
               </Typography>
             }
             action={
-              <Stack spacing={1} direction="row">
+              <Stack direction="row" spacing={1} flexWrap="wrap">
                 <Button
                   variant="contained"
                   sx={{ bgcolor: indigo[900] }}
                   startIcon={<AddIcon />}
                   onClick={() => Inertia.get(route('parcels.create'))}
                 >
-                  Nouveau colis
+                  Nouveau
                 </Button>
 
                 <Button
@@ -94,49 +85,36 @@ export default function Index({ parcels, filters }) {
             }
           />
 
-          {/* FILTRES */}
           <CardContent>
+
+            {/* FILTRES RESPONSIVE */}
             <Paper sx={{ p: 2, mb: 3, bgcolor: '#F4F7FA', borderRadius: 3 }} elevation={0}>
               <Box
                 component="form"
-                display="flex"
-                flexWrap="wrap"
-                gap={2}
-                alignItems="flex-end"
-                onSubmit={(e) => { e.preventDefault(); filtrer(); }}
+                onSubmit={(e)=>{e.preventDefault();filtrer();}}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: '1fr 1fr',
+                    md: '2fr 2fr 1.5fr 1.5fr 1fr auto'
+                  },
+                  gap: 2
+                }}
               >
-                <TextField
-                  label="Tracking"
-                  value={tracking}
-                  onChange={(e) => setTracking(e.target.value)}
-                  size="small"
-                />
-
-                <TextField
-                  label="Téléphone expéditeur"
-                  value={senderPhone}
-                  onChange={(e) => setSenderPhone(e.target.value)}
-                  size="small"
-                />
+                <TextField label="Tracking" value={tracking} onChange={(e)=>setTracking(e.target.value)} size="small" />
+                <TextField label="Téléphone expéditeur" value={senderPhone} onChange={(e)=>setSenderPhone(e.target.value)} size="small" />
 
                 <TextField
                   label="Date"
                   type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={(e)=>setDate(e.target.value)}
                   size="small"
-                  sx={{ width: 180 }}
-                  InputLabelProps={{ shrink: true }}
+                  InputLabelProps={{ shrink:true }}
                 />
 
-                <TextField
-                  select
-                  label="Statut"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  size="small"
-                  sx={{ width: 180 }}
-                >
+                <TextField select label="Statut" value={status} onChange={(e)=>setStatus(e.target.value)} size="small">
                   <MenuItem value="">Tous</MenuItem>
                   <MenuItem value="pending">En attente</MenuItem>
                   <MenuItem value="in_transit">En transit</MenuItem>
@@ -147,132 +125,135 @@ export default function Index({ parcels, filters }) {
                   label="Lignes"
                   type="number"
                   value={parPage}
-                  onChange={(e) => setParPage(Math.max(1, Number(e.target.value)))}
+                  onChange={(e)=>setParPage(Math.max(1,Number(e.target.value)))}
                   size="small"
-                  sx={{ width: 90 }}
                 />
 
-                <Button
-                  variant="contained"
-                  type="submit"
-                  startIcon={<SearchIcon />}
-                  sx={{ bgcolor: indigo[500] }}
-                >
+                <Button type="submit" variant="contained" startIcon={<SearchIcon />} sx={{ bgcolor: indigo[500] }}>
                   Rechercher
                 </Button>
               </Box>
             </Paper>
 
-            {/* TABLEAU */}
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #EEE' }}>
-              <Table>
+            {/* TABLE RESPONSIVE */}
+            <TableContainer
+              component={Paper}
+              elevation={0}
+              sx={{ border:'1px solid #EEE', overflowX:'auto' }}
+            >
+              <Table size="small">
+
                 <TableHead sx={{ bgcolor: indigo[900] }}>
                   <TableRow>
-                    {[
-                      'Tracking', 'Expéditeur', 'Destinataire', 'Poids',
-                      'Montant', 'Payé', 'Reste', 'Paiement', 'Statut', 'Actions'
-                    ].map((h) => (
-                      <TableCell key={h} sx={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
-                        {h}
-                      </TableCell>
-                    ))}
+                    <TableCell sx={{color:'white'}}>Tracking</TableCell>
+                    <TableCell sx={{color:'white'}}>Expéditeur</TableCell>
+                    <TableCell sx={{color:'white'}}>Destinataire</TableCell>
+
+                    <TableCell sx={{color:'white', display:{xs:'none',sm:'table-cell'}}}>
+                      Poids
+                    </TableCell>
+
+                    <TableCell sx={{color:'white'}}>Montant</TableCell>
+
+                    <TableCell sx={{color:'white', display:{xs:'none',md:'table-cell'}}}>
+                      Payé
+                    </TableCell>
+
+                    <TableCell sx={{color:'white', display:{xs:'none',md:'table-cell'}}}>
+                      Reste
+                    </TableCell>
+
+                    <TableCell sx={{color:'white'}}>Paiement</TableCell>
+                    <TableCell sx={{color:'white'}}>Statut</TableCell>
+                    <TableCell sx={{color:'white'}}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
 
                 <TableBody>
-                  {parcels?.data?.length ? parcels.data.map((colis) => (
-                    <TableRow key={colis.id} hover>
-                      <TableCell>{colis.tracking_number}</TableCell>
-                      <TableCell>{colis.sender_name}</TableCell>
-                      <TableCell>{colis.recipient_name}</TableCell>
-                      <TableCell>{colis.weight_kg} kg</TableCell>
+                  {parcels?.data?.length ? parcels.data.map((c)=>(
+                    <TableRow key={c.id} hover>
 
-                      <TableCell>{Number(colis.price).toLocaleString()} FCFA</TableCell>
-                      <TableCell>{Number(colis.paid_amount || 0).toLocaleString()} FCFA</TableCell>
-                      <TableCell>{Number(colis.remaining_amount || colis.price).toLocaleString()} FCFA</TableCell>
+                      <TableCell>{c.tracking_number}</TableCell>
+                      <TableCell>{c.sender_name}</TableCell>
+                      <TableCell>{c.recipient_name}</TableCell>
 
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={
-                            colis.payment_type === 'partial' ? 'Partiel' :
-                            colis.payment_type === 'full' ? 'Soldé' : 'Non payé'
-                          }
-                          sx={{
-                            fontWeight: 'bold',
-                            bgcolor:
-                              colis.payment_type === 'partial' ? '#FFF3E0' :
-                              colis.payment_type === 'full' ? '#E8F5E9' : '#FBE9E7',
-                            color:
-                              colis.payment_type === 'partial' ? '#E65100' :
-                              colis.payment_type === 'full' ? '#2E7D32' : '#BF360C'
-                          }}
-                        />
+                      <TableCell sx={{display:{xs:'none',sm:'table-cell'}}}>
+                        {c.weight_kg} kg
+                      </TableCell>
+
+                      <TableCell>{Number(c.price).toLocaleString()} FCFA</TableCell>
+
+                      <TableCell sx={{display:{xs:'none',md:'table-cell'}}}>
+                        {Number(c.paid_amount||0).toLocaleString()}
+                      </TableCell>
+
+                      <TableCell sx={{display:{xs:'none',md:'table-cell'}}}>
+                        {Number(c.remaining_amount||c.price).toLocaleString()}
                       </TableCell>
 
                       <TableCell>
-                        <Chip
-                          size="small"
+                        <Chip size="small"
                           label={
-                            colis.status === 'pending' ? 'En attente' :
-                            colis.status === 'in_transit' ? 'En transit' : 'Livré'
+                            c.payment_type==='partial'?'Partiel':
+                            c.payment_type==='full'?'Soldé':'Non payé'
                           }
                         />
                       </TableCell>
 
-                      <TableCell align="right">
+                      <TableCell>
+                        <Chip size="small"
+                          label={
+                            c.status==='pending'?'En attente':
+                            c.status==='in_transit'?'En transit':'Livré'
+                          }
+                        />
+                      </TableCell>
+
+                      <TableCell>
                         <Stack direction="row" spacing={0.5}>
-                          <Tooltip title="Détails">
-                            <IconButton size="small" onClick={() => Inertia.get(route('parcels.show', colis.id))}>
-                              <VisibilityIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <IconButton size="small" onClick={()=>Inertia.get(route('parcels.show',c.id))}>
+                            <VisibilityIcon fontSize="small"/>
+                          </IconButton>
 
-                          {colis.remaining_amount > 0 && (
-                            <Tooltip title="Compléter paiement">
-                              <IconButton
-                                size="small"
-                                color="warning"
-                                onClick={() => Inertia.get(route('parcels.payment.edit', colis.id))}
-                              >
-                                <PaymentsIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
+                          {c.remaining_amount>0 && (
+                            <IconButton size="small" color="warning"
+                              onClick={()=>Inertia.get(route('parcels.payment.edit',c.id))}>
+                              <PaymentsIcon fontSize="small"/>
+                            </IconButton>
                           )}
 
-                          <Tooltip title="Modifier">
-                            <IconButton size="small" onClick={() => Inertia.get(route('parcels.edit', colis.id))}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <IconButton size="small" onClick={()=>Inertia.get(route('parcels.edit',c.id))}>
+                            <EditIcon fontSize="small"/>
+                          </IconButton>
 
-                          <Tooltip title="Supprimer">
-                            <IconButton size="small" color="error" onClick={() => handleDelete(colis.id)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <IconButton size="small" color="error" onClick={()=>handleDelete(c.id)}>
+                            <DeleteIcon fontSize="small"/>
+                          </IconButton>
                         </Stack>
                       </TableCell>
+
                     </TableRow>
-                  )) : (
+                  )):(
                     <TableRow>
-                      <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={10} align="center" sx={{py:4}}>
                         Aucun colis enregistré
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
+
               </Table>
             </TableContainer>
 
             {/* PAGINATION */}
             <Box mt={4} display="flex" justifyContent="center">
               <Pagination
-                count={parcels?.last_page || 1}
-                page={parcels?.current_page || 1}
-                onChange={(e, page) => handlePage(page)}
+                count={parcels?.last_page||1}
+                page={parcels?.current_page||1}
+                onChange={(e,page)=>handlePage(page)}
               />
             </Box>
+
           </CardContent>
         </Card>
       </Box>

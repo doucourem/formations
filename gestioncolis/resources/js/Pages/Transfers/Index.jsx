@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Inertia } from "@inertiajs/inertia";
-import GuestLayout from "@/Layouts/GuestLayout"; // 🔄 Changé ici
+import GuestLayout from "@/Layouts/GuestLayout";
 
 import {
   Box, Card, CardHeader, CardContent, Table, TableBody,
@@ -12,11 +12,11 @@ import {
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Paid as PaidIcon,
   Visibility as VisibilityIcon
 } from "@mui/icons-material";
-import { green, indigo } from '@mui/material/colors';
+
+import { green, indigo } from "@mui/material/colors";
 
 export default function Index({ transfers, filters }) {
   const [perPage, setPerPage] = useState(filters?.per_page || 10);
@@ -41,8 +41,10 @@ export default function Index({ transfers, filters }) {
 
   const handlePayment = async (transferId, amount) => {
     if (!confirm("Confirmer le paiement ?")) return;
+
     try {
       const token = document.querySelector('meta[name="csrf-token"]').content;
+
       const response = await fetch(route("payment.process"), {
         method: "POST",
         headers: {
@@ -54,19 +56,22 @@ export default function Index({ transfers, filters }) {
       });
 
       const data = await response.json();
+
       if (data.success) {
         alert("Paiement effectué !");
         Inertia.reload();
       } else {
         alert("Échec : " + data.message);
       }
-    } catch (error) {
+    } catch {
       alert("Erreur réseau");
     }
   };
 
   return (
-    <GuestLayout> {/* 🔑 Utilise maintenant le Layout avec Sidebar */}
+    <GuestLayout>
+
+      {/* TITRE */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight="bold" color={indigo[900]}>
           Transferts d'argent
@@ -76,94 +81,149 @@ export default function Index({ transfers, filters }) {
         </Typography>
       </Box>
 
-      <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid #E0E0E0' }}>
+      <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E0E0E0" }}>
+
+        {/* HEADER RESPONSIVE */}
         <CardHeader
           title={<Typography variant="h6">Liste des transactions</Typography>}
           action={
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               <Button
                 variant="contained"
                 sx={{ bgcolor: indigo[700] }}
                 startIcon={<AddIcon />}
                 onClick={() => Inertia.get(route("transfers.create"))}
               >
-                Nouveau transfert
+                Nouveau
               </Button>
+
               <Button
                 variant="outlined"
-                color="inherit"
                 startIcon={<VisibilityIcon />}
                 onClick={() => Inertia.get(route("transfers.daily"))}
               >
-                Journalier
+                Journal
               </Button>
             </Box>
           }
         />
 
         <CardContent>
-          {/* Section Filtres */}
-          <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap", p: 2, bgcolor: '#F8F9FA', borderRadius: 2 }}>
-            <TextField size="small" label="Expéditeur" value={sender} onChange={(e) => setSender(e.target.value)} sx={{ flexGrow: 1 }} />
-            <TextField size="small" label="Destinataire" value={receiver} onChange={(e) => setReceiver(e.target.value)} sx={{ flexGrow: 1 }} />
-            <TextField size="small" label="Code" value={code} onChange={(e) => setCode(e.target.value)} sx={{ width: 150 }} />
-            <TextField
-              select size="small" label="Statut" value={status}
-              onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 150 }}
-            >
+
+          {/* FILTRES RESPONSIVE */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr 1fr",
+                md: "2fr 2fr 1fr 1fr auto"
+              },
+              gap: 2,
+              mb: 3,
+              p: 2,
+              bgcolor: "#F8F9FA",
+              borderRadius: 2
+            }}
+          >
+            <TextField size="small" label="Expéditeur" value={sender} onChange={(e) => setSender(e.target.value)} />
+            <TextField size="small" label="Destinataire" value={receiver} onChange={(e) => setReceiver(e.target.value)} />
+            <TextField size="small" label="Code" value={code} onChange={(e) => setCode(e.target.value)} />
+
+            <TextField select size="small" label="Statut" value={status} onChange={(e) => setStatus(e.target.value)}>
               <MenuItem value="">Tous</MenuItem>
               <MenuItem value="pending">En attente</MenuItem>
               <MenuItem value="ready">Prêt</MenuItem>
               <MenuItem value="withdrawn">Retiré</MenuItem>
             </TextField>
-            <Button variant="contained" onClick={filtrer} sx={{ bgcolor: indigo[500] }}>Filtrer</Button>
+
+            <Button variant="contained" onClick={filtrer} sx={{ bgcolor: indigo[500] }}>
+              Filtrer
+            </Button>
           </Box>
 
-          {/* Tableau */}
-          <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #EEE' }}>
+          {/* TABLE RESPONSIVE */}
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{ border: "1px solid #EEE", overflowX: "auto" }}
+          >
             <Table>
               <TableHead sx={{ bgcolor: indigo[50] }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: "bold" }}>Réf</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Expéditeur</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Destinataire</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Montant</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Code</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Statut</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Paiement</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: "bold" }}>Actions</TableCell>
+                  <TableCell>#</TableCell>
+                  <TableCell>Expéditeur</TableCell>
+                  <TableCell>Destinataire</TableCell>
+                  <TableCell>Montant</TableCell>
+
+                  <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                    Code
+                  </TableCell>
+
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                    Statut
+                  </TableCell>
+
+                  <TableCell>Paiement</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
+
               <TableBody>
                 {transfers.data.map((t) => (
                   <TableRow key={t.id} hover>
                     <TableCell>#{t.id}</TableCell>
                     <TableCell>{t.sender_name}</TableCell>
                     <TableCell>{t.receiver_name}</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>{t.amount.toLocaleString()} CFA</TableCell>
-                    <TableCell><Chip label={t.code} size="small" sx={{ fontWeight: 'bold', bgcolor: '#FFF9C4' }} /></TableCell>
-                    <TableCell>
-                       <Chip 
-                        label={t.status} 
-                        size="small"
-                        color={t.status === 'withdrawn' ? 'success' : t.status === 'pending' ? 'warning' : 'primary'}
-                       />
+
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      {t.amount.toLocaleString()} CFA
                     </TableCell>
+
+                    <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                      <Chip label={t.code} size="small" sx={{ bgcolor: "#FFF9C4", fontWeight: "bold" }} />
+                    </TableCell>
+
+                    <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                      <Chip
+                        label={t.status}
+                        size="small"
+                        color={
+                          t.status === "withdrawn"
+                            ? "success"
+                            : t.status === "pending"
+                            ? "warning"
+                            : "primary"
+                        }
+                      />
+                    </TableCell>
+
                     <TableCell>
                       {t.paid ? (
-                        <Chip icon={<PaidIcon />} label="Payé" size="small" sx={{ bgcolor: green[100], color: green[800] }} />
+                        <Chip icon={<PaidIcon />} label="Payé" size="small"
+                          sx={{ bgcolor: green[100], color: green[800] }} />
                       ) : (
                         <Button
-                          variant="contained" color="success" size="small"
+                          variant="contained"
+                          color="success"
+                          size="small"
                           onClick={() => handlePayment(t.id, t.amount)}
                         >
                           Payer
                         </Button>
                       )}
                     </TableCell>
+
                     <TableCell align="right">
-                      <IconButton size="small" color="info" onClick={() => Inertia.get(route("transfers.show", t.id))}><VisibilityIcon fontSize="small" /></IconButton>
-                      <IconButton size="small" color="primary" onClick={() => Inertia.get(route("transfers.edit", t.id))}><EditIcon fontSize="small" /></IconButton>
+                      <IconButton size="small" color="info"
+                        onClick={() => Inertia.get(route("transfers.show", t.id))}>
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+
+                      <IconButton size="small" color="primary"
+                        onClick={() => Inertia.get(route("transfers.edit", t.id))}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -171,11 +231,19 @@ export default function Index({ transfers, filters }) {
             </Table>
           </TableContainer>
 
+          {/* PAGINATION */}
           <Box mt={3} display="flex" justifyContent="center">
-            <Pagination count={transfers.last_page} page={transfers.current_page} onChange={(e, page) => handlePage(page)} color="primary" />
+            <Pagination
+              count={transfers.last_page}
+              page={transfers.current_page}
+              onChange={(e, page) => handlePage(page)}
+              color="primary"
+            />
           </Box>
+
         </CardContent>
       </Card>
+
     </GuestLayout>
   );
 }

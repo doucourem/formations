@@ -81,7 +81,7 @@ public function store(Request $request)
         $data = $request->validate([
             'sender_id' => 'required|exists:senders,id',
             'receiver_id' => 'required|exists:receivers,id',
-            'third_party_id' => 'required|exists:third_parties,id',
+            'third_party_id' => 'nullable|exists:third_parties,id',
             'amount' => 'required|numeric|min:1',
             'fees' => 'nullable|numeric|min:0',
         ]);
@@ -128,7 +128,7 @@ public function store(Request $request)
         $data = $request->validate([
             'sender_id' => 'required|exists:senders,id',
             'receiver_id' => 'required|exists:receivers,id',
-            'third_party_id' => 'required|exists:third_parties,id',
+            'third_party_id' => 'nullable|exists:third_parties,id',
             'amount' => 'required|numeric|min:1',
             'fees' => 'nullable|numeric|min:0',
             'status' => 'nullable|string',

@@ -27,7 +27,12 @@ const STATUS_FR = {
     if (n > 0) r += conv(n);
     return r.trim() || "zéro";
   };
-
+ const formatNumberPDF = (num) => {
+  if (num === null || num === undefined) return "0";
+  const parts = Number(num).toFixed(2).split("."); // 2 décimales
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " "); // séparateur milliers
+  return parts.join(","); // décimales séparées par ","
+};
   const getBase64ImageFromURL = (url) =>
     new Promise((resolve, reject) => {
       const img = new Image();
@@ -91,7 +96,7 @@ y += 6;
     doc.text(text, (80 - textWidth)/2, y); y += 6;
 
     doc.setFont("helvetica", "italic"); doc.setFontSize(8);
-    const words = doc.splitTextToSize(`${numberToWordsFR(amount)} francs CFA`, 70);
+    const words = doc.splitTextToSize(`${formatNumberPDF(amount)} francs CFA`, 70);
     doc.text(words, 5, y); y += words.length*4 + 4;
 
     // QR Code

@@ -45,19 +45,22 @@ export default function Create({ senders: initialSenders, receivers: initialRece
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const submitTransfer = () => {
-    const { sender_id, receiver_id, third_party_id, amount, fees } = form;
-    if (!sender_id || !receiver_id || !third_party_id || !amount) {
-      alert("Veuillez remplir tous les champs obligatoires !");
-      return;
-    }
+ const submitTransfer = () => {
+  const { sender_id, receiver_id, amount, fees } = form;
 
-    Inertia.post(route("transfers.store"), {
-      ...form,
-      amount: parseFloat(amount),
-      fees: parseFloat(fees)
-    });
-  };
+  // ❌ tiers retiré des champs obligatoires
+  if (!sender_id || !receiver_id || !amount) {
+    alert("Expéditeur, destinataire et montant sont obligatoires !");
+    return;
+  }
+
+  Inertia.post(route("transfers.store"), {
+    ...form,
+    third_party_id: form.third_party_id || null, // 🔹 envoie null si vide
+    amount: parseFloat(amount),
+    fees: parseFloat(fees || 0)
+  });
+};
 
   // Fonctions pour ajouter chaque type
   const addSender = () => {
@@ -125,8 +128,21 @@ export default function Create({ senders: initialSenders, receivers: initialRece
           <Box display="flex" flexDirection="column" gap={2}>
             {renderSelect("Expéditeur", "sender_id", senders, () => setOpenSenderDialog(true))}
             {renderSelect("Destinataire", "receiver_id", receivers, () => setOpenReceiverDialog(true))}
-            {renderSelect("Tiers", "third_party_id", thirdParties, () => setOpenThirdDialog(true))}
-
+             <TextField
+  select
+  label="Tiers"
+  name="third_party_id"
+  value={form.third_party_id}
+  onChange={handleChange}
+  sx={{ flex: 1 }}
+>
+  <MenuItem value="">Aucun</MenuItem>   {/* 👈 important */}
+  {thirdParties.map(item => (
+    <MenuItem key={item.id} value={item.id}>
+      {item.name} - {item.phone}
+    </MenuItem>
+  ))}
+</TextField>
             <TextField
               label="Montant"
               type="number"
