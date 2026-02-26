@@ -23,7 +23,8 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
+  import { Select, MenuItem } from "@mui/material";
+import { Inertia } from "@inertiajs/inertia";
 // 👉 LOGO
 import Logo from "@/assets/logo.png";
 
@@ -249,13 +250,36 @@ const handleDownloadPDF = () => {
                         <TableCell>{p.description}</TableCell>
                         <TableCell>{p.weight}</TableCell>
                         <TableCell>{p.price.toLocaleString()} FCFA</TableCell>
-                        <TableCell>
-                          <Chip
+                       
+                      
+
+
+<TableCell>
+  <Chip
                             label={statusLabelFR(p.status)}
                             color={statusColor(statusLabelFR(p.status))}
                             size="small"
                           />
-                        </TableCell>
+  <Select
+    value={statusLabelFR(p.status)}
+    size="small"
+    onChange={(e) => {
+      const newStatus = e.target.value;
+      // Appel Inertia pour changer le statut
+      Inertia.patch(route('parcels.update-status', p.id), { status: newStatus }, {
+        onSuccess: () => {
+          // Optionnel: toast ou refresh
+          console.log(`Statut du colis ${p.id} changé en ${newStatus}`);
+        },
+      });
+    }}
+    sx={{ minWidth: 110 }}
+  >
+    <MenuItem value="pending">En attente</MenuItem>
+    <MenuItem value="in_transit">En transit</MenuItem>
+    <MenuItem value="delivered">Livré</MenuItem>
+  </Select>
+</TableCell>
                       </TableRow>
                     ))
                   ) : (

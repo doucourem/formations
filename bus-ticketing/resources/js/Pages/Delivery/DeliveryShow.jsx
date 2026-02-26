@@ -201,63 +201,72 @@ const handleExportPDF = () => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const marginLeft = 14;
   const marginRight = 14;
+  let y = 20;
 
   // -------------------------------
-  // LOGO + TITRE
+  // LOGO + TITRE CENTRÉ
   // -------------------------------
-  doc.addImage(Logo, "PNG", marginLeft, 10, 30, 20); // Logo à gauche
-  doc.setFontSize(18);
+  doc.addImage(Logo, "PNG", marginLeft, 10, 30, 20);
+  doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("Détails de la livraison", marginLeft + 35, 20); // titre à côté du logo
+  doc.text("Livraison 📦", pageWidth / 2, 20, { align: "center" });
+
+  doc.line(marginLeft, 35, pageWidth - marginRight, 35);
 
   // -------------------------------
-  // TABLEAU PRINCIPAL
+  // INFOS PRINCIPALES 2 COLS
   // -------------------------------
-  const totalSales = delivery.price ?? 0;
-  const netResult = totalSales - (totalExpenses ?? 0);
+  const infoRows = [
+    ["Véhicule", delivery.bus?.registration_number || "—"],
+    ["Chauffeur", `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`],
+    ["Produit", delivery.product_name],
+    ["Lot", delivery.product_lot || "—"],
+    ["Quantité chargée", delivery.quantity_loaded],
+    ["Quantité livrée", delivery.quantity_delivered ?? "—"],
+    ["Distance (km)", delivery.distance_km ?? "—"],
+    ["Statut", getStatusProps(delivery.status).label],
+    ["Départ", formatDate(delivery.departure_at)],
+    ["Arrivée", formatDate(delivery.arrival_at)],
+  ];
 
-  autoTable(doc, {
-    startY: 35,
-    head: [["Champ", "Valeur"]],
-    body: [
-      ["Véhicule", delivery.bus?.registration_number || "—"],
-      [
-        "Chauffeur",
-        `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`,
-      ],
-      ["Produit", delivery.product_name],
-      ["Lot", delivery.product_lot || "—"],
-      ["Quantité chargée", delivery.quantity_loaded],
-      ["Quantité livrée", delivery.quantity_delivered ?? "—"],
-      ["Distance (km)", delivery.distance_km ?? "—"],
-      ["Prix total ventes", formatMoney(totalSales)],
-      ["Total dépenses", formatMoney(totalExpenses)],
-      ["Résultat net", formatMoney(netResult)],
-      ["Statut", statusProps.label],
-      ["Départ", formatDate(delivery.departure_at)],
-      ["Arrivée", formatDate(delivery.arrival_at)],
-    ],
-    styles: {
-      fontSize: 10,
-      cellPadding: 2,
-      valign: "middle",
-    },
-    headStyles: {
-      fillColor: [21, 101, 192],
-      textColor: 255,
-      fontStyle: "bold",
-    },
-    alternateRowStyles: {
-      fillColor: [245, 247, 250],
-    },
+  const colWidth = (pageWidth - marginLeft - marginRight) / 2;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  for (let i = 0; i < infoRows.length; i += 2) {
+    const [label1, value1] = infoRows[i];
+    const [label2, value2] = infoRows[i + 1] || ["", ""];
+    doc.text(`${label1}: ${value1}`, marginLeft, y);
+    if (label2) doc.text(`${label2}: ${value2}`, marginLeft + colWidth, y);
+    y += 6;
+  }
+  y += 4;
+
+  // -------------------------------
+  // RÉSUMÉ FINANCIER
+  // -------------------------------
+  const totalExpenses = Number(delivery.total_expenses || 0);
+  const netResult = Number(delivery.price || 0) - totalExpenses;
+
+  const financeRows = [
+    ["Prix total ventes", formatMoney(delivery.price)],
+    ["Total dépenses", formatMoney(totalExpenses)],
+    ["Résultat net", formatMoney(netResult)],
+  ];
+
+  financeRows.forEach(([label, value]) => {
+    doc.setFont("helvetica", "bold");
+    doc.text(label, marginLeft, y);
+    doc.text(value, pageWidth - marginRight, y, { align: "right" });
+    y += 6;
   });
+  y += 6;
 
   // -------------------------------
-  // TABLEAU DES DÉPENSES (si existant)
+  // DÉPENSES
   // -------------------------------
   if (delivery.expenses?.length) {
     autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
+      startY: y,
       head: [["Type", "Montant (CFA)", "Description", "Date"]],
       body: delivery.expenses.map((e) => [
         e.type,
@@ -265,32 +274,41 @@ const handleExportPDF = () => {
         e.description || "—",
         formatDate(e.created_at),
       ]),
-      styles: {
-        fontSize: 10,
-        cellPadding: 2,
-        valign: "middle",
-      },
-      headStyles: {
-        fillColor: [21, 101, 192],
-        textColor: 255,
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: [245, 247, 250],
-      },
+      styles: { fontSize: 10, cellPadding: 2 },
+      headStyles: { fillColor: [21, 101, 192], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
     });
+    y = doc.lastAutoTable.finalY + 10;
   }
 
   // -------------------------------
-  // TOTAL NET AU DESSUS DU TABLEAU (optionnel)
+  // PAIEMENTS
   // -------------------------------
-  const finalY = doc.lastAutoTable.finalY + 12;
-  const totalText = `Résultat net : ${formatMoney(netResult)} CFA`;
-  const textWidth = doc.getTextWidth(totalText);
-  doc.setFillColor(245, 247, 250);
-  doc.rect(pageWidth - marginRight - textWidth - 6, finalY - 6, textWidth + 4, 8, "F");
-  doc.setFont("helvetica", "bold");
-  doc.text(totalText, pageWidth - marginRight, finalY, { align: "right" });
+  if (delivery.payments?.length) {
+    autoTable(doc, {
+      startY: y,
+      head: [["Montant", "Méthode", "Note", "Utilisateur", "Date"]],
+      body: delivery.payments.map((p) => [
+        formatMoney(p.amount),
+        p.method,
+        p.note || "—",
+        p.user?.name || p.user_id || "—",
+        formatDate(p.created_at),
+      ]),
+      styles: { fontSize: 10, cellPadding: 2 },
+      headStyles: { fillColor: [21, 101, 192], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
+
+  // -------------------------------
+  // SIGNATURE
+  // -------------------------------
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("Signature & Cachet", marginLeft, y);
+  doc.rect(marginLeft, y + 3, 60, 25);
 
   // -------------------------------
   // EXPORT PDF

@@ -279,7 +279,7 @@ public function show($id)
     // 🔹 Totaux
     $totalPaid = $rental->payments->sum('amount');
     $totalExpenses = $rental->expenses->sum('amount');
-    $balance = $rental->price - $totalPaid;
+    $balance = $rental->rental_price - $totalPaid;
 
     // 🔹 Statut paiement
     $paymentStatus = match(true) {
@@ -306,7 +306,7 @@ public function show($id)
             'status' => $rental->status,
 
             // 🔹 FINANCIER
-            'price' => $rental->price,
+            'price' => $rental->rental_price,
             'total_paid' => $totalPaid,
             'balance' => $balance,
             'payment_status' => $paymentStatus,

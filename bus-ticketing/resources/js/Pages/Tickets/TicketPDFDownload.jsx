@@ -54,7 +54,7 @@ const TicketThermal80 = ({ ticket }) => {
     <Document>
       <Page size={[80 * 3.78, 200]} style={styles.page}>
         <View style={styles.ticketContainer}>
-          <Text style={styles.header}>🚌 Ticket Bus #{ticket?.id || "—"}</Text>
+          <Text style={styles.header}> Ticket Bus #{ticket?.id || "—"}</Text>
 
           <View style={styles.row}>
             <Text style={styles.label}>Client:</Text>

@@ -68,7 +68,7 @@ export default function Index({ parcels, filters }) {
         <CardHeader
           title={<Typography variant="h5">📦 Liste des Colis</Typography>}
           action={
-           <Stack spacing={2} direction="row">
+        <Stack spacing={2} direction="row">
   <Button
     variant="contained"
     color="primary"
@@ -90,6 +90,14 @@ export default function Index({ parcels, filters }) {
     onClick={() => window.location.href = route('parcels.export-detailed')}
   >
     Export Détail Excel
+  </Button>
+
+  <Button
+    variant="outlined"
+    color="secondary"
+    onClick={() => window.location.href = route('parcels.daily-summary')}
+  >
+    📊 Résumé par jour
   </Button>
 </Stack>
 

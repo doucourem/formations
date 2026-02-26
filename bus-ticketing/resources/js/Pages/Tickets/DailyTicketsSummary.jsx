@@ -13,6 +13,10 @@ import {
   TableCell,
   TableContainer,
   TextField,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import GuestLayout from "@/Layouts/GuestLayout";
 
@@ -27,16 +31,41 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-export default function DailyTicketsSummary({ tickets = [] }) {
+export default function TicketsSummary({ tickets = [] }) {
   const { auth } = usePage().props;
 
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [groupBy, setGroupBy] = useState("day"); // day, month, year
 
-  // 🔹 Résumé par jour
-  const dailySummary = useMemo(() => {
-    const summary = {};
+  // 🔹 Fonction pour formater la date selon le niveau de regroupement
+  const getDateKey = (dateObj) => {
+    switch (groupBy) {
+      case "month":
+        return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}`;
+      case "year":
+        return `${dateObj.getFullYear()}`;
+      default:
+        return dateObj.toISOString().slice(0, 10); // jour
+    }
+  };
+
+  const getDisplayDate = (key) => {
+    const parts = key.split("-");
+    switch (groupBy) {
+      case "month":
+        return `${parts[1]}/${parts[0]}`; // MM/YYYY
+      case "year":
+        return parts[0];
+      default:
+        return new Date(key).toLocaleDateString("fr-FR"); // JJ/MM/YYYY
+    }
+  };
+
+  // 🔹 Résumé calculé
+  const summary = useMemo(() => {
+    const summaryObj = {};
 
     tickets.forEach(ticket => {
       if (!ticket.created_at) return;
@@ -44,62 +73,42 @@ export default function DailyTicketsSummary({ tickets = [] }) {
       const dateObj = new Date(ticket.created_at.replace(" ", "T"));
       if (isNaN(dateObj)) return;
 
-      const key = dateObj.toISOString().slice(0, 10);
-
-      if (!summary[key]) {
-        summary[key] = {
-          date: key,
-          timestamp: dateObj.getTime(),
-          count: 0,
-          total: 0,
-        };
+      const key = getDateKey(dateObj);
+      if (!summaryObj[key]) {
+        summaryObj[key] = { key, count: 0, total: 0 };
       }
 
-      summary[key].count += 1;
-      summary[key].total += Number(ticket.price) || 0;
+      summaryObj[key].count += 1;
+      summaryObj[key].total += Number(ticket.price) || 0;
     });
 
-    return Object.values(summary)
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .map(d => ({
-        ...d,
-        displayDate: new Date(d.date).toLocaleDateString("fr-FR"),
-      }));
-  }, [tickets]);
+    return Object.values(summaryObj)
+      .sort((a, b) => b.key.localeCompare(a.key))
+      .map(d => ({ ...d, displayDate: getDisplayDate(d.key) }));
+  }, [tickets, groupBy]);
 
-  // 🔍 Filtrage combiné (dates + recherche)
+  // 🔹 Filtrage combiné
   const filteredSummary = useMemo(() => {
-    return dailySummary.filter(day => {
-      // 📅 Filtre date début
-      if (startDate && day.date < startDate) return false;
-
-      // 📅 Filtre date fin
-      if (endDate && day.date > endDate) return false;
-
-      // 🔍 Recherche texte
-      if (
-        search &&
-        !day.displayDate.toLowerCase().includes(search.toLowerCase())
-      ) {
-        return false;
-      }
-
+    return summary.filter(d => {
+      if (startDate && d.key < startDate) return false;
+      if (endDate && d.key > endDate) return false;
+      if (search && !d.displayDate.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [dailySummary, startDate, endDate, search]);
+  }, [summary, startDate, endDate, search]);
 
   return (
     <GuestLayout>
       <Card elevation={3} sx={{ borderRadius: 3, p: 3 }}>
         <CardHeader
-          title={<Typography variant="h5">📊 Résumé des Tickets par Jour</Typography>}
+          title={<Typography variant="h5">📊 Résumé des Tickets</Typography>}
         />
 
         {/* 🎛️ Filtres */}
         <Box
           mb={3}
           display="grid"
-          gridTemplateColumns={{ xs: "1fr", md: "1fr 1fr 1fr" }}
+          gridTemplateColumns={{ xs: "1fr", md: "repeat(4, 1fr)" }}
           gap={2}
         >
           <TextField
@@ -119,10 +128,23 @@ export default function DailyTicketsSummary({ tickets = [] }) {
           />
 
           <TextField
-            label="🔍 Recherche (date affichée)"
+            label="🔍 Recherche"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+
+          <FormControl>
+            <InputLabel>📊 Regrouper par</InputLabel>
+            <Select
+              value={groupBy}
+              label="Regrouper par"
+              onChange={e => setGroupBy(e.target.value)}
+            >
+              <MenuItem value="day">Jour</MenuItem>
+              <MenuItem value="month">Mois</MenuItem>
+              <MenuItem value="year">Année</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
 
         {/* 📊 Graphique */}
@@ -153,11 +175,11 @@ export default function DailyTicketsSummary({ tickets = [] }) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredSummary.map(day => (
-                  <TableRow key={day.date}>
-                    <TableCell>{day.displayDate}</TableCell>
-                    <TableCell>{day.count}</TableCell>
-                    <TableCell>{day.total.toLocaleString("fr-FR")}</TableCell>
+                {filteredSummary.map(d => (
+                  <TableRow key={d.key}>
+                    <TableCell>{d.displayDate}</TableCell>
+                    <TableCell>{d.count}</TableCell>
+                    <TableCell>{d.total.toLocaleString("fr-FR")}</TableCell>
                   </TableRow>
                 ))}
 

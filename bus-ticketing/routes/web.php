@@ -162,7 +162,17 @@ Route::get('/deliveries/expenses/total-by-type',
     [DeliveryExpenseController::class, 'totalByTypeGlobal']
 )->name('delivery-expenses.total-by-type.global');
 
+// routes/web.php
 
+Route::get('/parcels/daily-summary', [ParcelController::class, 'dailySummary'])
+    ->name('parcels.daily-summary');
+
+    
+Route::patch('/parcels/{parcel}/update-status', [ParcelController::class, 'updateStatus'])
+    ->name('parcels.update-status');
+
+Route::get('/parcels/daily-summary/export', [ParcelController::class, 'exportDailySummary'])
+    ->name('parcels.daily-summary.export');
 // Routes pour gérer les dépenses des locations de véhicules
 Route::prefix('vehicle-rentals')->group(function () {
 

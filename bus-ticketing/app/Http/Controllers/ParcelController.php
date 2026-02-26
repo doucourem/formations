@@ -11,6 +11,8 @@ use Carbon\Carbon;
 use Inertia\Inertia;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Exports\DailySummaryExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ParcelController extends Controller
 {
@@ -298,4 +300,30 @@ class ParcelController extends Controller
             ]
         );
     }
+
+     public function dailySummary(Request $request)
+    {
+        $parcels = Parcel::select('created_at', 'price')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('Parcels/DailySummary', [
+            'parcels' => $parcels,
+        ]);
+    }
+
+    public function exportDailySummary()
+    {
+        return Excel::download(new DailySummaryExport, 'daily_summary.xlsx');
+    }
+    public function updateStatus(Request $request, Parcel $parcel)
+{
+    $request->validate([
+        'status' => 'required|in:pending,in_transit,delivered',
+    ]);
+    $parcel->status = $request->status;
+    $parcel->save();
+
+    return redirect()->back()->with('success', 'Statut mis à jour avec succès');
+}
 }
