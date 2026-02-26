@@ -201,21 +201,31 @@ const handleExportPDF = () => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const marginLeft = 14;
   const marginRight = 14;
-  let y = 20;
 
   // -------------------------------
-  // LOGO + TITRE CENTRÉ
+  // LOGO
   // -------------------------------
-  doc.addImage(Logo, "PNG", marginLeft, 10, 30, 20);
+  const logoWidth = 30;
+  const logoHeight = 20;
+  const logoX = marginLeft;
+  const logoY = 10;
+  doc.addImage(Logo, "PNG", logoX, logoY, logoWidth, logoHeight);
+
+  // -------------------------------
+  // TEXTE SOUS LE LOGO
+  // -------------------------------
+  const textY = logoY + logoHeight + 4; // texte collé sous le logo
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("Livraison 📦", pageWidth / 2, 20, { align: "center" });
-
-  doc.line(marginLeft, 35, pageWidth - marginRight, 35);
+  doc.text("Livraison ", marginLeft, textY); // aligné à gauche du logo
+  // Ligne sous le titre
+  const lineY = textY + 4;
+  doc.line(marginLeft, lineY, pageWidth - marginRight, lineY);
 
   // -------------------------------
   // INFOS PRINCIPALES 2 COLS
   // -------------------------------
+  let y = lineY + 6;
   const infoRows = [
     ["Véhicule", delivery.bus?.registration_number || "—"],
     ["Chauffeur", `${delivery.driver?.first_name || ""} ${delivery.driver?.last_name || ""}`],
