@@ -73,8 +73,8 @@ export default function Sidebar({ onNavigate }) {
             {
                 title: "Gestion Quotidienne",
                 items: [
-                    { text: "Réception Colis", icon: <ParcelIcon />, route: "parcels.index" },
-                    { text: "Expéditions", icon: <PaidIcon />, route: "transfers.index" },
+                    { text: "Suivi des Colis", icon: <ParcelIcon />, route: "parcels.index" },
+                    { text: "Transferts d'argent", icon: <PaidIcon />, route: "transfers.index" },
                     { text: "Répertoire Clients", icon: <ClientsIcon />, route: "third-parties.index" }
                 ]
             },

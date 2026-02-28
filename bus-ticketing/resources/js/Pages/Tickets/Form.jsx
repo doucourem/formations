@@ -86,11 +86,30 @@ export default function TicketForm({ ticket = null, trips = [] }) {
     }
   }, [data.start_stop_id, data.end_stop_id, stops]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    ticket?.id ? put(route("ticket.update", ticket.id)) : post(route("ticket.store"));
-  };
+const handleSubmit = (e) => {
+  e.preventDefault();
 
+  const seat = Number(data.seat_number);
+
+  if (!seat || seat < 1) {
+    alert("Le numéro de siège doit être un nombre valide.");
+    return;
+  }
+
+  if (seat > busCapacity) {
+    alert(`Le bus contient seulement ${busCapacity} sièges.`);
+    return;
+  }
+
+  if (occupiedSeats.includes(data.seat_number)) {
+    alert("Ce siège est déjà réservé.");
+    return;
+  }
+
+  ticket?.id
+    ? put(route("ticket.update", ticket.id))
+    : post(route("ticket.store"));
+};
   const isBusFull = soldTickets >= busCapacity;
 
   const formatStopLabel = (s) => s.toCity?.name || s.city?.name || "—";
@@ -178,16 +197,40 @@ const handleCancelReservation = async () => {
           />
 
           {/* Siège */}
-          <TextField
-            label="Numéro de siège"
-            value={data.seat_number}
-            onChange={(e) => setData("seat_number", e.target.value)}
-            fullWidth
-            disabled={isBusFull || busCapacity === 0}
-            error={!!errors.seat_number}
-            helperText={errors.seat_number || (occupiedSeats.length > 0 ? `Sièges déjà réservés : ${occupiedSeats.join(", ")}` : "")}
-          />
+<TextField
+  label="Numéro de siège"
+  value={data.seat_number}
+  onChange={(e) => {
+    const value = e.target.value;
 
+    // Autoriser uniquement les chiffres
+    if (!/^\d*$/.test(value)) return;
+
+    const seat = Number(value);
+
+    // Vérifier capacité bus
+    if (seat > busCapacity) return;
+
+    setData("seat_number", value);
+  }}
+  fullWidth
+  disabled={isBusFull || busCapacity === 0}
+  error={
+    !!errors.seat_number ||
+    (data.seat_number && Number(data.seat_number) > busCapacity) ||
+    occupiedSeats.includes(data.seat_number)
+  }
+  helperText={
+    errors.seat_number ||
+    (data.seat_number && Number(data.seat_number) > busCapacity
+      ? `Le bus possède seulement ${busCapacity} sièges`
+      : occupiedSeats.includes(data.seat_number)
+      ? "Ce siège est déjà réservé"
+      : occupiedSeats.length > 0
+      ? `Sièges pris : ${occupiedSeats.join(", ")}`
+      : "")
+  }
+/>
           {/* Statut */}
           <FormControl fullWidth error={!!errors.status}>
             <InputLabel id="status-label">Statut</InputLabel>
@@ -205,10 +248,10 @@ const handleCancelReservation = async () => {
 
           {/* Soumission */}
         <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-  <Button 
-    type="submit" 
-    variant="contained" 
-    color="success" 
+  <Button
+    type="submit"
+    variant="contained"
+    color="success"
     disabled={processing || isBusFull}
   >
     {ticket?.id ? "Mettre à jour la réservation" : "Créer la réservation"}
