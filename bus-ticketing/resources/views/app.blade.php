@@ -7,7 +7,7 @@
 
 
         <title inertia>  
-                SIRA MALI NUMÉRIQUE
+                NILA TOULET TRANS 
               </title>
 
         <!-- Fonts -->

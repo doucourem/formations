@@ -10,7 +10,7 @@ import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-const appName =  'SIRA MALI NUMÉRIQUE';
+const appName =  'NILA TOULET TRANS ';
 
 // Créer un thème MUI (personnalisable)
 const theme = createTheme({

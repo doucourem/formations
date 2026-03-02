@@ -106,7 +106,7 @@ const menusByRole = {
             <GppGood sx={{ color: '#fff', fontSize: 24 }} />
         </div>
         <Typography variant="h6" sx={{ fontWeight: 900, letterSpacing: -0.5, color: '#0f172a' }}>
-            NILA  <span style={{ color: '#10b981' }}>TOULETTRANS</span>
+            NILA  <span style={{ color: '#10b981' }}>TOULEL TRANS</span>
         </Typography>
       </Box>
 
