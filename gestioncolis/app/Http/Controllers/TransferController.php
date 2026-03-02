@@ -15,8 +15,10 @@ class TransferController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Transfer::with(['sender','receiver','thirdParty'])
+        /*$query = Transfer::with(['sender','receiver','thirdParty'])
         ->where('user_id', Auth::id());
+        */
+        $query = Transfer::with(['sender','receiver','thirdParty']);
 
 
         // Filtres
