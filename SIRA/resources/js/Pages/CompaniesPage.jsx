@@ -36,7 +36,7 @@ export default function CompaniesPage({ auth }) {
 
           <div className="hidden lg:flex items-center gap-6 font-bold text-sm text-slate-700">
             <Link href={route('companies')} className="text-green-600">Compagnies</Link>
-            <Link href={route('maintenance')} className="hover:text-green-600 transition">Maintenance</Link>
+            <Link href={route('maintenances')} className="hover:text-green-600 transition">Maintenance</Link>
             <Link href={route('heavyVehicles')} className="hover:text-green-600 transition">Gros Porteurs</Link>
             {auth?.user ? (
               <Link href={route('dashboard')} className="bg-slate-900 text-white px-6 py-2.5 rounded-full shadow-lg hover:bg-slate-800 transition">Dashboard</Link>

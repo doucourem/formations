@@ -140,8 +140,8 @@ export default function TicketsIndex({ tickets, routes }) {
                     
                     <TableCell>
                       <Chip
-                        label={ticket.status === "paid" ? "Payé" : ticket.status === "pending" ? "En attente" : "Annulé"}
-                        color={ticket.status === "paid" ? "success" : ticket.status === "pending" ? "warning" : "error"}
+                        label={ticket.status === "paid" ? "Payé" : ticket.status === "reserved" ? "Réservé" : "Annulé"}
+                        color={ticket.status === "paid" ? "success" : ticket.status === "reserved" ? "warning" : "error"}
                       />
                     </TableCell>
                     <TableCell>

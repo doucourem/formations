@@ -50,9 +50,9 @@ Route::get('/compagnies', function () {
 })->name('companies');
 
 // Maintenance / garages
-Route::get('/maintenance', function () {
+Route::get('/maintenances', function () {
     return Inertia::render('MaintenancePage');
-})->name('maintenance');
+})->name('maintenances');
 
 // Billets / Réservations
 Route::get('/billets', function () {

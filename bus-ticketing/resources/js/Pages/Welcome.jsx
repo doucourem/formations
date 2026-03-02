@@ -172,7 +172,7 @@ function NavLinks({ mobile }) {
   return (
     <>
       <Link className={cls} href={route('companies')}>Compagnies</Link>
-      <Link className={cls} href={route('maintenance')}>Maintenance</Link>
+      <Link className={cls} href={route('maintenances')}>Maintenance</Link>
       <Link className={cls} href={route('heavyVehicles')}>Gros Porteurs</Link>
     </>
   );

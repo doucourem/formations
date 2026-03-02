@@ -145,7 +145,7 @@ export default function Index({ parcels, filters }) {
 
                 <TableHead sx={{ bgcolor: indigo[900] }}>
                   <TableRow>
-                    <TableCell sx={{color:'white'}}>Tracking</TableCell>
+                  
                     <TableCell sx={{color:'white'}}>Expéditeur</TableCell>
                     <TableCell sx={{color:'white'}}>Destinataire</TableCell>
 
@@ -159,9 +159,7 @@ export default function Index({ parcels, filters }) {
                       Payé
                     </TableCell>
 
-                    <TableCell sx={{color:'white', display:{xs:'none',md:'table-cell'}}}>
-                      Reste
-                    </TableCell>
+                  
 
                     <TableCell sx={{color:'white'}}>Paiement</TableCell>
                     <TableCell sx={{color:'white'}}>Statut</TableCell>
@@ -173,7 +171,7 @@ export default function Index({ parcels, filters }) {
                   {parcels?.data?.length ? parcels.data.map((c)=>(
                     <TableRow key={c.id} hover>
 
-                      <TableCell>{c.tracking_number}</TableCell>
+                     
                       <TableCell>{c.sender_name}</TableCell>
                       <TableCell>{c.recipient_name}</TableCell>
 
@@ -186,11 +184,6 @@ export default function Index({ parcels, filters }) {
                       <TableCell sx={{display:{xs:'none',md:'table-cell'}}}>
                         {Number(c.paid_amount||0).toLocaleString()}
                       </TableCell>
-
-                      <TableCell sx={{display:{xs:'none',md:'table-cell'}}}>
-                        {Number(c.remaining_amount||c.price).toLocaleString()}
-                      </TableCell>
-
                       <TableCell>
                         <Chip size="small"
                           label={

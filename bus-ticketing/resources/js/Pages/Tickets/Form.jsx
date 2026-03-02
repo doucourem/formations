@@ -49,20 +49,20 @@ export default function TicketForm({ ticket = null, trips = [] }) {
     let seatsTaken = [];
 
     if (data.start_stop_id && data.end_stop_id) {
-      const startOrder = tripStops.find(s => s.id === Number(data.start_stop_id))?.order;
-      const endOrder = tripStops.find(s => s.id === Number(data.end_stop_id))?.order;
+      const startOrder = tripStops.find((s) => s.id === Number(data.start_stop_id))?.order;
+      const endOrder = tripStops.find((s) => s.id === Number(data.end_stop_id))?.order;
 
       if (startOrder !== undefined && endOrder !== undefined) {
         seatsTaken = tickets
-          .filter(t => {
-            const tStart = tripStops.find(s => s.id === t.start_stop_id)?.order;
-            const tEnd = tripStops.find(s => s.id === t.end_stop_id)?.order;
+          .filter((t) => {
+            const tStart = tripStops.find((s) => s.id === t.start_stop_id)?.order;
+            const tEnd = tripStops.find((s) => s.id === t.end_stop_id)?.order;
             return !(tEnd < startOrder || tStart > endOrder);
           })
-          .map(t => t.seat_number);
+          .map((t) => t.seat_number);
       }
     } else {
-      seatsTaken = tickets.map(t => t.seat_number);
+      seatsTaken = tickets.map((t) => t.seat_number);
     }
 
     setOccupiedSeats(seatsTaken);
@@ -74,11 +74,11 @@ export default function TicketForm({ ticket = null, trips = [] }) {
   useEffect(() => {
     if (!data.start_stop_id || !data.end_stop_id) return;
 
-    const start = stops.find(s => s.id === Number(data.start_stop_id));
-    const end = stops.find(s => s.id === Number(data.end_stop_id));
+    const start = stops.find((s) => s.id === Number(data.start_stop_id));
+    const end = stops.find((s) => s.id === Number(data.end_stop_id));
 
     if (start && end && start.order <= end.order) {
-      const selectedStops = stops.filter(s => s.order >= start.order && s.order <= end.order);
+      const selectedStops = stops.filter((s) => s.order >= start.order && s.order <= end.order);
       const totalPrice = selectedStops.reduce((sum, s) => sum + (s.price || 0), 0);
       setData("price", totalPrice);
     } else {
@@ -97,23 +97,23 @@ export default function TicketForm({ ticket = null, trips = [] }) {
   const formatStopDepartLabel = (s) => s.city?.name || "—";
 
   const allSeats = Array.from({ length: busCapacity }, (_, i) => (i + 1).toString());
-  const freeSeats = allSeats.filter(seat => !occupiedSeats.includes(seat));
-const handleCancelReservation = async () => {
-  if (!ticket?.id) return;
 
-  const confirm = window.confirm("Voulez-vous vraiment annuler cette réservation ?");
-  if (!confirm) return;
+  const handleCancelReservation = async () => {
+    if (!ticket?.id) return;
 
-  try {
-    await put(route("ticket.update", ticket.id), { status: "cancelled" });
-    alert("La réservation a été annulée avec succès !");
-    // Mettre à jour localement le formulaire ou recharger la page
-    setData("status", "cancelled");
-  } catch (error) {
-    alert("Erreur lors de l'annulation : " + error.message);
-  }
-};
+    const confirm = window.confirm("Voulez-vous vraiment annuler cette réservation ?");
+    if (!confirm) return;
 
+    try {
+      await put(route("ticket.update", ticket.id), { status: "cancelled" });
+      alert("La réservation a été annulée avec succès !");
+      setData("status", "cancelled");
+      setOccupiedSeats((prev) => prev.filter((s) => s !== data.seat_number));
+      setData("seat_number", "");
+    } catch (error) {
+      alert("Erreur lors de l'annulation : " + error.message);
+    }
+  };
 
   return (
     <GuestLayout>
@@ -132,10 +132,10 @@ const handleCancelReservation = async () => {
               onChange={(e) => setData("trip_id", e.target.value)}
               required
             >
-              {trips.map(t => (
+              {trips.map((t) => (
                 <MenuItem key={t.id} value={t.id}>
                   {`${t.route?.departureCity?.name || "-"} → ${t.route?.arrivalCity?.name || "-"} (Départ: ${t.departure_at})`}
-                  </MenuItem>
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -146,9 +146,14 @@ const handleCancelReservation = async () => {
             <Select
               labelId="start-stop-label"
               value={data.start_stop_id}
-              onChange={(e) => { setData("start_stop_id", e.target.value); setData("end_stop_id", ""); }}
+              onChange={(e) => {
+                setData("start_stop_id", e.target.value);
+                setData("end_stop_id", "");
+              }}
             >
-              {stops.map(s => <MenuItem key={s.id} value={s.id}>{formatStopDepartLabel(s)}</MenuItem>)}
+              {stops.map((s) => (
+                <MenuItem key={s.id} value={s.id}>{formatStopDepartLabel(s)}</MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -161,8 +166,8 @@ const handleCancelReservation = async () => {
               onChange={(e) => setData("end_stop_id", e.target.value)}
             >
               {stops
-                .filter(s => s.order >= (stops.find(st => st.id === Number(data.start_stop_id))?.order || 0))
-                .map(s => <MenuItem key={s.id} value={s.id}>{formatStopLabel(s)}</MenuItem>)}
+                .filter((s) => s.order >= (stops.find((st) => st.id === Number(data.start_stop_id))?.order || 0))
+                .map((s) => <MenuItem key={s.id} value={s.id}>{formatStopLabel(s)}</MenuItem>)}
             </Select>
           </FormControl>
 
@@ -177,16 +182,39 @@ const handleCancelReservation = async () => {
             helperText={errors.client_name}
           />
 
-          {/* Siège */}
+          {/* Sélection des sièges */}
           <TextField
-            label="Numéro de siège"
-            value={data.seat_number}
-            onChange={(e) => setData("seat_number", e.target.value)}
-            fullWidth
-            disabled={isBusFull || busCapacity === 0}
-            error={!!errors.seat_number}
-            helperText={errors.seat_number || (occupiedSeats.length > 0 ? `Sièges déjà réservés : ${occupiedSeats.join(", ")}` : "")}
-          />
+  label="Numéro de siège"
+  value={data.seat_number}
+  onChange={(e) => {
+    const value = e.target.value;
+    // Autoriser uniquement les chiffres
+    if (!/^\d*$/.test(value)) return;
+
+    const seat = Number(value);
+
+    // ⚠ Limiter au nombre de sièges du bus
+    if (seat > busCapacity) return;
+
+    setData("seat_number", value);
+  }}
+  fullWidth
+  error={
+    !!errors.seat_number ||
+    (data.seat_number && Number(data.seat_number) > busCapacity) ||
+    occupiedSeats.includes(data.seat_number)
+  }
+  helperText={
+    errors.seat_number ||
+    (data.seat_number && Number(data.seat_number) > busCapacity
+      ? `⚠ Le bus possède seulement ${busCapacity} sièges`
+      : occupiedSeats.includes(data.seat_number)
+      ? "⚠ Ce siège est déjà réservé"
+      : occupiedSeats.length > 0
+      ? `Sièges déjà pris : ${occupiedSeats.join(", ")}`
+      : "")
+  }
+/>
 
           {/* Statut */}
           <FormControl fullWidth error={!!errors.status}>
@@ -203,35 +231,30 @@ const handleCancelReservation = async () => {
             </Select>
           </FormControl>
 
-          {/* Soumission */}
-        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-  <Button 
-    type="submit" 
-    variant="contained" 
-    color="success" 
-    disabled={processing || isBusFull}
-  >
-    {ticket?.id ? "Mettre à jour la réservation" : "Créer la réservation"}
-  </Button>
+          {/* Boutons */}
+          <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+            <Button type="submit" variant="contained" color="success" disabled={processing || isBusFull}>
+              {ticket?.id ? "Mettre à jour la réservation" : "Créer la réservation"}
+            </Button>
 
-  {ticket?.id && data.status !== "cancelled" && (
-    <Button
-      type="button"
-      variant="outlined"
-      color="error"
-      onClick={() => handleCancelReservation()}
-    >
-      Annuler la réservation
-    </Button>
-  )}
-</Box>
-
+            {ticket?.id && data.status !== "cancelled" && (
+              <Button type="button" variant="outlined" color="error" onClick={handleCancelReservation}>
+                Annuler la réservation
+              </Button>
+            )}
+          </Box>
 
           {isBusFull && <Alert severity="warning" sx={{ mt: 2 }}>🚫 Le bus est complet — impossible de réserver un nouveau billet.</Alert>}
 
           {occupiedSeats.length > 0 && (
             <Typography sx={{ mt: 1, fontStyle: "italic" }}>
               Sièges déjà réservés : {occupiedSeats.join(", ")}
+            </Typography>
+          )}
+
+          {data.price > 0 && (
+            <Typography sx={{ mt: 1, fontWeight: "bold" }}>
+              Prix total : {data.price} FCFA
             </Typography>
           )}
         </Box>

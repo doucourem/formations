@@ -65,6 +65,12 @@ export default function TripsIndex({ initialTrips, initialFilters, buses = [], r
     });
   };
 
+  const handleDelete = (id) => {
+      if (confirm("Voulez-vous vraiment supprimer cet voyage ?")) {
+        Inertia.delete(route("trips.destroy", id), { preserveState: true });
+      }
+    };
+
   // Formulaire dépense
   const handleExpenseChange = (tripId, field, value) => {
     setExpensesForm((prev) => ({ ...prev, [tripId]: { ...prev[tripId], [field]: value } }));

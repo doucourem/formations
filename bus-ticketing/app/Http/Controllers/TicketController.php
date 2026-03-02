@@ -390,7 +390,7 @@ public function dailySummary(Request $request)
                 
             ] : null,
             'user' => $ticket->user ? [
-                'name' => $ticket->user->name,
+                'name' => $ticket->user->prenom.' '.$ticket->user->name,
                 'email' => $ticket->user->email,
                 'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
             ] : null,

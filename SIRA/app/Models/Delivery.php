@@ -67,5 +67,13 @@ public function getTotalExpensesAttribute()
 {
     return $this->expenses->sum('amount');
 }
+public function user()
+{
+    return $this->belongsTo(User::class);
+}
 
+public function payments()
+{
+    return $this->hasMany(DeliveryPayment::class);
+}
 }

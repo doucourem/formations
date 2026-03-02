@@ -35,7 +35,7 @@ export default function HomePage() {
     { 
       title: "Garages", 
       desc: "Devenez centre agréé pour la maintenance de notre flotte.", 
-      path: "/maintenance", 
+      path: "/maintenances", 
       icon: <BuildIcon fontSize="large" />,
       color: "#d32f2f"
     },

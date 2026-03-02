@@ -24,7 +24,6 @@ import {
   DialogContent,
   DialogActions,
   MenuItem,
-
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -34,10 +33,28 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 
 export default function DeliveryIndex({ deliveries }) {
   const [page, setPage] = useState(deliveries.current_page || 1);
+  const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [openExpenseModal, setOpenExpenseModal] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseData, setExpenseData] = useState({ type: "", amount: "", description: "" });
+
+  const TYPE_LABELS = {
+    chauffeur: "Chauffeur",
+    carburant: "Carburant",
+    peages: "Péages",
+    restauration: "Restauration",
+    entretien: "Entretien",
+    autres: "Autres",
+  };
+
+  const formatDateTime = (date) => {
+    if (!date) return "-";
+    const d = new Date(date);
+    return d.toLocaleDateString("fr-FR") + " " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  };
 
   const handleDeleteDelivery = (id) => {
     if (confirm("Voulez-vous vraiment supprimer cette livraison ?")) {
@@ -47,7 +64,20 @@ export default function DeliveryIndex({ deliveries }) {
 
   const handlePageChange = (event, value) => {
     setPage(value);
-    Inertia.get(route("deliveries.index", { page: value }), {}, { preserveState: true });
+    Inertia.get(
+      route("deliveries.index"),
+      { search, startDate, endDate, page: value },
+      { preserveState: true }
+    );
+  };
+
+  const applyFilter = () => {
+    setPage(1);
+    Inertia.get(
+      route("deliveries.index"),
+      { search, startDate, endDate, page: 1 },
+      { preserveState: true, replace: true }
+    );
   };
 
   // 🚀 Modal dépenses
@@ -65,39 +95,27 @@ export default function DeliveryIndex({ deliveries }) {
     setOpenExpenseModal(false);
   };
 
-const handleSaveExpense = () => {
-  if (!selectedDelivery) return;
+  const handleSaveExpense = () => {
+    if (!selectedDelivery) return;
 
-  const method = selectedExpense ? "put" : "post";
+    const method = selectedExpense ? "put" : "post";
 
-  const routeName = selectedExpense
-    ? "delivery-expenses.update"
-    : "delivery-expenses.store";
+    const routeName = selectedExpense
+      ? "delivery-expenses.update"
+      : "delivery-expenses.store";
 
-  const routeParams = selectedExpense
-    ? { delivery: selectedDelivery.id, expense: selectedExpense.id } // ✅ il faut expense
-    : { delivery: selectedDelivery.id }; // pour store
+    const routeParams = selectedExpense
+      ? { delivery: selectedDelivery.id, expense: selectedExpense.id }
+      : { delivery: selectedDelivery.id };
 
-  const payload = selectedExpense
-    ? { ...expenseData, _method: "put" }
-    : { ...expenseData };
+    const payload = selectedExpense
+      ? { ...expenseData, _method: "put" }
+      : { ...expenseData };
 
-  Inertia[method](route(routeName, routeParams), payload, {
-    onSuccess: () => handleCloseExpenseModal(),
-  });
-};
-
-const TYPE_LABELS = {
-  chauffeur: "Chauffeur",
-  carburant: "Carburant",
-  peages: "Péages",
-  restauration: "Restauration",
-  entretien: "Entretien",
-  autres: "Autres",
-};
-
-
-
+    Inertia[method](route(routeName, routeParams), payload, {
+      onSuccess: () => handleCloseExpenseModal(),
+    });
+  };
 
   return (
     <GuestLayout>
@@ -115,24 +133,42 @@ const TYPE_LABELS = {
           }
         />
         <CardContent>
-          <Box mb={2}>
+          {/* Filtres */}
+          <Box mb={2} display="flex" gap={2} flexWrap="wrap">
             <TextField
               label="Rechercher..."
               variant="outlined"
               size="small"
-              fullWidth
-              onChange={(e) =>
-                Inertia.get(route("deliveries.index"), { search: e.target.value }, { preserveState: true })
-              }
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
+            <TextField
+              label="Date début"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              size="small"
+            />
+            <TextField
+              label="Date fin"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              size="small"
+            />
+            <Button variant="contained" onClick={applyFilter}>
+              Filtrer
+            </Button>
           </Box>
 
+          {/* Tableau */}
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
                 <TableRow>
                   {[
-                
                     "Véhicule",
                     "Chauffeur",
                     "Prix (CFA)",
@@ -156,19 +192,18 @@ const TYPE_LABELS = {
                 {deliveries.data.length > 0 ? (
                   deliveries.data.map((d) => (
                     <TableRow key={d.id}>
-                      
                       <TableCell>{d.bus.registration_number}</TableCell>
                       <TableCell>{d.driver.first_name}</TableCell>
                       <TableCell>{d.price}</TableCell>
-                      <TableCell>{new Date(d.departure_at).toLocaleString()}</TableCell>
-                      <TableCell>{d.arrival_at ? new Date(d.arrival_at).toLocaleString() : "-"}</TableCell>
+                      <TableCell>{formatDateTime(d.departure_at)}</TableCell>
+                      <TableCell>{formatDateTime(d.arrival_at)}</TableCell>
                       <TableCell>
                         {d.status === "pending" && "🟡 En attente"}
                         {d.status === "in_transit" && "🟠 En transit"}
                         {d.status === "delivered" && "🟢 Livré"}
                       </TableCell>
 
-                      {/* ✅ Dépenses */}
+                      {/* Dépenses */}
                       <TableCell>
                         <Stack spacing={0.5}>
                           {d.expenses.length > 0 ? (
@@ -179,10 +214,9 @@ const TYPE_LABELS = {
                                 justifyContent="space-between"
                                 alignItems="center"
                               >
-                               <Typography variant="body2">
-  {TYPE_LABELS[e.type] || e.type} : {e.amount} CFA
-</Typography>
-
+                                <Typography variant="body2">
+                                  {TYPE_LABELS[e.type] || e.type} : {e.amount} CFA
+                                </Typography>
                                 <Stack direction="row" spacing={0.5}>
                                   <IconButton
                                     size="small"
@@ -196,7 +230,7 @@ const TYPE_LABELS = {
                                     color="error"
                                     onClick={() => {
                                       if (confirm("Supprimer cette dépense ?")) {
-                                        Inertia.delete(route("vehicle_rental_expenses.destroy", e.id));
+                                        Inertia.delete(route("delivery-expenses.destroy", e.id));
                                       }
                                     }}
                                   >
@@ -210,17 +244,13 @@ const TYPE_LABELS = {
                               Aucune dépense
                             </Typography>
                           )}
-
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => handleOpenExpenseModal(d)}
-                          >
+                          <Button size="small" variant="outlined" onClick={() => handleOpenExpenseModal(d)}>
                             + Ajouter
                           </Button>
                         </Stack>
                       </TableCell>
 
+                      {/* Actions */}
                       <TableCell>
                         <Stack direction="row" spacing={1}>
                           <IconButton color="primary" onClick={() => Inertia.get(route("deliveries.show", d.id))}>
@@ -238,7 +268,7 @@ const TYPE_LABELS = {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={12} align="center">
+                    <TableCell colSpan={8} align="center">
                       Aucune livraison enregistrée.
                     </TableCell>
                   </TableRow>
@@ -257,51 +287,46 @@ const TYPE_LABELS = {
 
       {/* Modal Dépenses */}
       <Dialog open={openExpenseModal} onClose={handleCloseExpenseModal} maxWidth="sm" fullWidth>
-  <DialogTitle>
-    {selectedExpense ? "Modifier une dépense" : `Ajouter une dépense pour la livraison #${selectedDelivery?.id}`}
-  </DialogTitle>
-  <DialogContent>
-    <Stack spacing={2}>
-      <TextField
-        select
-        label="Type de dépense"
-        value={expenseData.type}
-        onChange={(e) => setExpenseData({ ...expenseData, type: e.target.value })}
-        fullWidth
-      >
-       <MenuItem value="chauffeur">Chauffeur</MenuItem>
-<MenuItem value="carburant">Carburant</MenuItem>
-<MenuItem value="peages">Péages</MenuItem>
-<MenuItem value="restauration">Restauration</MenuItem>
-<MenuItem value="entretien">Entretien</MenuItem>
-<MenuItem value="autres">Autres</MenuItem>
+        <DialogTitle>
+          {selectedExpense ? "Modifier une dépense" : `Ajouter une dépense pour la livraison #${selectedDelivery?.id}`}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <TextField
+              select
+              label="Type de dépense"
+              value={expenseData.type}
+              onChange={(e) => setExpenseData({ ...expenseData, type: e.target.value })}
+              fullWidth
+            >
+              {Object.entries(TYPE_LABELS).map(([key, label]) => (
+                <MenuItem key={key} value={key}>{label}</MenuItem>
+              ))}
+            </TextField>
 
-      </TextField>
+            <TextField
+              label="Montant"
+              type="number"
+              value={expenseData.amount}
+              onChange={(e) => setExpenseData({ ...expenseData, amount: e.target.value })}
+              fullWidth
+            />
 
-      <TextField
-        label="Montant"
-        type="number"
-        value={expenseData.amount}
-        onChange={(e) => setExpenseData({ ...expenseData, amount: e.target.value })}
-        fullWidth
-      />
-
-      <TextField
-        label="Description"
-        value={expenseData.description}
-        onChange={(e) => setExpenseData({ ...expenseData, description: e.target.value })}
-        fullWidth
-        multiline
-        rows={2}
-      />
-    </Stack>
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={handleCloseExpenseModal} color="secondary">Annuler</Button>
-    <Button onClick={handleSaveExpense} variant="contained">Enregistrer</Button>
-  </DialogActions>
-</Dialog>
-
+            <TextField
+              label="Description"
+              value={expenseData.description}
+              onChange={(e) => setExpenseData({ ...expenseData, description: e.target.value })}
+              fullWidth
+              multiline
+              rows={2}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseExpenseModal} color="secondary">Annuler</Button>
+          <Button onClick={handleSaveExpense} variant="contained">Enregistrer</Button>
+        </DialogActions>
+      </Dialog>
     </GuestLayout>
   );
 }

@@ -33,7 +33,7 @@ export default function HeavyVehiclesPage({ auth }) {
 
           <div className="hidden lg:flex gap-6 font-bold">
             <Link href={route("heavyVehicles")}>Gros Porteurs</Link>
-            <Link href={route("maintenance")}>Maintenance</Link>
+            <Link href={route("maintenances")}>Maintenance</Link>
             {auth?.user ? (
               <Link href={route("dashboard")} className="px-5 py-2 bg-slate-900 text-white rounded-full">
                 Dashboard

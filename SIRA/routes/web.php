@@ -25,13 +25,16 @@ use App\Http\Controllers\{
     GarageController,
     CompanyController,
     DeliveryController,
-    VehicleRentalController
+    VehicleRentalController,
+    MaintenanceController,
+    DeliveryExpenseController,
+    DeliveryPaymentController,
+    VehicleRentalExpenseController,
+    VehicleRentalPaymentController,
 };
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\VehicleRentalExpenseController;
-use App\Http\Controllers\DeliveryExpenseController;
 
 
 
@@ -47,9 +50,9 @@ Route::get('/compagnies', function () {
 })->name('companies');
 
 // Maintenance / garages
-Route::get('/maintenance', function () {
+Route::get('/maintenances', function () {
     return Inertia::render('MaintenancePage');
-})->name('maintenance');
+})->name('maintenances');
 
 // Billets / Réservations
 Route::get('/billets', function () {
@@ -119,6 +122,27 @@ Route::get('/vehicle-rentals/{rental}/expenses/total-by-type', [VehicleRentalExp
 Route::get('/deliveries/{delivery}/expenses/total-by-type', [DeliveryExpenseController::class, 'totalByType'])
     ->name('delivery-expenses.total-by-type');
 
+Route::post('/deliveries/{delivery}/payments', [DeliveryPaymentController::class,'store'])
+    ->name('deliveries.payments.store');
+
+Route::delete('/payments/{payment}', [DeliveryPaymentController::class,'destroy'])
+    ->name('payments.destroy');
+
+Route::get('/payments/{payment}/receipt', [DeliveryPaymentController::class,'receipt'])
+    ->name('payments.receipt');
+
+    Route::get('/deliveries/{delivery}/invoice-pdf', [DeliveryController::class,'invoicePdf'])
+    ->name('deliveries.invoice.pdf');
+
+
+    Route::post('/vehicle-rentals/{vehicleRental}/payments', [VehicleRentalPaymentController::class,'store'])
+    ->name('vehicle-rentals.payments.store');
+
+Route::delete('/rental-payments/{payment}', [VehicleRentalPaymentController::class,'destroy'])
+    ->name('rental-payments.destroy');
+
+Route::get('/rental-payments/{payment}/receipt', [VehicleRentalPaymentController::class,'receipt'])
+    ->name('rental-payments.receipt');
 // =====================
 // GLOBAL – TOUTES LES DÉPENSES
 // =====================
@@ -138,7 +162,17 @@ Route::get('/deliveries/expenses/total-by-type',
     [DeliveryExpenseController::class, 'totalByTypeGlobal']
 )->name('delivery-expenses.total-by-type.global');
 
+// routes/web.php
 
+Route::get('/parcels/daily-summary', [ParcelController::class, 'dailySummary'])
+    ->name('parcels.daily-summary');
+
+    
+Route::patch('/parcels/{parcel}/update-status', [ParcelController::class, 'updateStatus'])
+    ->name('parcels.update-status');
+
+Route::get('/parcels/daily-summary/export', [ParcelController::class, 'exportDailySummary'])
+    ->name('parcels.daily-summary.export');
 // Routes pour gérer les dépenses des locations de véhicules
 Route::prefix('vehicle-rentals')->group(function () {
 
@@ -181,6 +215,7 @@ Route::prefix('deliveries/{delivery}/expenses')->group(function () {
         'drivers' => DriverController::class, // <-- Garde cette ligne avant les préfixes driver/{driver}
         'transfers' => TransferController::class,
         'trip-expenses' => TripExpenseController::class,
+        'maintenance' => MaintenanceController::class,
     ]);
 
 

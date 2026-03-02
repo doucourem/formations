@@ -25,7 +25,7 @@ export default function SiraLayout({ children }) {
 
           <div className="hidden lg:flex items-center gap-8 font-bold text-sm text-slate-600">
             <Link href={route('companies')} className="hover:text-green-600 transition">Compagnies</Link>
-            <Link href={route('maintenance')} className="hover:text-green-600 transition">Maintenance</Link>
+            <Link href={route('maintenances')} className="hover:text-green-600 transition">Maintenance</Link>
             <Link href={route('heavyVehicles')} className="hover:text-green-600 transition">Gros Porteurs</Link>
             
             {auth?.user ? (

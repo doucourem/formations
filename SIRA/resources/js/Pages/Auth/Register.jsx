@@ -32,8 +32,8 @@ export default function Register() {
                         <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
                             <GppGood className="text-white" sx={{ fontSize: 20 }} />
                         </div>
-                        <span className="text-xl font-black tracking-tighter uppercase">
-                            NILA <span className="text-green-600">TOULETTRANS</span>
+                          <span className="text-xl font-black tracking-tighter uppercase">
+                            SIRA MALI  <span className="text-green-600">numérique</span>
                         </span>
                     </Link>
                     <Link href={route('login')} className="text-sm font-bold text-slate-600 hover:text-green-600">

@@ -196,91 +196,137 @@ public function index(Request $request)
         }
     }
 
-    public function show($id)
-    {
-        $user = auth()->user();
+public function show($id)
+{
+    $user = auth()->user();
 
-        $tripQuery = Trip::with([
-            'route.departureCity',
-            'route.arrivalCity',
-            'bus',
-            'tickets.user.agency',
-        ])->where('id', $id);
+    $trip = Trip::with([
+        'route.departureCity',
+        'route.arrivalCity',
+        'bus',
+        'expenses',
+        'tickets.user.agency'
+    ])->findOrFail($id);
 
-        // 🔹 Filtrer les tickets selon le rôle
-       $tripQuery->with([
-    'tickets' => function ($query) use ($user) {
+    /*
+    |--------------------------------------------------------------------------
+    | 🔐 Filtrage tickets selon rôle
+    |--------------------------------------------------------------------------
+    */
+    $tickets = $trip->tickets ?? collect();
 
-        if (!$user) {
-            $query->whereRaw('1 = 0'); // Aucun ticket pour non-connecté
-            return;
-        }
-
+    if (!$user) {
+        $tickets = collect();
+    } else {
         switch ($user->role) {
+
             case 'admin':
             case 'manager':
             case 'super_admin':
-                // voient tous les tickets
                 break;
 
             case 'agent':
-                $query->where('user_id', $user->id);
+                $tickets = $tickets->where('user_id', $user->id);
                 break;
 
             case 'manageragence':
-                $query->whereHas('user', function ($q) use ($user) {
-                    $q->where('agence_id', $user->agence_id);
-                });
+                $tickets = $tickets->filter(fn($t) =>
+                    $t->user && $t->user->agence_id === $user->agence_id
+                );
                 break;
 
             default:
-                $query->whereRaw('1 = 0'); // aucun ticket pour les autres
+                $tickets = collect();
         }
-
-        // ✅ Tri par numéro de siège
-       $query->orderByRaw('CAST(seat_number AS UNSIGNED) ASC');
-
     }
-]);
 
+    // tri siège
+    $tickets = $tickets->sortBy(fn($t) => (int)$t->seat_number);
 
-        $trip = $tripQuery->firstOrFail();
+    /*
+    |--------------------------------------------------------------------------
+    | 💰 Calculs financiers
+    |--------------------------------------------------------------------------
+    */
+    $totalTickets = $tickets->sum('price');
+    $totalExpenses = ($trip->expenses ?? collect())->sum('amount');
+    $benefit = $totalTickets - $totalExpenses;
 
-        // Préparer les données pour le frontend
-        $tripData = [
-            'id' => $trip->id,
-            'departure_at' => $trip->departure_at,
-            'arrival_at' => $trip->arrival_at,
-            'bus' => $trip->bus ? [
-                'id' => $trip->bus->id,
-                'registration_number' => $trip->bus->registration_number,
-                'capacity' => $trip->bus->capacity,
+    /*
+    |--------------------------------------------------------------------------
+    | 📦 Format Frontend
+    |--------------------------------------------------------------------------
+    */
+    $tripData = [
+        'id' => $trip->id,
+        'departure_at' => $trip->departure_at,
+        'arrival_at' => $trip->arrival_at,
+
+        'bus' => $trip->bus ? [
+            'id' => $trip->bus->id,
+            'registration_number' => $trip->bus->registration_number,
+            'capacity' => $trip->bus->capacity,
+        ] : null,
+
+        'route' => $trip->route ? [
+            'id' => $trip->route->id,
+            'departureCity' => $trip->route->departureCity?->name ?? '-',
+            'arrivalCity' => $trip->route->arrivalCity?->name ?? '-',
+            'price' => $trip->route->price ?? 0,
+        ] : null,
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🎫 Tickets
+        |--------------------------------------------------------------------------
+        */
+        'tickets' => $tickets->map(fn($ticket) => [
+            'id' => $ticket->id,
+            'client_name' => $ticket->client_name,
+            'seat_number' => $ticket->seat_number,
+            'price' => $ticket->price,
+            'status' => $ticket->status,
+            'created_at' => $ticket->created_at?->toISOString(),
+            'user' => $ticket->user ? [
+                'name' => $ticket->user->name,
+                'agency' => $ticket->user->agency
+                    ? ['name' => $ticket->user->agency->name]
+                    : null,
             ] : null,
-            'route' => $trip->route ? [
-                'id' => $trip->route->id,
-                'departureCity' => $trip->route->departureCity?->name ?? '-',
-                'arrivalCity' => $trip->route->arrivalCity?->name ?? '-',
-                'price' => $trip->route->price ?? 0,
-            ] : null,
-            'tickets' => $trip->tickets->map(fn($ticket) => [
-                'id' => $ticket->id,
-                'client_name' => $ticket->client_name,
-                'seat_number' => $ticket->seat_number,
-                'price' => $ticket->price,
-                'status' => $ticket->status,
-                'created_at' => $ticket->created_at->format('d/m/Y H:i'),
-                'user' => $ticket->user ? [
-                    'name' => $ticket->user->name,
-                    'email' => $ticket->user->email,
-                    'agency' => $ticket->user->agency ? ['name' => $ticket->user->agency->name] : null,
-                ] : null,
-            ]),
-        ];
+        ])->values(),
 
-        return Inertia::render('Trips/Show', [
-            'trip' => $tripData,
-        ]);
-    }
+        /*
+        |--------------------------------------------------------------------------
+        | 💸 Dépenses
+        |--------------------------------------------------------------------------
+        */
+        'expenses' => ($trip->expenses ?? collect())->map(fn($expense) => [
+            'id' => $expense->id,
+            'type' => $expense->type,
+            'amount' => $expense->amount,
+            'description' => $expense->description,
+            'created_at' => $expense->created_at?->toISOString(),
+        ])->values(),
+
+        /*
+        |--------------------------------------------------------------------------
+        | 📊 Bloc financier
+        |--------------------------------------------------------------------------
+        */
+        'financial' => [
+            'total_tickets' => $totalTickets,
+            'total_expenses' => $totalExpenses,
+            'benefit' => $benefit,
+        ],
+    ];
+
+    return Inertia::render('Trips/Show', [
+        'trip' => $tripData,
+    ]);
+}
+
+
+
 
 
 

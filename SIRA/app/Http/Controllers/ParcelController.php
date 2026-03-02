@@ -11,6 +11,8 @@ use Carbon\Carbon;
 use Inertia\Inertia;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Exports\DailySummaryExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ParcelController extends Controller
 {
@@ -31,14 +33,12 @@ class ParcelController extends Controller
         }
 
         return Inertia::render('Parcels/Index', [
-            'parcels' => $query->orderByDesc('created_at')
-                               ->paginate(20)
-                               ->withQueryString()
+            'parcels' => $query->latest()->paginate(20)->withQueryString()
         ]);
     }
 
     /* ============================
-     | FORM CREATE
+     | CREATE
      ============================ */
     public function create()
     {
@@ -46,21 +46,19 @@ class ParcelController extends Controller
 
         return Inertia::render('Parcels/Create', [
             'trips' => $this->getTrips(),
-            'agencies' => Agency::select('id', 'name')->get(),
+            'agencies' => Agency::select('id','name')->get(),
         ]);
     }
 
     /* ============================
-     | FORM EDIT
+     | EDIT
      ============================ */
     public function edit(Parcel $parcel)
     {
-        Carbon::setLocale('fr');
-
         return Inertia::render('Parcels/Edit', [
             'parcel' => $parcel,
             'trips' => $this->getTrips(),
-            'agencies' => Agency::select('id', 'name')->get(),
+            'agencies' => Agency::select('id','name')->get(),
         ]);
     }
 
@@ -70,6 +68,19 @@ class ParcelController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateParcel($request);
+
+        if ($validated['departure_agency_id'] == $validated['arrival_agency_id']) {
+            return back()->withErrors([
+                'arrival_agency_id' => "L'agence d'arrivée doit être différente."
+            ])->withInput();
+        }
+
+        if (empty($validated['tracking_number'])) {
+            $validated['tracking_number'] =
+                'COL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
+        }
+
+        $validated['status'] = $validated['status'] ?? 'pending';
 
         if ($request->hasFile('parcel_image')) {
             $validated['parcel_image'] =
@@ -89,7 +100,14 @@ class ParcelController extends Controller
     {
         $validated = $this->validateParcel($request, $parcel->id);
 
+        if ($validated['departure_agency_id'] == $validated['arrival_agency_id']) {
+            return back()->withErrors([
+                'arrival_agency_id' => "L'agence d'arrivée doit être différente."
+            ])->withInput();
+        }
+
         if ($request->hasFile('parcel_image')) {
+
             if ($parcel->parcel_image) {
                 Storage::disk('public_web')->delete($parcel->parcel_image);
             }
@@ -115,7 +133,7 @@ class ParcelController extends Controller
 
         $parcel->delete();
 
-        return back()->with('success', 'Colis supprimé.');
+        return back()->with('success','Colis supprimé.');
     }
 
     /* ============================
@@ -133,31 +151,71 @@ class ParcelController extends Controller
 
         return Inertia::render('Parcels/Show', [
             'parcel' => [
-                'id' => $parcel->id,
-                'tracking_number' => $parcel->tracking_number,
-                'sender_name' => $parcel->sender_name,
-                'recipient_name' => $parcel->recipient_name,
-                'sender_phone' => $parcel->sender_phone,
-                'recipient_phone' => $parcel->recipient_phone,
-                'weight_kg' => $parcel->weight_kg,
-                'price' => $parcel->price,
-                'merchandise_value'=> $parcel->merchandise_value,
-                'status' => $parcel->status,
-                'description' => $parcel->description,
-                'parcel_image' => $parcel->parcel_image
+                'id'=>$parcel->id,
+                'tracking_number'=>$parcel->tracking_number,
+                'sender_name'=>$parcel->sender_name,
+                'sender_phone'=>$parcel->sender_phone,
+                'recipient_name'=>$parcel->recipient_name,
+                'recipient_phone'=>$parcel->recipient_phone,
+                'weight_kg'=>$parcel->weight_kg,
+                'price'=>(float)$parcel->price,
+                'merchandise_value'=>(float)$parcel->merchandise_value,
+                'status'=>$parcel->status,
+                'description'=>$parcel->description,
+                'parcel_image'=>$parcel->parcel_image
                     ? Storage::disk('public_web')->url($parcel->parcel_image)
                     : null,
-                'departureAgency' => $parcel->departureAgency?->name,
-                'arrivalAgency' => $parcel->arrivalAgency?->name,
-                'trip' => $parcel->trip ? [
-                    'route' => $parcel->trip->route
-                        ? $parcel->trip->route->departureCity?->name . ' → ' .
-                          $parcel->trip->route->arrivalCity?->name
-                        : null,
-                    'departure_at' => optional($parcel->trip->departure_at)->format('d/m/Y H:i'),
-                    'bus' => $parcel->trip->bus?->registration_number,
+                'senderAgency'=>[
+                    'id'=>$parcel->departureAgency->id ?? null,
+                    'name'=>$parcel->departureAgency->name ?? 'Agence non définie',
+                ],
+                'recipientAgency'=>[
+                    'id'=>$parcel->arrivalAgency->id ?? null,
+                    'name'=>$parcel->arrivalAgency->name ?? 'Agence non définie',
+                ],
+                'trip'=>$parcel->trip ? [
+                    'departureCity'=>$parcel->trip->route->departureCity->name ?? null,
+                    'arrivalCity'=>$parcel->trip->route->arrivalCity->name ?? null,
+                    'departure_at'=>optional($parcel->trip->departure_at)->format('d/m/Y H:i'),
+                    'bus'=>$parcel->trip->bus->registration_number ?? null,
                 ] : null,
             ],
+        ]);
+    }
+
+    /* ============================
+     | COLIS PAR VOYAGE
+     ============================ */
+    public function indexByTrip(Trip $trip)
+    {
+        $trip->load(['route.departureCity','route.arrivalCity','bus']);
+
+        $parcels = Parcel::where('trip_id',$trip->id)
+            ->latest()
+            ->paginate(20);
+
+        return Inertia::render('Parcels/IndexByTrip', [
+            'trip'=>[
+                'id'=>$trip->id,
+                'departure_time'=>$trip->departure_at?Carbon::parse($trip->departure_at)->format('d/m/Y H:i'):null,
+                'arrival_time'=>$trip->arrival_at?Carbon::parse($trip->arrival_at)->format('d/m/Y H:i'):null,
+                'bus'=>$trip->bus?['registration_number'=>$trip->bus->registration_number]:null,
+                'route'=>$trip->route?[
+                    'departureCity'=>$trip->route->departureCity?->name ?? '-',
+                    'arrivalCity'=>$trip->route->arrivalCity?->name ?? '-',
+                    'price'=>$trip->route->price ?? 0,
+                ]:null,
+            ],
+            'parcels'=>$parcels->through(fn($p)=>[
+                'id'=>$p->id,
+                'description'=>$p->description,
+                'weight'=>$p->weight_kg,
+                'price'=>$p->price ?? 0,
+                'sender_name'=>$p->sender_name,
+                'recipient_name'=>$p->recipient_name,
+                'recipient_phone'=>$p->recipient_phone,
+                'status'=>$p->status,
+            ]),
         ]);
     }
 
@@ -166,15 +224,15 @@ class ParcelController extends Controller
      ============================ */
     public function exportSummary()
     {
-        $parcels = Parcel::with('trip')->latest()->get();
+        $parcels = Parcel::latest()->get();
 
-        $sheet = (new Spreadsheet())->getActiveSheet();
+        $sheet=(new Spreadsheet())->getActiveSheet();
         $sheet->fromArray([
-            ['ID', 'Tracking', 'Expéditeur', 'Destinataire', 'Poids (kg)', 'Prix', 'Statut', 'Date']
-        ], null, 'A1');
+            ['ID','Tracking','Expéditeur','Destinataire','Poids','Prix','Statut','Date']
+        ],null,'A1');
 
-        $row = 2;
-        foreach ($parcels as $p) {
+        $row=2;
+        foreach($parcels as $p){
             $sheet->fromArray([
                 $p->id,
                 $p->tracking_number,
@@ -183,12 +241,12 @@ class ParcelController extends Controller
                 $p->weight_kg,
                 $p->price,
                 ucfirst($p->status),
-                $p->created_at->format('d/m/Y H:i'),
-            ], null, "A$row");
+                $p->created_at->format('d/m/Y H:i')
+            ],null,"A$row");
             $row++;
         }
 
-        return $this->downloadExcel($sheet, 'parcels_summary');
+        return $this->downloadExcel($sheet,'parcels_summary');
     }
 
     /* ============================
@@ -196,51 +254,76 @@ class ParcelController extends Controller
      ============================ */
     private function getTrips()
     {
-        return Trip::with(['route.departureCity', 'route.arrivalCity', 'bus'])
+        return Trip::with(['route.departureCity','route.arrivalCity','bus'])
             ->get()
-            ->map(fn ($t) => [
-                'id' => $t->id,
-                'departure_at' => Carbon::parse($t->departure_at)
-                    ->translatedFormat('l d F Y H:i'),
-                'route' => [
-                    'departureCity' => $t->route?->departureCity?->name,
-                    'arrivalCity' => $t->route?->arrivalCity?->name,
+            ->map(fn($t)=>[
+                'id'=>$t->id,
+                'departure_at'=>Carbon::parse($t->departure_at)->translatedFormat('l d F Y H:i'),
+                'route'=>[
+                    'departureCity'=>$t->route?->departureCity?->name,
+                    'arrivalCity'=>$t->route?->arrivalCity?->name,
                 ],
             ]);
     }
 
-    private function validateParcel(Request $request, $id = null)
+    private function validateParcel(Request $request,$id=null)
     {
         return $request->validate([
-            'trip_id' => 'nullable|exists:trips,id',
-            'tracking_number' => 'required|string|unique:parcels,tracking_number,' . $id,
-            'sender_name' => 'required|string',
-            'sender_phone' => 'required|string',
-            'recipient_name' => 'required|string',
-            'recipient_phone' => 'required|string',
-            'weight_kg' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'merchandise_value'=> 'required|numeric|min:0',
-            'description' => 'nullable|string',
-            'status' => 'required|string',
-            'parcel_image' => 'nullable|image|mimes:jpg,jpeg,png|max:20480',
-            'departure_agency_id' => 'required|exists:agencies,id',
-            'arrival_agency_id' => 'required|exists:agencies,id',
+            'trip_id'=>'nullable|exists:trips,id',
+            'tracking_number'=>'nullable|string|unique:parcels,tracking_number,'.$id,
+            'sender_name'=>'required|string',
+            'sender_phone'=>'required|string',
+            'recipient_name'=>'required|string',
+            'recipient_phone'=>'required|string',
+            'weight_kg'=>'required|numeric|min:0.1',
+            'price'=>'required|numeric|min:1',
+            'merchandise_value'=>'required|numeric|min:1',
+            'description'=>'nullable|string',
+            'status'=>'nullable|string',
+            'parcel_image'=>'nullable|image|mimes:jpg,jpeg,png|max:20480',
+            'departure_agency_id'=>'required|exists:agencies,id',
+            'arrival_agency_id'=>'required|exists:agencies,id',
         ]);
     }
 
-    private function downloadExcel($sheet, $name)
+    private function downloadExcel($sheet,$name)
     {
-        $writer = new Xlsx($sheet->getParent());
-        $filename = $name . '_' . now()->format('Ymd_His') . '.xlsx';
+        $writer=new Xlsx($sheet->getParent());
+        $filename=$name.'_'.now()->format('Ymd_His').'.xlsx';
 
         return response()->stream(
-            fn () => $writer->save('php://output'),
+            fn()=> $writer->save('php://output'),
             200,
             [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'Content-Disposition' => "attachment; filename=\"$filename\"",
+                'Content-Type'=>'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition'=>"attachment; filename=\"$filename\"",
             ]
         );
     }
+
+     public function dailySummary(Request $request)
+    {
+        $parcels = Parcel::select('created_at', 'price')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('Parcels/DailySummary', [
+            'parcels' => $parcels,
+        ]);
+    }
+
+    public function exportDailySummary()
+    {
+        return Excel::download(new DailySummaryExport, 'daily_summary.xlsx');
+    }
+    public function updateStatus(Request $request, Parcel $parcel)
+{
+    $request->validate([
+        'status' => 'required|in:pending,in_transit,delivered',
+    ]);
+    $parcel->status = $request->status;
+    $parcel->save();
+
+    return redirect()->back()->with('success', 'Statut mis à jour avec succès');
+}
 }

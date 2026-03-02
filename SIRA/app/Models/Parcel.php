@@ -10,6 +10,10 @@ class Parcel extends Model
 {
     use HasFactory;
 
+   protected $casts = [
+    'price' => 'float',
+    'merchandise_value' => 'float',
+];
     protected $fillable = [
         'trip_id',
         'tracking_number',

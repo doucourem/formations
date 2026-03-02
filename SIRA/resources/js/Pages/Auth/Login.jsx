@@ -38,7 +38,7 @@ export default function Login({ status, canResetPassword }) {
                             <GppGood className="text-white" sx={{ fontSize: 20 }} />
                         </div>
                         <span className="text-xl font-black tracking-tighter uppercase">
-                            NILA <span className="text-green-600">TOULELTRANS</span>
+                            SIRA MALI  <span className="text-green-600">numérique</span>
                         </span>
                     </Link>
                 </Container>
