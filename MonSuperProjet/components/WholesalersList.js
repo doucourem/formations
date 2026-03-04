@@ -6,7 +6,7 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
-  Platform,
+  StatusBar,
 } from "react-native";
 import {
   Card,
@@ -16,11 +16,11 @@ import {
   Dialog,
   TextInput,
   IconButton,
+  useTheme, // On utilise le hook ici
 } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 
-/* ================= HELPERS ================= */
 const formatCFA = (amount = 0) =>
   new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -28,22 +28,9 @@ const formatCFA = (amount = 0) =>
     minimumFractionDigits: 0,
   }).format(amount);
 
-/* ================= THEME ================= */
-const theme = {
-  colors: {
-    background: "#0A0F1A",
-    surface: "#1E293B",
-    primary: "#2563EB",
-    onSurface: "#F8FAFC",
-    placeholder: "#94A3B8",
-    success: "#22C55E",
-    error: "#EF4444",
-  },
-};
-
-/* ================= COMPONENT ================= */
 export default function WholesalersList() {
   const navigation = useNavigation();
+  const { colors } = useTheme(); // RÉCUPÉRATION DU THÈME GLOBAL
 
   const [user, setUser] = useState(null);
   const [wholesalers, setWholesalers] = useState([]);
@@ -53,11 +40,7 @@ export default function WholesalersList() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [globalTotals, setGlobalTotals] = useState({
-    total_credit: 0,
-    total_debit: 0,
-    balance: 0,
-  });
+  const [globalTotals, setGlobalTotals] = useState({ balance: 0 });
 
   const [currentWholesaler, setCurrentWholesaler] = useState({
     id: null,
@@ -65,308 +48,189 @@ export default function WholesalersList() {
     operator_id: null,
   });
 
-  /* ================= AUTH ================= */
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) setUser(data.user);
-    });
-  }, []);
-
-  /* ================= FETCH GLOBAL TOTALS ================= */
+  /* ================= FETCH DATA ================= */
   const fetchGlobalTotals = useCallback(async () => {
     const { data, error } = await supabase.rpc("get_network_totals");
     if (!error && data?.[0]) setGlobalTotals(data[0]);
   }, []);
 
-  /* ================= FETCH ALL ================= */
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
-
-      const results = await Promise.all([
-        supabase
-          .from("wholesalers")
-          .select("id, name, operator_id, user_id, created_at")
-          .order("created_at", { ascending: false }),
+      const [whRes, opRes, txRes] = await Promise.all([
+        supabase.from("wholesalers").select("*").order("name"),
         supabase.from("operators").select("id, name"),
-        supabase
-          .from("wholesaler_transactions")
-          .select("wholesaler_id, amount, type"),
+        supabase.from("wholesaler_transactions").select("wholesaler_id, amount, type"),
       ]);
 
-      const wh = results[0]?.data || [];
-      const op = results[1]?.data || [];
-      const tx = results[2]?.data || [];
-
-      setOperators(op);
+      const ops = opRes.data || [];
+      const txs = txRes.data || [];
+      setOperators(ops);
 
       const balances = {};
-      tx.forEach((t) => {
+      txs.forEach((t) => {
         const b = balances[t.wholesaler_id] ??= { credit: 0, debit: 0 };
-        t.type === "CREDIT"
-          ? (b.credit += Number(t.amount))
-          : (b.debit += Number(t.amount));
+        t.type === "CREDIT" ? (b.credit += Number(t.amount)) : (b.debit += Number(t.amount));
       });
 
-      const enriched = wh.map((w) => {
+      const enriched = (whRes.data || []).map((w) => {
         const b = balances[w.id] || { credit: 0, debit: 0 };
         return {
           ...w,
-          total_credit: b.credit,
-          total_debit: b.debit,
           balance: b.credit - b.debit,
-          operator_name: op.find((o) => o.id === w.operator_id)?.name || "-",
+          operator_name: ops.find((o) => o.id === w.operator_id)?.name || "-",
         };
       });
 
       setWholesalers(enriched);
-    } catch {
-      Alert.alert("Erreur", "Impossible de charger les données");
+    } catch (err) {
+      Alert.alert("Erreur", "Chargement impossible");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  /* ================= REFRESH ================= */
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchAll();
-    await fetchGlobalTotals();
-  }, [fetchAll, fetchGlobalTotals]);
-
-  /* ================= AUTO REFRESH ON FOCUS ================= */
   useFocusEffect(
     useCallback(() => {
-      if (user) {
-        fetchAll();
-        fetchGlobalTotals();
-      }
-    }, [user])
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user) {
+          setUser(data.user);
+          fetchAll();
+          fetchGlobalTotals();
+        }
+      });
+    }, [fetchAll, fetchGlobalTotals])
   );
 
-  /* ================= SAVE ================= */
+  /* ================= ACTIONS ================= */
   const handleSave = async () => {
     if (!currentWholesaler.name || !currentWholesaler.operator_id) {
-      return Alert.alert("Erreur", "Tous les champs sont obligatoires");
+      return Alert.alert("Erreur", "Champs obligatoires manquants");
     }
-
     setSaving(true);
-
+    const payload = { name: currentWholesaler.name, operator_id: currentWholesaler.operator_id };
+    
     if (currentWholesaler.id) {
-      await supabase
-        .from("wholesalers")
-        .update({
-          name: currentWholesaler.name,
-          operator_id: currentWholesaler.operator_id,
-        })
-        .eq("id", currentWholesaler.id);
+      await supabase.from("wholesalers").update(payload).eq("id", currentWholesaler.id);
     } else {
-      await supabase.from("wholesalers").insert({
-        name: currentWholesaler.name,
-        operator_id: currentWholesaler.operator_id,
-        user_id: user.id,
-      });
+      await supabase.from("wholesalers").insert({ ...payload, user_id: user.id });
     }
 
     setOpen(false);
     setSaving(false);
-    setCurrentWholesaler({ id: null, name: "", operator_id: null });
     fetchAll();
     fetchGlobalTotals();
   };
 
-  /* ================= DELETE ================= */
-  const handleDelete = async (id) => {
-    Alert.alert(
-      "Confirmer la suppression",
-      "Voulez-vous vraiment supprimer ce fournisseur ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from("wholesalers")
-                .delete()
-                .eq("id", id);
-
-              if (error) throw error;
-
-              fetchAll();
-              fetchGlobalTotals();
-              Alert.alert("Succès", "Fournisseur supprimé avec succès");
-            } catch (err) {
-              Alert.alert("Erreur", err.message || "Impossible de supprimer");
-            }
-          },
+  const handleDelete = (id) => {
+    Alert.alert("Supprimer", "Confirmer la suppression ?", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          await supabase.from("wholesalers").delete().eq("id", id);
+          fetchAll();
+          fetchGlobalTotals();
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  /* ================= RENDER ITEM ================= */
+  /* ================= RENDER ================= */
   const renderItem = ({ item }) => {
-    const solde = (item.total_credit || 0) - (item.total_debit || 0);
-    const isPositive = solde >= 0;
-
+    const isPositive = item.balance >= 0;
     return (
-      <Card style={styles.card} mode="outlined">
+      <Card style={[styles.card, { backgroundColor: colors.surface }]} elevation={1}>
         <Card.Content>
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
-              <Text variant="titleMedium">{item.name}</Text>
-              <Text style={styles.operatorText}>
-                Opérateur : {item.operator_name}
-              </Text>
+              <Text variant="titleMedium" style={[styles.wholesalerName, { color: colors.onSurface }]}>{item.name}</Text>
+              <Text style={styles.operatorTag}>🌐 {item.operator_name}</Text>
             </View>
             <View style={styles.actions}>
-              <IconButton
-                icon="eye-outline"
-                size={22}
-                onPress={() =>
-                  navigation.navigate("WholesalerTransactions", {
-                    wholesalerId: item.id,
-                    wholesalerName: item.name,
-                  })
-                }
-              />
-              <IconButton
-                icon="pencil-outline"
-                size={22}
-                onPress={() => {
-                  setCurrentWholesaler({
-                    id: item.id,
-                    name: item.name,
-                    operator_id: item.operator_id,
-                  });
-                  setOpen(true);
-                }}
-              />
-              <IconButton
-                icon="delete-outline"
-                size={22}
-                onPress={() => handleDelete(item.id)}
-              />
+              <IconButton icon="history" size={20} iconColor={colors.primary} onPress={() => navigation.navigate("WholesalerTransactions", { wholesalerId: item.id, wholesalerName: item.name })} />
+              <IconButton icon="pencil-outline" size={20} iconColor={colors.onSurfaceVariant} onPress={() => { setCurrentWholesaler(item); setOpen(true); }} />
+              <IconButton icon="delete-outline" iconColor={colors.error} size={20} onPress={() => handleDelete(item.id)} />
             </View>
           </View>
 
-          <View style={styles.amountRow}>
-            <Text style={isPositive ? styles.positive : styles.negative}>
-              {isPositive ? " VOUS DEVEZ " : "ON VOUS DOIT"} :{" "}
-              {formatCFA(Math.abs(solde))}
+          {/* Utilisation dynamique des couleurs du thème global */}
+          <View style={[styles.balanceBox, { backgroundColor: isPositive ? colors.success + '15' : colors.error + '15' }]}>
+            <Text style={[styles.balanceLabel, { color: isPositive ? colors.success : colors.error }]}>
+              {isPositive ? "VOUS DEVEZ" : "IL VOUS DOIT"}
             </Text>
-            <IconButton
-              icon={isPositive ? "arrow-up-bold" : "arrow-down-bold"}
-              size={20}
-              iconColor={isPositive ? theme.colors.success : theme.colors.error}
-            />
+            <Text style={[styles.balanceValue, { color: isPositive ? colors.success : colors.error }]}>
+              {formatCFA(Math.abs(item.balance))}
+            </Text>
           </View>
         </Card.Content>
       </Card>
     );
   };
 
-  if (loading) return <ActivityIndicator style={{ marginTop: 40 }} />;
+  if (loading && !refreshing) return <ActivityIndicator style={{ flex: 1, backgroundColor: colors.background }} size="large" color={colors.primary} />;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Fournisseur & Soldes</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      
+      <Text style={[styles.mainTitle, { color: colors.onSurface }]}>Fournisseurs & Stocks</Text>
 
-      <Card style={styles.totalCard}>
-  <Card.Content>
-    <Text style={styles.totalLabel}>
-      {globalTotals.balance >= 0 ? "ON VOUS DOIT" : "VOUS DEVEZ"}
-    </Text>
-
-    <Text
-      style={{
-        fontWeight: "bold",
-        textAlign: "center",
-        color:
-          globalTotals.balance >= 0
-            ? theme.colors.success
-            : theme.colors.error,
-      }}
-    >
-      {formatCFA(Math.abs(globalTotals.balance))}
-    </Text>
-  </Card.Content>
-</Card>
-
+      <Card style={[styles.totalCard, { borderLeftColor: colors.primary }]} elevation={2}>
+        <Card.Content>
+          <Text style={styles.totalLabel}>SOLDE GLOBAL RÉSEAU</Text>
+          <Text style={[styles.totalValue, { color: globalTotals.balance >= 0 ? colors.success : colors.error }]}>
+            {formatCFA(Math.abs(globalTotals.balance))}
+          </Text>
+        </Card.Content>
+      </Card>
 
       <FlatList
         data={wholesalers}
         keyExtractor={(i) => i.id.toString()}
         renderItem={renderItem}
+        onRefresh={fetchAll}
         refreshing={refreshing}
-        onRefresh={onRefresh}
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
 
-      <Button
-        mode="contained"
-        style={{ marginTop: 10 }}
-        onPress={() => {
-          setCurrentWholesaler({ id: null, name: "", operator_id: null });
-          setOpen(true);
-        }}
+      <Button 
+        mode="contained" 
+        icon="plus"
+        style={styles.fab}
+        onPress={() => { setCurrentWholesaler({ id: null, name: "", operator_id: null }); setOpen(true); }}
       >
-        Ajouter fournisseur
+        Nouveau Fournisseur
       </Button>
 
       <Portal>
-        <Dialog
-          visible={open}
-          onDismiss={() => setOpen(false)}
-          style={{ width: "80%", alignSelf: "center" }}
-        >
+        <Dialog visible={open} onDismiss={() => setOpen(false)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Title>
-            {currentWholesaler.id
-              ? "Modifier fournisseur"
-              : "Ajouter fournisseur"}
+            {currentWholesaler.id ? "Modifier" : "Ajouter"}
           </Dialog.Title>
           <Dialog.Content>
             <TextInput
-              label="Nom"
+              label="Nom du fournisseur"
               value={currentWholesaler.name}
-              onChangeText={(t) =>
-                setCurrentWholesaler({ ...currentWholesaler, name: t })
-              }
-              style={{ marginBottom: 12 }}
+              onChangeText={(t) => setCurrentWholesaler({ ...currentWholesaler, name: t })}
+              mode="outlined"
+              style={styles.input}
             />
-            <RNPickerSelect
-              value={currentWholesaler.operator_id}
-              onValueChange={(v) =>
-                setCurrentWholesaler({ ...currentWholesaler, operator_id: v })
-              }
-              items={operators.map((o) => ({ label: o.name, value: o.id }))}
-              style={{
-                inputIOS: {
-                  color: "#000",
-                  padding: 12,
-                  backgroundColor: "#fff",
-                  borderRadius: 8,
-                  marginBottom: 12,
-                },
-                inputAndroid: {
-                  color: "#000",
-                  padding: 12,
-                  backgroundColor: "#fff",
-                  borderRadius: 8,
-                  marginBottom: 12,
-                },
-              }}
-              useNativeAndroidPickerStyle={false}
-              placeholder={{ label: "Sélectionner un opérateur", value: null }}
-            />
+            <View style={[styles.pickerContainer, { borderColor: colors.outline }]}>
+              <RNPickerSelect
+                value={currentWholesaler.operator_id}
+                onValueChange={(v) => setCurrentWholesaler({ ...currentWholesaler, operator_id: v })}
+                items={operators.map((o) => ({ label: o.name, value: o.id }))}
+                placeholder={{ label: "Choisir un opérateur...", value: null }}
+                style={pickerStyles}
+              />
+            </View>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setOpen(false)}>Annuler</Button>
-            <Button loading={saving} onPress={handleSave}>
-              Enregistrer
-            </Button>
+            <Button onPress={() => setOpen(false)} textColor={colors.onSurfaceVariant}>Annuler</Button>
+            <Button loading={saving} mode="contained" onPress={handleSave}>Enregistrer</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -376,61 +240,43 @@ export default function WholesalersList() {
 
 /* ================= STYLES ================= */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: theme.colors.background,
+  container: { flex: 1, padding: 16 },
+  mainTitle: { fontSize: 22, fontWeight: "900", textAlign: "center", marginBottom: 20 },
+  totalCard: { 
+    marginBottom: 20, 
+    backgroundColor: "#FFFFFF", 
+    borderRadius: 20, 
+    borderLeftWidth: 6 
   },
-  header: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 12,
-    color: theme.colors.onSurface,
+  totalLabel: { color: "#636366", textAlign: "center", fontWeight: "bold", fontSize: 12 },
+  totalValue: { textAlign: "center", fontSize: 24, fontWeight: "900", marginTop: 5 },
+  card: { marginBottom: 12, borderRadius: 16 },
+  headerRow: { flexDirection: "row", alignItems: "flex-start" },
+  wholesalerName: { fontWeight: "bold" },
+  operatorTag: { color: "#8E8E93", fontSize: 12, marginTop: 2 },
+  actions: { flexDirection: "row" },
+  balanceBox: { 
+    marginTop: 15, 
+    padding: 12, 
+    borderRadius: 12, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
   },
-  card: {
-    marginBottom: 10,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 14,
-    width: "100%",
-  },
-  totalCard: {
-    marginBottom: 12,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 16,
-  },
-  totalLabel: {
-    color: "#FFF",
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  actions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 4,
-  },
-  operatorText: {
-    opacity: 0.7,
-    marginTop: 2,
-  },
-  amountRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  positive: {
-    color: "#2e7d32",
-    fontWeight: "700",
-    fontSize: 15,
-  },
-  negative: {
-    color: "#c62828",
-    fontWeight: "700",
-    fontSize: 15,
-  },
+  balanceLabel: { fontSize: 11, fontWeight: "bold" },
+  balanceValue: { fontSize: 16, fontWeight: "900" },
+  fab: { position: 'absolute', bottom: 20, left: 16, right: 16, borderRadius: 12, paddingVertical: 5 },
+  dialog: { borderRadius: 24 },
+  input: { marginBottom: 15 },
+  pickerContainer: { 
+    borderWidth: 1, 
+    borderRadius: 8, 
+    backgroundColor: "#F9F9F9", 
+    overflow: 'hidden' 
+  }
 });
+
+const pickerStyles = {
+  inputIOS: { padding: 12, color: "#000" },
+  inputAndroid: { padding: 12, color: "#000" }
+};

@@ -1,24 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert, useWindowDimensions } from "react-native";
+import { View, StyleSheet, StatusBar } from "react-native";
 import {
   Provider as PaperProvider,
   MD3DarkTheme,
-  Button,
-  Text,
+  MD3LightTheme, // <--- AJOUTEZ CECI
   IconButton,
   ActivityIndicator,
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
-import {
-  createDrawerNavigator,
-  DrawerContentScrollView,
-} from "@react-navigation/drawer";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import supabase from "./supabaseClient";
 
-// === IMPORTS INTERNES ===
+// === IMPORTS COMPOSANTS ===
 import Auth from "./components/Auth";
 import Register from "./components/Register";
+import HomeScreen from "./components/HomeScreen";
 import CashesList from "./components/CashesList";
 import TransactionsList from "./components/TransactionsList";
 import OperatorsList from "./components/OperatorsList";
@@ -32,273 +28,172 @@ import TransactionsListCaisse from "./components/TransactionsListCaisse";
 import ChangePasswordScreen from "./components/ChangePasswordScreen";
 import CourierPaymentsScreen from "./components/CourierPaymentsScreen";
 
-const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 
-// === THÈME PERSONNALISÉ ===
+// === CONFIGURATION DU THÈME ===
 const theme = {
-  ...MD3DarkTheme,
+  ...MD3LightTheme, // On passe sur une base claire
   colors: {
-    ...MD3DarkTheme.colors,
-    primary: "#4F46E5",
-    secondary: "#10B981",
-    accent: "#FBBF24",
-    error: "#EF4444",
-    background: "#111827",
-    surface: "#1F2937",
-    onSurface: "#FCFBF8",
-    elevation: {
-      level3: "#374151",
-    },
+    ...MD3LightTheme.colors,
+    primary: "#4F46E5",       // Indigo pour les boutons
+    secondary: "#10B981",     // Vert pour les succès
+    background: "#F2F2F7",    // LE "BLANC SALE" (Gris très clair type iOS)
+    surface: "#FFFFFF",       // Blanc pur pour les cartes (pour qu'elles ressortent)
+    onSurface: "#1C1C1E",     // Texte presque noir
+    onSurfaceVariant: "#636366", // Texte gris secondaire
+    outline: "#D1D1D6",       // Bordures fines
   },
 };
 
-// === DRAWER CONTENU PERSONNALISÉ ===
-const CustomDrawerContent = ({ user, screens, ...props }) => {
-  const activeRouteName = props.state.routes[props.state.index].name;
+// === CONFIGURATION DES MENUS PAR RÔLE ===
+const GET_MENU_BY_ROLE = (role) => {
+  const common = [
+    { name: "TRANSACTIONS", route: "Transactions", icon: "swap-horizontal" },
+    { name: "BOUTIQUE", route: "CashesList", icon: "storefront" },
+    { name: "RAPPORT", route: "Rapport", icon: "file-document" },
+    { name: "SÉCURITÉ", route: "Password", icon: "lock" },
+  ];
 
-  return (
-    <View style={styles.drawerContainer}>
-      <View style={styles.drawerHeader}>
-        <Text variant="titleLarge" style={styles.headerTitle}>
-          Tableau de bord
-        </Text>
-        <Text style={styles.userEmail}>{user?.email}</Text>
-        <Button
-          mode="contained-tonal"
-          icon="logout"
-          onPress={async () => await supabase.auth.signOut()}
-          style={styles.logoutBtn}
-        >
-          Déconnexion
-        </Button>
-      </View>
-
-      <DrawerContentScrollView {...props}>
-        {screens.map((screen) => {
-          const isActive = activeRouteName === screen.name;
-          return (
-            <Button
-              key={screen.name}
-              mode={isActive ? "contained" : "text"}
-              onPress={() => props.navigation.navigate(screen.name)}
-              textColor={isActive ? "#FFF" : "#CBD5E1"}
-              style={[styles.drawerItem, isActive && styles.activeDrawerItem]}
-              contentStyle={styles.drawerItemContent}
-              labelStyle={styles.drawerItemLabel}
-            >
-              {screen.name}
-            </Button>
-          );
-        })}
-      </DrawerContentScrollView>
-
-      <View style={styles.drawerFooter}>
-        <Text style={styles.footerText}>© 2025 Ma Société - v1.0</Text>
-      </View>
-    </View>
-  );
+  if (role === "admin") {
+    return [
+      ...common.slice(0, 2),
+      { name: "CLIENTS", route: "Kiosks", icon: "account-group" },
+      { name: "FOURNISSEURS", route: "Wholesalers", icon: "truck-delivery" },
+      ...common.slice(2),
+      { name: "OPÉRATEURS", route: "Operators", icon: "cellphone-tower" },
+      { name: "UTILISATEURS", route: "Users", icon: "shield-account" },
+    ];
+  }
+  return common;
 };
 
-// === STACK POUR LA GESTION DES BOUTIQUES ===
-function CashStack() {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.colors.surface },
-        headerTintColor: theme.colors.onSurface,
-      }}
-    >
-      <Stack.Screen name="CashesList" component={CashesList} options={{ title: "BOUTIQUE" }} />
-      <Stack.Screen name="AddCash" component={AddCashScreen} options={{ title: "Ajouter BOUTIQUE" }} />
-      <Stack.Screen name="EditCash" component={EditCashScreen} options={{ title: "Modifier BOUTIQUE" }} />
-      <Stack.Screen name="TransactionsListCaisse" component={TransactionsListCaisse} options={{ title: "Transactions" }} />
-    </Stack.Navigator>
-  );
-}
-
-// === NAVIGATEUR DRAWER PRINCIPAL (RESPONSIVE) ===
-function DrawerNavigator({ user }) {
-  const { width } = useWindowDimensions();
-  const isLargeScreen = width >= 768; // Mode Tablette/PC
-
- const screensByRole = {
-  kiosque: [
-    { name: "TRANSACTIONS", component: TransactionsList },
-    { name: "BOUTIQUE", component: CashStack },
-    { name: "RAPPORT", component: CourierPaymentsScreen },
-    { name: "CHANGER MOT DE PASSE", component: ChangePasswordScreen },
-  ],
-  admin: [
-    { name: "TRANSACTIONS", component: TransactionsList },
-    { name: "BOUTIQUE", component: CashStack },
-    { name: "CLIENTS", component: KiosksList },
-    { name: "FOURNISSEURS", component: WholesalersList },
-    { name: "RAPPORT", component: CourierPaymentsScreen },
-    { name: "OPÉRATEURS", component: OperatorsList },
-    { name: "UTILISATEURS", component: UsersList },
-    { name: "CHANGER MOT DE PASSE", component: ChangePasswordScreen },
-  ],
-};
-
-
-  const role = user?.role || "kiosque";
-  const screens = screensByRole[role] || screensByRole.kiosque;
-
-  return (
-    <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} user={user} screens={screens} />}
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.colors.surface },
-        headerTintColor: theme.colors.onSurface,
-        drawerType: isLargeScreen ? "permanent" : "front",
-        drawerStyle: {
-          width: 280,
-          backgroundColor: theme.colors.background,
-        },
-      }}
-    >
-      {screens.map((screen) => (
-        <Drawer.Screen key={screen.name} name={screen.name} component={screen.component} />
-      ))}
-    </Drawer.Navigator>
-  );
-}
-
-// === CONTENU APP (STACK GLOBAL) ===
-function AppContent({ user }) {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="MainDrawer">
-        {() => <DrawerNavigator user={user} />}
-      </Stack.Screen>
-
-      <Stack.Screen
-        name="WholesalerTransactions"
-        component={WholesalerTransactionsList}
-        options={({ navigation, route }) => ({
-          headerShown: true,
-          title: `Transactions - ${route.params?.wholesalerName || "Fournisseur"}`,
-          headerStyle: { backgroundColor: theme.colors.surface },
-          headerTintColor: theme.colors.onSurface,
-          headerLeft: () => (
-            <IconButton
-              icon="arrow-left"
-              onPress={() => navigation.goBack()}
-              iconColor={theme.colors.primary}
-            />
-          ),
-        })}
-      />
-    </Stack.Navigator>
-  );
-}
-
-// === APP PRINCIPALE ===
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserAndProfile = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        const authUser = data.session?.user;
-
-        if (authUser) {
-          const { data: profile, error } = await supabase
-            .from("users")
-            .select("id, email, role, full_name")
-            .eq("id", authUser.id)
-            .maybeSingle();
-
-          if (error) throw error;
-          setUser(profile);
-        }
-      } catch (err) {
-        console.error("Erreur Profil:", err.message);
-      } finally {
-        setLoading(false);
-      }
+    // 1. Vérification initiale de la session
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) await fetchUserProfile(session.user.id);
+      setLoading(false);
     };
 
-    fetchUserAndProfile();
+    initializeAuth();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) setUser(null);
-      else fetchUserAndProfile();
+    // 2. Écouteur de changement d'état
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        await fetchUserProfile(session.user.id);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => authListener.subscription.unsubscribe();
   }, []);
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator animating={true} color={theme.colors.primary} size="large" />
-      </View>
-    );
-  }
+  const fetchUserProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      if (data) setUser(data);
+    } catch (err) {
+      console.error("Erreur profile:", err);
+    }
+  };
+
+  if (loading) return (
+    <View style={styles.centered}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+    </View>
+  );
 
   return (
     <PaperProvider theme={theme}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.surface} />
       <NavigationContainer>
-        {user ? (
-          <AppContent user={user} />
-        ) : (
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Auth" component={Auth} />
-            <Stack.Screen name="Register" component={Register} />
-          </Stack.Navigator>
-        )}
+        <Stack.Navigator
+          screenOptions={{
+            headerStyle: { backgroundColor: theme.colors.surface },
+            headerTintColor: theme.colors.onSurface,
+            headerTitleStyle: { fontWeight: 'bold' },
+            animation: 'slide_from_right'
+          }}
+        >
+          {user ? (
+            <>
+              {/* ACCUEIL DYNAMIQUE */}
+              <Stack.Screen 
+                name="ACCUEIL" 
+                options={{ 
+                  title: "Ma Gestion",
+                  headerRight: () => (
+                    <IconButton 
+                      icon="logout" 
+                      onPress={() => supabase.auth.signOut()} 
+                      iconColor={theme.colors.error} 
+                    />
+                  )
+                }}
+              >
+                {(props) => (
+                  <HomeScreen 
+                    {...props} 
+                    user={user} 
+                    screens={GET_MENU_BY_ROLE(user.role)} 
+                  />
+                )}
+              </Stack.Screen>
+
+              {/* GROUPE : GESTION DES FLUX */}
+              <Stack.Group>
+                <Stack.Screen name="Transactions" component={TransactionsList} />
+                <Stack.Screen name="Rapport" component={CourierPaymentsScreen} options={{ title: "Rapports d'activité" }} />
+              </Stack.Group>
+
+              {/* GROUPE : BOUTIQUES */}
+              <Stack.Group>
+                <Stack.Screen name="CashesList" component={CashesList} options={{ title: "Mes Boutiques" }} />
+                <Stack.Screen name="AddCash" component={AddCashScreen} options={{ title: "Nouvelle Boutique" }} />
+                <Stack.Screen name="EditCash" component={EditCashScreen} options={{ title: "Paramètres Boutique" }} />
+                <Stack.Screen name="TransactionsListCaisse" component={TransactionsListCaisse} options={{ title: "Historique Caisse" }} />
+              </Stack.Group>
+
+              {/* GROUPE : ADMIN & TIERS */}
+              <Stack.Group screenOptions={{ headerStyle: { backgroundColor: '#1e1b4b' } }}>
+                <Stack.Screen name="Kiosks" component={KiosksList} options={{ title: "Gestion Clients" }} />
+                <Stack.Screen name="Wholesalers" component={WholesalersList} options={{ title: "Liste Fournisseurs" }} />
+                <Stack.Screen name="WholesalerTransactions" component={WholesalerTransactionsList} options={{ title: "Détails Fournisseur" }} />
+                <Stack.Screen name="Operators" component={OperatorsList} options={{ title: "Opérateurs Télécom" }} />
+                <Stack.Screen name="Users" component={UsersList} options={{ title: "Droits d'accès" }} />
+              </Stack.Group>
+
+              {/* SÉCURITÉ */}
+              <Stack.Screen name="Password" component={ChangePasswordScreen} options={{ title: "Mot de passe" }} />
+            </>
+          ) : (
+            <>
+              <Stack.Screen name="Auth" component={Auth} options={{ headerShown: false }} />
+              <Stack.Screen name="Register" component={Register} options={{ headerShown: false }} />
+            </>
+          )}
+        </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>
   );
 }
 
-// === STYLES GLOBAUX ===
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#111827",
-  },
-  drawerContainer: { flex: 1 },
-  drawerHeader: {
-    padding: 24,
-    backgroundColor: "#1F2937",
-    borderBottomWidth: 1,
-    borderBottomColor: "#374151",
-  },
-  headerTitle: { color: "#FFF", fontWeight: "bold" },
-  userEmail: { color: "#94A3B8", marginTop: 4, fontSize: 13 },
-  logoutBtn: { marginTop: 16 },
-  drawerItem: {
-    marginHorizontal: 12,
-    marginVertical: 4,
-    borderRadius: 8,
-  },
-  activeDrawerItem: {
-    backgroundColor: "#4F46E5",
-  },
-  drawerItemContent: {
-    justifyContent: "flex-start",
-    height: 48,
-  },
-  drawerItemLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    textAlign: "left",
-  },
-  drawerFooter: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#334155",
-  },
-  footerText: {
-    color: "#64748B",
-    fontSize: 11,
-    textAlign: "center",
+  centered: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    backgroundColor: "#0F172A" 
+    
   },
 });

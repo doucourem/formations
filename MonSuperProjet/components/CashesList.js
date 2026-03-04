@@ -1,63 +1,61 @@
 import React, { useEffect, useState, useMemo, memo } from "react";
-import { View, FlatList, Alert, StyleSheet, RefreshControl } from "react-native";
-import { Card, Text, Button, IconButton, TextInput, ActivityIndicator } from "react-native-paper";
+import { View, FlatList, Alert, StyleSheet, RefreshControl, StatusBar } from "react-native";
+import { Card, Text, Button, IconButton, TextInput, ActivityIndicator, useTheme } from "react-native-paper";
 import supabase from "../supabaseClient";
 
 /* ================= CARD ================= */
-const CashCard = memo(({ item, profile, navigation, onDelete, onClose }) => {
+const CashCard = memo(({ item, profile, navigation, onDelete }) => {
+  const { colors } = useTheme();
   const isNegative = item.balance < 0;
 
   return (
-    <Card style={[styles.card, { backgroundColor: "#F3F4F6" }]}>
+    <Card style={styles.card} elevation={1}>
       <Card.Title
         title={item.name}
-        titleStyle={{ color: "#111827", fontWeight: "bold" }}
+        titleStyle={styles.cardTitle}
         subtitle={`Client : ${item.kiosk_name || "—"}`}
-        subtitleStyle={{ color: "#374151" }}
         right={() => (
           <View style={{ flexDirection: "row" }}>
             {profile?.role === "admin" && !item.closed && (
               <IconButton
-                icon="pencil"
-                iconColor="#2563EB"
+                icon="pencil-outline"
+                iconColor={colors.primary}
                 onPress={() => navigation.navigate("EditCash", { cash: item })}
               />
             )}
             {profile?.role === "admin" && (
               <IconButton
-                icon="delete"
-                iconColor="#B91C1C"
+                icon="delete-outline"
+                iconColor={colors.error}
                 onPress={() => onDelete(item.id)}
               />
             )}
-
           </View>
         )}
       />
 
       <Card.Content>
-        <Text style={[styles.balance, { color: isNegative ? "#B91C1C" : "#166534" }]}>
+        <Text style={[styles.balance, { color: isNegative ? colors.error : colors.secondary }]}>
           {isNegative
-            ? `⚠️ Il nous doit : ${Math.abs(item.balance).toLocaleString("fr-FR")} FCFA`
+            ? `⚠️ Dette : ${Math.abs(item.balance).toLocaleString("fr-FR")} FCFA`
             : `💰 Avance : ${item.balance.toLocaleString("fr-FR")} FCFA`}
         </Text>
 
-        <Text style={[styles.text, { color: "#374151" }]}>
-          👤 Coursier : {item.cashier_name || item.cashier_email || "—"}
-        </Text>
-
-        <Text style={[styles.text, { color: item.closed ? "#B91C1C" : "#065F46" }]}>
-          📦 État : {item.closed ? "Clôturée" : "Ouverte"}
-        </Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoText}>👤 Coursier : {item.cashier_name || "Non assigné"}</Text>
+          <Text style={[styles.statusText, { color: item.closed ? colors.error : colors.secondary }]}>
+            {item.closed ? "● Clôturée" : "● Ouverte"}
+          </Text>
+        </View>
 
         <Button
-          mode="outlined"
-          icon="eye"
-          textColor="#2563EB"
-          style={{ marginTop: 8 }}
+          mode="text"
+          icon="chevron-right"
+          contentStyle={{ flexDirection: 'row-reverse' }}
+          style={styles.detailsBtn}
           onPress={() => navigation.navigate("TransactionsListCaisse", { cashId: item.id })}
         >
-          Voir les transactions
+          Détails transactions
         </Button>
       </Card.Content>
     </Card>
@@ -66,13 +64,13 @@ const CashCard = memo(({ item, profile, navigation, onDelete, onClose }) => {
 
 /* ================= MAIN ================= */
 export default function CashesList({ navigation }) {
+  const { colors } = useTheme();
   const [profile, setProfile] = useState(null);
   const [cashes, setCashes] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  /* ===== INIT ET FOCUS ===== */
   useEffect(() => {
     const unsub = navigation.addListener("focus", init);
     return unsub;
@@ -81,56 +79,43 @@ export default function CashesList({ navigation }) {
   const init = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return setLoading(false);
 
-    const { data: profileData, error } = await supabase
+    const { data: profileData } = await supabase
       .from("users")
       .select("*")
       .eq("id", user.id)
       .single();
 
-    if (error) {
-      Alert.alert("Erreur", error.message);
-      setLoading(false);
-      return;
+    if (profileData) {
+      setProfile(profileData);
+      await fetchCashes(profileData);
     }
-
-    setProfile(profileData);
-    await fetchCashes(profileData);
     setLoading(false);
   };
 
-  /* ===== FETCH CAISHES ===== */
   const fetchCashes = async (profileData) => {
     let query = supabase.from("cashes_view").select("*");
 
     if (profileData.role === "kiosque") query = query.eq("cashier_id", profileData.id);
-    if (profileData.role === "grossiste") query = query.eq("seller_id", profileData.id);
     if (profileData.role === "admin") query = query.eq("owner_id", profileData.id);
 
-    const { data, error } = await query;
+    const { data, error } = await query.order('name');
     if (error) Alert.alert("Erreur", error.message);
     else setCashes(data || []);
   };
 
-  /* ===== SEARCH MEMO ===== */
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return cashes.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.kiosk_name?.toLowerCase().includes(q) ||
-        c.cashier_name?.toLowerCase().includes(q) ||
-        c.cashier_email?.toLowerCase().includes(q)
+    return cashes.filter((c) =>
+      (c.name || "").toLowerCase().includes(q) ||
+      (c.kiosk_name || "").toLowerCase().includes(q) ||
+      (c.cashier_name || "").toLowerCase().includes(q)
     );
   }, [cashes, search]);
 
-  /* ===== DELETE ===== */
   const deleteCash = async (id) => {
-    Alert.alert("Supprimer", "Confirmer ?", [
+    Alert.alert("Supprimer", "Cette action est irréversible.", [
       { text: "Annuler", style: "cancel" },
       {
         text: "Supprimer",
@@ -143,24 +128,6 @@ export default function CashesList({ navigation }) {
     ]);
   };
 
-  /* ===== CLOSE ===== */
-  const closeCash = async (cash) => {
-    Alert.alert("Clôturer", `Clôturer "${cash.name}" ?`, [
-      { text: "Annuler", style: "cancel" },
-      {
-        text: "Clôturer",
-        style: "destructive",
-        onPress: async () => {
-          await supabase.from("cashes").update({ closed: true }).eq("id", cash.id);
-          setCashes((prev) =>
-            prev.map((c) => (c.id === cash.id ? { ...c, closed: true } : c))
-          );
-        },
-      },
-    ]);
-  };
-
-  /* ===== PULL-TO-REFRESH ===== */
   const refreshCashes = async () => {
     if (!profile) return;
     setRefreshing(true);
@@ -168,34 +135,30 @@ export default function CashesList({ navigation }) {
     setRefreshing(false);
   };
 
-  /* ===== AUTO-REFRESH ===== */
-  useEffect(() => {
-    if (!profile) return;
-    const interval = setInterval(() => {
-      fetchCashes(profile);
-    }, 30000); // toutes les 10 secondes
-    return () => clearInterval(interval);
-  }, [profile]);
-
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
+  if (loading) return <ActivityIndicator style={{ flex: 1, backgroundColor: "#F2F2F7" }} size="large" />;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: "#F2F2F7" }]}>
+      <StatusBar barStyle="dark-content" />
+      
       <TextInput
-        placeholder="Rechercher boutique, client ou coursier..."
+        mode="outlined"
+        placeholder="Rechercher une boutique..."
         value={search}
         onChangeText={setSearch}
+        left={<TextInput.Icon icon="magnify" />}
         style={styles.search}
+        outlineStyle={{ borderRadius: 12, borderColor: '#D1D1D6' }}
       />
 
       {profile?.role === "admin" && (
         <Button
           mode="contained"
           icon="plus"
-          style={styles.add}
+          style={styles.addBtn}
           onPress={() => navigation.navigate("AddCash")}
         >
-          Ajouter une BOUTIQUE
+          Nouvelle Boutique
         </Button>
       )}
 
@@ -208,12 +171,9 @@ export default function CashesList({ navigation }) {
             profile={profile}
             navigation={navigation}
             onDelete={deleteCash}
-            onClose={closeCash}
           />
         )}
-        initialNumToRender={8}
-        windowSize={5}
-        removeClippedSubviews
+        contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refreshCashes} />
         }
@@ -224,15 +184,25 @@ export default function CashesList({ navigation }) {
 
 /* ================= STYLES ================= */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  search: { margin: 16 },
-  add: { marginBottom: 8, marginHorizontal: 16 },
+  container: { flex: 1 },
+  search: { margin: 16, backgroundColor: "#FFF" },
+  addBtn: { marginHorizontal: 16, marginBottom: 12, borderRadius: 10 },
+  listContent: { paddingBottom: 20 },
   card: {
-    marginHorizontal: 10,
+    marginHorizontal: 16,
     marginVertical: 6,
-    borderRadius: 12,
-    backgroundColor: "#FFF",
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
   },
-  balance: { fontWeight: "bold", marginBottom: 4 },
-  text: { fontSize: 15 },
+  cardTitle: { fontWeight: "bold", color: "#1C1C1E" },
+  balance: { fontWeight: "bold", fontSize: 16, marginBottom: 10 },
+  infoRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    marginTop: 5 
+  },
+  infoText: { fontSize: 14, color: "#636366" },
+  statusText: { fontSize: 12, fontWeight: "bold" },
+  detailsBtn: { alignSelf: 'flex-start', marginTop: 10, marginLeft: -10 }
 });

@@ -1,38 +1,19 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { View, FlatList, StyleSheet, Alert, Dimensions } from "react-native";
+import { View, FlatList, StyleSheet, Alert, Dimensions, StatusBar } from "react-native";
 import {
   Card,
   Text,
   TextInput,
   ActivityIndicator,
-  Provider as PaperProvider,
-  MD3DarkTheme,
   Button,
+  useTheme, // Hook pour utiliser le thème de App.js
 } from "react-native-paper";
 import supabase from "../supabaseClient";
 
 const { width, height } = Dimensions.get("window");
 
-/* ===== THEME ===== */
-const theme = {
-  ...MD3DarkTheme,
-  colors: {
-    ...MD3DarkTheme.colors,
-    primary: "#2563EB",
-    secondary: "#10B981",
-    accent: "#FACC15",
-    error: "#EF4444",
-    success: "#22C55E",
-    background: "#0A0F1A",
-    surface: "#1E293B",
-    onSurface: "#F8FAFC",
-    onBackground: "#F8FAFC",
-    disabled: "#64748B",
-    placeholder: "#94A3B8",
-  },
-};
-
 export default function CourierPaymentsScreen() {
+  const { colors } = useTheme(); // RÉCUPÉRATION DU THÈME GLOBAL
   const [profile, setProfile] = useState(null);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,13 +25,13 @@ export default function CourierPaymentsScreen() {
   }, []);
 
   /* ===== AUTO-REFRESH ===== */
-useEffect(() => {
-  if (!profile) return; // attendre que le profile soit chargé
-  const interval = setInterval(() => {
-    fetchPayments(profile);
-  }, 30000); // toutes les 30 secondes
-  return () => clearInterval(interval); // nettoyage à la destruction du composant
-}, [profile]);
+  useEffect(() => {
+    if (!profile) return;
+    const interval = setInterval(() => {
+      fetchPayments(profile);
+    }, 30000); 
+    return () => clearInterval(interval);
+  }, [profile]);
 
   /* ===== INIT ===== */
   const init = async () => {
@@ -120,188 +101,149 @@ useEffect(() => {
     [filtered]
   );
 
-  /* ===== VALIDATION SINGLE ===== */
+  /* ===== ACTIONS ===== */
   const validatePayment = (id) => {
-    Alert.alert(
-      "Validation",
-      "Confirmer la validation de ce paiement ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Valider",
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from("transactions")
-                .update({ status: "APPROVED" })
-                .eq("id", id);
-
-              if (error) throw error;
-
-              fetchPayments(profile);
-            } catch (err) {
-              Alert.alert("Erreur", err.message);
-            }
-          },
+    Alert.alert("Validation", "Confirmer ce paiement ?", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Valider",
+        onPress: async () => {
+          const { error } = await supabase.from("transactions").update({ status: "APPROVED" }).eq("id", id);
+          if (!error) fetchPayments(profile);
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  /* ===== VALIDATION ALL ===== */
-  const validateAllPayments = () => {
+  const validateAllPayments = async () => {
     if (pendingPayments.length === 0) return;
-
-    Alert.alert(
-      "Validation globale",
-      `Valider ${pendingPayments.length} paiement(s) ?`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Tout valider",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setValidatingAll(true);
-              const ids = pendingPayments.map(p => p.id);
-
-              const { error } = await supabase
-                .from("transactions")
-                .update({ status: "APPROVED" })
-                .in("id", ids);
-
-              if (error) throw error;
-
-              fetchPayments(profile);
-            } catch (err) {
-              Alert.alert("Erreur", err.message);
-            } finally {
-              setValidatingAll(false);
-            }
-          },
+    Alert.alert("Validation globale", `Valider ${pendingPayments.length} paiement(s) ?`, [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Tout valider",
+        onPress: async () => {
+          setValidatingAll(true);
+          const ids = pendingPayments.map(p => p.id);
+          const { error } = await supabase.from("transactions").update({ status: "APPROVED" }).in("id", ids);
+          if (!error) fetchPayments(profile);
+          setValidatingAll(false);
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  if (loading) {
-    return (
-      <PaperProvider theme={theme}>
-        <ActivityIndicator style={{ marginTop: 30 }} />
-      </PaperProvider>
-    );
+  if (loading && payments.length === 0) {
+    return <ActivityIndicator style={{ flex: 1, backgroundColor: colors.background }} size="large" color={colors.primary} />;
   }
 
   return (
-    <PaperProvider theme={theme}>
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        {/* SEARCH */}
-        <TextInput
-          placeholder="Rechercher coursier ou boutique..."
-          value={search}
-          onChangeText={setSearch}
-          style={styles.search}
-          mode="outlined"
-        />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* SEARCH */}
+      <TextInput
+        placeholder="Rechercher coursier ou boutique..."
+        value={search}
+        onChangeText={setSearch}
+        style={styles.search}
+        mode="outlined"
+        outlineColor={colors.outline}
+        activeOutlineColor={colors.primary}
+      />
 
-        {/* TOTAL */}
-        <Card style={styles.totalCard}>
-          <Card.Content>
-            <Text style={[styles.totalText, { color: theme.colors.success }]}>
-              💰 TOTAL DES RECOUVREMENTS : {total.toLocaleString("fr-FR")} FCFA
-            </Text>
+      {/* TOTAL CARD */}
+      <Card style={[styles.totalCard, { backgroundColor: colors.surface }]} elevation={2}>
+        <Card.Content>
+          <Text style={[styles.totalLabel, { color: colors.onSurfaceVariant }]}>TOTAL RECOUVREMENTS</Text>
+          <Text style={[styles.totalValue, { color: colors.success }]}>
+            {total.toLocaleString("fr-FR")} FCFA
+          </Text>
 
-            {profile?.role === "admin" && (
-              <Button
-                mode="contained"
-                icon="check-all"
-                loading={validatingAll}
-                disabled={pendingPayments.length === 0 || validatingAll}
-                onPress={validateAllPayments}
-                style={{ marginTop: 10 }}
-              >
-                {pendingPayments.length === 0
-                  ? "Aucun paiement à valider"
-                  : `Tout valider (${pendingPayments.length})`}
-              </Button>
-            )}
-          </Card.Content>
-        </Card>
-
-        {/* LIST */}
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={{ paddingBottom: height * 0.12 }}
-          renderItem={({ item }) => (
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text style={styles.amount}>
-                  {item.amount.toLocaleString("fr-FR")} FCFA
-                </Text>
-
-                <Text>👤 {item.cashier_name || item.cashier_email}</Text>
-                <Text>🏪 {item.kiosk_name || "—"}</Text>
-                <Text>📅 {new Date(item.created_at).toLocaleDateString("fr-FR")}
-                  {" "}
-  ⏰ {new Date(item.created_at).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}
-                </Text>
-       
-
-
-                <Text style={{ fontWeight: "bold", marginTop: 6 }}>
-                  Statut :{" "}
-                  <Text
-                    style={{
-                      color:
-                        item.transaction_status === "APPROVED"
-                          ? theme.colors.success
-                          : item.transaction_status === "REJECTED"
-                          ? theme.colors.error
-                          : theme.colors.accent,
-                    }}
-                  >
-                    {item.transaction_status === "APPROVED"
-                      ? "Approuvé"
-                      : item.transaction_status === "REJECTED"
-                      ? "Rejeté"
-                      : "En attente"}
-                  </Text>
-                </Text>
-
-                {profile?.role === "admin" &&
-                  item.transaction_status === "PENDING" && (
-                    <Button
-                      mode="contained"
-                      style={{ marginTop: 10 }}
-                      onPress={() => validatePayment(item.id)}
-                    >
-                      Valider
-                    </Button>
-                  )}
-              </Card.Content>
-            </Card>
+          {profile?.role === "admin" && (
+            <Button
+              mode="contained"
+              icon="check-all"
+              loading={validatingAll}
+              disabled={pendingPayments.length === 0 || validatingAll}
+              onPress={validateAllPayments}
+              style={styles.validateAllBtn}
+            >
+              Tout valider ({pendingPayments.length})
+            </Button>
           )}
-          ListEmptyComponent={
-            <Text style={{ textAlign: "center", marginTop: 20 }}>
-              Aucune transaction trouvée
-            </Text>
-          }
-        />
-      </View>
-    </PaperProvider>
+        </Card.Content>
+      </Card>
+
+      {/* PAYMENTS LIST */}
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        renderItem={({ item }) => (
+          <Card style={[styles.card, { backgroundColor: colors.surface }]} elevation={1}>
+            <Card.Content>
+              <View style={styles.cardHeader}>
+                <Text style={[styles.amount, { color: colors.onSurface }]}>
+                  {item.amount.toLocaleString("fr-FR")} <Text style={{fontSize: 12}}>FCFA</Text>
+                </Text>
+                <View style={[styles.statusBadge, { 
+                  backgroundColor: 
+                    item.transaction_status === "APPROVED" ? colors.success + '15' : 
+                    item.transaction_status === "REJECTED" ? colors.error + '15' : "#FACC1520" 
+                }]}>
+                  <Text style={[styles.statusText, { 
+                    color: 
+                      item.transaction_status === "APPROVED" ? colors.success : 
+                      item.transaction_status === "REJECTED" ? colors.error : "#B45309" 
+                  }]}>
+                    {item.transaction_status === "APPROVED" ? "Approuvé" : item.transaction_status === "REJECTED" ? "Rejeté" : "En attente"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.detailsContainer}>
+                <Text style={styles.detailRow}><Text style={{fontWeight: 'bold'}}>👤</Text> {item.cashier_name || item.cashier_email}</Text>
+                <Text style={styles.detailRow}><Text style={{fontWeight: 'bold'}}>🏪</Text> {item.kiosk_name || "—"}</Text>
+                <Text style={styles.detailRow}><Text style={{fontWeight: 'bold'}}>📅</Text> {new Date(item.created_at).toLocaleDateString("fr-FR")} à {new Date(item.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</Text>
+              </View>
+
+              {profile?.role === "admin" && item.transaction_status === "PENDING" && (
+                <Button
+                  mode="contained-tonal"
+                  style={{ marginTop: 12 }}
+                  onPress={() => validatePayment(item.id)}
+                  buttonColor={colors.primary}
+                  textColor="white"
+                >
+                  Valider la réception
+                </Button>
+              )}
+            </Card.Content>
+          </Card>
+        )}
+        ListEmptyComponent={
+          <Text style={[styles.emptyText, { color: colors.onSurfaceVariant }]}>
+            Aucun recouvrement trouvé
+          </Text>
+        }
+      />
+    </View>
   );
 }
 
-/* ===== STYLES ===== */
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: width * 0.04 },
-  search: { marginBottom: 12 },
-  totalCard: { borderRadius: 12, marginBottom: 10 },
-  totalText: { fontSize: 16, fontWeight: "bold" },
-  card: { marginVertical: 6, borderRadius: 12 },
-  amount: { fontWeight: "bold", fontSize: 16 },
+  container: { flex: 1, padding: 16 },
+  search: { marginBottom: 16, backgroundColor: '#FFF' },
+  totalCard: { borderRadius: 16, marginBottom: 16, borderLeftWidth: 6, borderLeftColor: "#10B981" },
+  totalLabel: { textAlign: "center", fontSize: 11, fontWeight: "bold", letterSpacing: 1 },
+  totalValue: { textAlign: "center", fontSize: 22, fontWeight: "900", marginVertical: 4 },
+  validateAllBtn: { marginTop: 8, borderRadius: 8 },
+  card: { marginVertical: 6, borderRadius: 16 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  amount: { fontWeight: "900", fontSize: 18 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  statusText: { fontSize: 11, fontWeight: "bold" },
+  detailsContainer: { gap: 4, borderTopWidth: 1, borderTopColor: '#F2F2F7', paddingTop: 10 },
+  detailRow: { fontSize: 13, color: "#444" },
+  emptyText: { textAlign: "center", marginTop: 40, fontSize: 16 },
 });

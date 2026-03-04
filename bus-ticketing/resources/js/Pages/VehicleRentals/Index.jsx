@@ -290,10 +290,10 @@ export default function VehicleRentalIndex({ rentals }) {
               fullWidth
             >
               <MenuItem value="">Sélectionner</MenuItem>
-              <MenuItem value="chauffeur">Chauffeur</MenuItem>
+              <MenuItem value="chauffeur">Prime V</MenuItem>
               <MenuItem value="carburant">Carburant</MenuItem>
-              <MenuItem value="peages">Péages</MenuItem>
-              <MenuItem value="restauration">Restauration</MenuItem>
+              <MenuItem value="peages">NTT</MenuItem>
+              <MenuItem value="restauration">Frais de route</MenuItem>
               <MenuItem value="entretien">Entretien</MenuItem>
               <MenuItem value="autres">Autres</MenuItem>
             </TextField>

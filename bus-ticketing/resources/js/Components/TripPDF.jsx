@@ -48,6 +48,17 @@ export const TripPDF = ({ trip, companyLogo, companyName = "NILATOUTELTRANS" }) 
   const tickets = trip.tickets || [];
   const expenses = trip.expenses || [];
 
+   const getTypeLabel = (type) => {
+    return {
+      chauffeur: "Prime V",
+      fuel: "Carburant",
+      toll: "NTT",
+      meal: "Frais de route",
+      maintenance: "Entretien",
+      other: "Autre",
+    }[type] || type;
+  };
+
   const recettes = tickets.reduce((s, t) => s + Number(t.price || 0), 0);
   const depenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const resultat = recettes - depenses;
@@ -107,7 +118,7 @@ export const TripPDF = ({ trip, companyLogo, companyName = "NILATOUTELTRANS" }) 
           </View>
           {expenses.map((e) => (
             <View style={styles.row} key={e.id}>
-              <Text style={styles.col}>{e.label || e.description}</Text>
+              <Text style={styles.col}>{getTypeLabel(e.type) || e.description}</Text>
               <Text style={styles.col}>{e.user?.name || "-"}</Text>
               <Text style={styles.col}>{dateFR(e.created_at)}</Text>
               <Text style={styles.col}>{money(e.amount)} FCFA</Text>

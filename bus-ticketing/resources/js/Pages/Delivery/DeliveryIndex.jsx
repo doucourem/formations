@@ -42,10 +42,10 @@ export default function DeliveryIndex({ deliveries }) {
   const [expenseData, setExpenseData] = useState({ type: "", amount: "", description: "" });
 
   const TYPE_LABELS = {
-    chauffeur: "Chauffeur",
+    chauffeur: "Prime V",
     carburant: "Carburant",
-    peages: "Péages",
-    restauration: "Restauration",
+    peages: "NTT",
+    restauration: "Frais de route",
     entretien: "Entretien",
     autres: "Autres",
   };

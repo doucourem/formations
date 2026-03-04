@@ -90,10 +90,10 @@ export default function TripExpenses({ trip, expenses }) {
   // ✅ Fonction pour afficher le libellé du type
   const getTypeLabel = (type) => {
     return {
-      chauffeur: "Chauffeur",
+      chauffeur: "Prime V",
       fuel: "Carburant",
-      toll: "Péage",
-      meal: "Restauration",
+      toll: "NTT",
+      meal: "Frais de route",
       maintenance: "Entretien",
       other: "Autre",
     }[type] || type;
@@ -173,10 +173,10 @@ export default function TripExpenses({ trip, expenses }) {
                   value={expensesForm.type}
                   onChange={(e) => handleExpenseChange("type", e.target.value)}
                 >
-                  <MenuItem value="chauffeur">Chauffeur</MenuItem>
+                  <MenuItem value="chauffeur">Prime V</MenuItem>
                   <MenuItem value="fuel">Carburant</MenuItem>
-                  <MenuItem value="toll">Péages</MenuItem>
-                  <MenuItem value="meal">Restauration</MenuItem>
+                  <MenuItem value="toll">NTT</MenuItem>
+                  <MenuItem value="meal">Frais de route</MenuItem>
                   <MenuItem value="maintenance">Entretien</MenuItem>
                   <MenuItem value="other">Autres</MenuItem>
                 </TextField>
