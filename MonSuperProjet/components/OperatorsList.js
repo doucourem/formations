@@ -278,3 +278,4 @@ const styles = StyleSheet.create({
   loadingContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 16 },
   errorBox: { padding: 12, borderRadius: 8, marginBottom: 16 },
 });
+

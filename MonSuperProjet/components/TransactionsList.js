@@ -306,13 +306,13 @@ const handleSaveTransaction = async () => {
   }
 
   try {
-    // 🟦 1 — Si l'utilisateur est "grossiste", on remplace automatiquement la caisse
+    // 🟦 1 — Déterminer la caisse finale pour le grossiste
     let finalCashId = cashId;
 
     if (profile?.role?.toLowerCase() === "grossiste") {
       const { data: userCashArray, error } = await supabase
         .from("cashes")
-        .select("id, name, balance, min_balance")
+        .select("id, name, balance, min_balance, kiosk_id")
         .eq("seller_id", user.id)
         .limit(1);
 
@@ -322,15 +322,15 @@ const handleSaveTransaction = async () => {
       finalCashId = userCashArray[0].id;
     }
 
-    // 🟦 2 — Vérifier la caisse sélectionnée
+    // 🟦 2 — Vérification de la caisse sélectionnée
     const selectedCash = cashes.find(c => c.id === finalCashId);
     if (!selectedCash) throw new Error("Caisse introuvable.");
 
     const montant = parseFloat(amount);
 
-    // 🟦 3 — Calcul du solde actuel
+    // 🟦 3 — Calcul du nouveau solde
     const cashTransactions = transactions.filter(t => t.cash_id === finalCashId);
-    let totalTransactions = cashTransactions.reduce(
+    const totalTransactions = cashTransactions.reduce(
       (sum, t) => sum + (t.type === "CREDIT" ? t.amount : -t.amount),
       0
     );
@@ -339,16 +339,14 @@ const handleSaveTransaction = async () => {
 
     // 🟦 4 — Vérification du seuil minimum
     if (newBalance > selectedCash.min_balance) {
-       console.log("Total Transactions avant:", selectedCash.min_balance, "Nouveau solde:", newBalance);
       showAlert(
         "Attention",
         `⚠️ Le solde de la caisse "${selectedCash.name}" (${newBalance} XOF) a atteint le minimum (${selectedCash.min_balance} XOF).`
       );
-      // Si tu veux **bloquer la transaction**, ajoute `return;` ici
-       return;
+      return; // bloque la transaction si seuil atteint
     }
 
-    // 🟦 5 — Mise à jour ou création transaction
+    // 🟦 5 — Création ou mise à jour de la transaction
     if (editMode && editingId) {
       const { error } = await supabase
         .from("transactions")
@@ -377,26 +375,35 @@ const handleSaveTransaction = async () => {
 
       // Mise à jour du solde de la caisse
       await supabase.from("cashes").update({ balance: newBalance }).eq("id", finalCashId);
+    }
 
-      // Envoi WhatsApp
-      const { data: kiosksData, error: kiosksError } = await supabase
-        .from("kiosks")
-        .select("id, name");
+    // 🟦 6 — Envoi WhatsApp
+    const { data: kiosksData } = await supabase.from("kiosks").select("id, name");
+    const kiosk = kiosksData?.find(k => k.id === selectedCash?.kiosk_id);
 
-      const kiosk = kiosksData?.find(k => k.id === selectedCash?.kiosk_id);
-
-      const message = `
+    const message = `
 NOUVELLE TRANSACTION 📄
-
 🏦 Boutique : ${selectedCash?.name || "Inconnue"}
 👤 Nom : ${kiosk?.name || "Inconnu"}
 💰 Montant : ${formatCFA(montant)}
 🕒 Créé le : ${new Date().toLocaleString()}
 `;
-      await sendAndSaveMessage("whatsapp:+24102849507", message);
-    }
+    await sendAndSaveMessage("whatsapp:+24102849507", message);
 
-    // 🟦 6 — Reset formulaire
+    // 🟦 7 — Envoi USSD sécurisé via Supabase Function
+    // Assurez-vous que la Function récupère le PIN du grossiste côté serveur
+    await fetch("https://swjbaulntncrzsxjwhhu.supabase.co/functions/v1/send-ussd", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phoneNumber: selectedCash?.ussd_number || "+221770000000",
+        amount: montant,
+        transactionType,
+        grossisteId: user.id,
+      }),
+    });
+
+    // 🟦 8 — Reset formulaire
     setDialogVisible(false);
     setForm({
       cashId: null,
@@ -415,7 +422,33 @@ NOUVELLE TRANSACTION 📄
     showAlert("Erreur", err.message);
   }
 };
+const sendUSSDTransaction = async ({ phoneNumber, amount, transactionType }) => {
+  try {
+    const API_KEY = "ZW165_UMjeUEZz6hcbiankqFlt9Xgqz188HI";
+    const PROJECT_ID = "PJ4d6fa43ac6c80187";
 
+    const response = await fetch(
+      `https://api.telerivet.com/v1/projects/${PROJECT_ID}/messages.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${btoa(API_KEY + ":")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to_number: phoneNumber,
+          content: `Transaction ${transactionType}: ${amount} XOF`,
+          type: "ussd",
+        }),
+      }
+    );
+
+    const data = await response.json();
+    console.log("USSD envoyé:", data);
+  } catch (err) {
+    console.error("Erreur USSD:", err);
+  }
+};
 
 
 
