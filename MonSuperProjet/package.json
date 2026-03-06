@@ -47,6 +47,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@expo/metro-config": "^55.0.9",
     "@react-native-community/cli": "^20.0.1"
   }
 }

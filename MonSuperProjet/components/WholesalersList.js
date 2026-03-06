@@ -157,7 +157,7 @@ export default function WholesalersList() {
           </View>
 
           {/* Utilisation dynamique des couleurs du thème global */}
-          <View style={[styles.balanceBox, { backgroundColor: isPositive ? colors.success + '15' : colors.error + '15' }]}>
+          <View style={[styles.balanceBox]}>
             <Text style={[styles.balanceLabel, { color: isPositive ? colors.success : colors.error }]}>
               {isPositive ? "VOUS DEVEZ" : "IL VOUS DOIT"}
             </Text>

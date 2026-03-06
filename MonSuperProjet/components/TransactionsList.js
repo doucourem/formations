@@ -17,7 +17,7 @@ import {
   Provider as PaperProvider,
   Card,
   FAB, 
-  
+  MD3LightTheme,
   SegmentedButtons,
   MD3DarkTheme,
 } from "react-native-paper";
@@ -31,20 +31,16 @@ import TransactionDialog from "../components/TransactionDialog";
 const { width, height } = Dimensions.get('window');
 
 const theme = {
-  ...MD3DarkTheme,
+  ...MD3LightTheme, // On passe sur une base claire
   colors: {
-    ...MD3DarkTheme.colors,
-    primary: "#2563EB",
-    secondary: "#10B981",
-    accent: "#FACC15",
-    error: "#EF4444",
-    success: "#22C55E",
-    background: "#0A0F1A",
-    surface: "#1E293B",
-    onSurface: "#F8FAFC",
-    onBackground: "#F8FAFC",
-    disabled: "#64748B",
-    placeholder: "#94A3B8",
+    ...MD3LightTheme.colors,
+    primary: "#4F46E5",       // Indigo pour les boutons
+    secondary: "#10B981",     // Vert pour les succès
+    background: "#F2F2F7",    // LE "BLANC SALE" (Gris très clair type iOS)
+    surface: "#FFFFFF",       // Blanc pur pour les cartes (pour qu'elles ressortent)
+    onSurface: "#1C1C1E",     // Texte presque noir
+    onSurfaceVariant: "#636366", // Texte gris secondaire
+    outline: "#D1D1D6",       // Bordures fines
   },
 };
 

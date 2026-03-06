@@ -117,72 +117,122 @@ export default function App() {
     <PaperProvider theme={theme}>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.surface} />
       <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            headerStyle: { backgroundColor: theme.colors.surface },
-            headerTintColor: theme.colors.onSurface,
-            headerTitleStyle: { fontWeight: 'bold' },
-            animation: 'slide_from_right'
-          }}
-        >
-          {user ? (
-            <>
-              {/* ACCUEIL DYNAMIQUE */}
-              <Stack.Screen 
-                name="ACCUEIL" 
-                options={{ 
-                  title: "Ma Gestion",
-                  headerRight: () => (
-                    <IconButton 
-                      icon="logout" 
-                      onPress={() => supabase.auth.signOut()} 
-                      iconColor={theme.colors.error} 
-                    />
-                  )
-                }}
-              >
-                {(props) => (
-                  <HomeScreen 
-                    {...props} 
-                    user={user} 
-                    screens={GET_MENU_BY_ROLE(user.role)} 
-                  />
-                )}
-              </Stack.Screen>
+      <Stack.Navigator
+  screenOptions={{
+    headerStyle: { backgroundColor: theme.colors.surface }, // fond clair
+    headerTintColor: theme.colors.onSurface,              // ✅ couleur du texte et des icônes
+    headerTitleStyle: { fontWeight: 'bold' },
+    animation: 'slide_from_right',
+    headerBackVisible: true,
+  }}
+>
+  {user ? (
+    <>
+      {/* ACCUEIL DYNAMIQUE */}
+      <Stack.Screen 
+        name="ACCUEIL" 
+        options={{ 
+          title: "Ma Gestion",
+          headerRight: () => (
+            <IconButton 
+              icon="logout" 
+              onPress={() => supabase.auth.signOut()} 
+              iconColor={theme.colors.error} 
+            />
+          ),
+          // Pas de back ici car c'est le premier écran
+        }}
+      >
+        {(props) => (
+          <HomeScreen 
+            {...props} 
+            user={user} 
+            screens={GET_MENU_BY_ROLE(user.role)} 
+          />
+        )}
+      </Stack.Screen>
 
-              {/* GROUPE : GESTION DES FLUX */}
-              <Stack.Group>
-                <Stack.Screen name="Transactions" component={TransactionsList} />
-                <Stack.Screen name="Rapport" component={CourierPaymentsScreen} options={{ title: "Rapports d'activité" }} />
-              </Stack.Group>
+      {/* GROUPE : GESTION DES FLUX */}
+      <Stack.Group>
+        <Stack.Screen 
+          name="Transactions" 
+          component={TransactionsList} 
+          options={{ title: "Transactions" }} 
+        />
+        <Stack.Screen 
+          name="Rapport" 
+          component={CourierPaymentsScreen} 
+          options={{ title: "Rapports d'activité" }} 
+        />
+      </Stack.Group>
 
-              {/* GROUPE : BOUTIQUES */}
-              <Stack.Group>
-                <Stack.Screen name="CashesList" component={CashesList} options={{ title: "Mes Boutiques" }} />
-                <Stack.Screen name="AddCash" component={AddCashScreen} options={{ title: "Nouvelle Boutique" }} />
-                <Stack.Screen name="EditCash" component={EditCashScreen} options={{ title: "Paramètres Boutique" }} />
-                <Stack.Screen name="TransactionsListCaisse" component={TransactionsListCaisse} options={{ title: "Historique Caisse" }} />
-              </Stack.Group>
+      {/* GROUPE : BOUTIQUES */}
+      <Stack.Group>
+        <Stack.Screen 
+          name="CashesList" 
+          component={CashesList} 
+          options={{ title: "Mes Boutiques", headerTintColor: "#1C1C1E" }} 
+        />
+        <Stack.Screen 
+          name="AddCash" 
+          component={AddCashScreen} 
+          options={{ title: "Nouvelle Boutique", headerTintColor: "#1C1C1E" }} 
+        />
+        <Stack.Screen 
+          name="EditCash" 
+          component={EditCashScreen} 
+          options={{ title: "Paramètres Boutique", headerTintColor: "#1C1C1E" }} 
+        />
+        <Stack.Screen 
+          name="TransactionsListCaisse" 
+          component={TransactionsListCaisse} 
+          options={{ title: "Historique Caisse", headerTintColor: "#1C1C1E" }} 
+        />
+      </Stack.Group>
 
-              {/* GROUPE : ADMIN & TIERS */}
-              <Stack.Group screenOptions={{ headerStyle: { backgroundColor: '#1e1b4b' } }}>
-                <Stack.Screen name="Kiosks" component={KiosksList} options={{ title: "Gestion Clients" }} />
-                <Stack.Screen name="Wholesalers" component={WholesalersList} options={{ title: "Liste Fournisseurs" }} />
-                <Stack.Screen name="WholesalerTransactions" component={WholesalerTransactionsList} options={{ title: "Détails Fournisseur" }} />
-                <Stack.Screen name="Operators" component={OperatorsList} options={{ title: "Opérateurs Télécom" }} />
-                <Stack.Screen name="Users" component={UsersList} options={{ title: "Droits d'accès" }} />
-              </Stack.Group>
+      {/* GROUPE : ADMIN & TIERS */}
+      <Stack.Group screenOptions={{ headerStyle: { backgroundColor: '#ffffff' } }}>
+        <Stack.Screen 
+          name="Kiosks" 
+          component={KiosksList} 
+          options={{ title: "Gestion Clients", headerTintColor: "#1C1C1E" }} 
+        />
+        <Stack.Screen 
+          name="Wholesalers" 
+          component={WholesalersList} 
+          options={{ title: "Liste Fournisseurs"  , headerTintColor: "#1C1C1E" }} 
+        />
+        <Stack.Screen 
+          name="WholesalerTransactions" 
+          component={WholesalerTransactionsList} 
+          options={{ title: "Détails Fournisseur"  , headerTintColor: "#1C1C1E" }} 
+        />
+        <Stack.Screen 
+          name="Operators" 
+          component={OperatorsList} 
+          options={{ title: "Opérateurs Télécom", headerTintColor: "#1C1C1E" }} 
+        />
+        <Stack.Screen 
+          name="Users" 
+          component={UsersList} 
+          options={{ title: "Droits d'accès", headerTintColor: "#1C1C1E" }} 
+        />
+      </Stack.Group>
 
-              {/* SÉCURITÉ */}
-              <Stack.Screen name="Password" component={ChangePasswordScreen} options={{ title: "Mot de passe" }} />
-            </>
-          ) : (
-            <>
-              <Stack.Screen name="Auth" component={Auth} options={{ headerShown: false }} />
-              <Stack.Screen name="Register" component={Register} options={{ headerShown: false }} />
-            </>
-          )}
-        </Stack.Navigator>
+      {/* SÉCURITÉ */}
+      <Stack.Screen 
+        name="Password" 
+        component={ChangePasswordScreen} 
+        options={{ title: "Mot de passe", headerTintColor: "#1C1C1E" }} 
+      />
+    </>
+  ) : (
+    <>
+      <Stack.Screen name="Auth" component={Auth} options={{ headerShown: false }} />
+      <Stack.Screen name="Register" component={Register} options={{ headerShown: false }} />
+    </>
+  )}
+</Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>
   );

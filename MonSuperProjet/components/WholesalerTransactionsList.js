@@ -30,12 +30,10 @@ export default function WholesalerTransactionsList({ route }) {
   const [transactions, setTransactions] = useState([]);
   const [groupedTransactions, setGroupedTransactions] = useState([]);
 
-  // create
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("CREDIT");
 
-  // edit
   const [editOpen, setEditOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState(null);
   const [editAmount, setEditAmount] = useState("");
@@ -61,12 +59,13 @@ export default function WholesalerTransactionsList({ route }) {
   const groupByDate = (data) => {
     const grouped = data.reduce((acc, tx) => {
       const key = new Date(tx.created_at).toLocaleDateString("fr-FR");
+
       if (!acc[key]) acc[key] = { transactions: [], credit: 0, debit: 0 };
 
       acc[key].transactions.push(tx);
-      tx.type === "CREDIT"
-        ? (acc[key].credit += Number(tx.amount))
-        : (acc[key].debit += Number(tx.amount));
+
+      if (tx.type === "CREDIT") acc[key].credit += Number(tx.amount);
+      else acc[key].debit += Number(tx.amount);
 
       return acc;
     }, {});
@@ -97,6 +96,7 @@ export default function WholesalerTransactionsList({ route }) {
     setOpen(false);
     setAmount("");
     setType("CREDIT");
+
     fetchTransactions();
   };
 
@@ -122,6 +122,7 @@ export default function WholesalerTransactionsList({ route }) {
 
     setEditOpen(false);
     setSelectedTx(null);
+
     fetchTransactions();
   };
 
@@ -137,6 +138,9 @@ export default function WholesalerTransactionsList({ route }) {
 
   const balance = totalCredit - totalDebit;
 
+  const creditColor = theme.colors.primary;
+  const debitColor = theme.colors.error;
+
   /* ================= UI ================= */
 
   return (
@@ -148,25 +152,37 @@ export default function WholesalerTransactionsList({ route }) {
     >
       <Text
         variant="headlineMedium"
-        style={{ color: theme.colors.onBackground, textAlign: "center" }}
+        style={{
+          color: theme.colors.onBackground,
+          textAlign: "center",
+          marginBottom: 10,
+        }}
       >
         Transactions – {wholesalerName}
       </Text>
 
       {/* SUMMARY */}
-      <Card style={[styles.summary, { backgroundColor: theme.colors.surface }]}>
+
+      <Card
+        style={[
+          styles.summary,
+          { backgroundColor: theme.colors.surfaceVariant },
+        ]}
+      >
         <Card.Content>
-          <Text style={styles.text}>
+          <Text style={{ color: theme.colors.onSurface }}>
             💰 Paiements : {formatCFA(totalCredit)}
           </Text>
-          <Text style={styles.text}>
+
+          <Text style={{ color: theme.colors.onSurface }}>
             📤 Demandes : {formatCFA(totalDebit)}
           </Text>
+
           <Text
             style={{
               fontWeight: "bold",
-              marginTop: 4,
-              color: balance >= 0 ? "#10b981" : "#EF4444",
+              marginTop: 6,
+              color: balance >= 0 ? creditColor : debitColor,
             }}
           >
             ⚖️ Balance : {formatCFA(balance)}
@@ -186,6 +202,7 @@ export default function WholesalerTransactionsList({ route }) {
       <SectionList
         sections={groupedTransactions}
         keyExtractor={(item) => item.id.toString()}
+        showsVerticalScrollIndicator={false}
         renderSectionHeader={({ section }) => (
           <View
             style={[
@@ -193,29 +210,55 @@ export default function WholesalerTransactionsList({ route }) {
               { backgroundColor: theme.colors.surface },
             ]}
           >
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <Text style={styles.text}>
+            <Text
+              style={{
+                color: theme.colors.onSurface,
+                fontWeight: "bold",
+              }}
+            >
+              {section.title}
+            </Text>
+
+            <Text style={{ color: theme.colors.onSurfaceVariant }}>
               Paiements : {formatCFA(section.totalCredit)}
             </Text>
-            <Text style={styles.text}>
+
+            <Text style={{ color: theme.colors.onSurfaceVariant }}>
               Demandes : {formatCFA(section.totalDebit)}
             </Text>
           </View>
         )}
         renderItem={({ item }) => {
-          const color = item.type === "CREDIT" ? "#10b981" : "#EF4444";
+          const color =
+            item.type === "CREDIT"
+              ? creditColor
+              : debitColor;
+
           return (
             <Card
-              style={[styles.card, { backgroundColor: theme.colors.surface }]}
+              style={[
+                styles.card,
+                { backgroundColor: theme.colors.surface },
+              ]}
               onPress={() => openEditDialog(item)}
             >
               <List.Item
                 title={formatCFA(item.amount)}
-                titleStyle={{ color, fontWeight: "bold" }}
-                description={new Date(item.created_at).toLocaleTimeString()}
-                descriptionStyle={{ color: theme.colors.onSurface }}
+                titleStyle={{
+                  color,
+                  fontWeight: "bold",
+                }}
+                description={new Date(
+                  item.created_at
+                ).toLocaleTimeString()}
+                descriptionStyle={{
+                  color: theme.colors.onSurfaceVariant,
+                }}
                 left={() => (
-                  <List.Icon icon="cash" color={color} />
+                  <List.Icon
+                    icon="cash"
+                    color={color}
+                  />
                 )}
               />
             </Card>
@@ -224,22 +267,26 @@ export default function WholesalerTransactionsList({ route }) {
       />
 
       {/* CREATE */}
+
       <Portal>
         <Dialog
           visible={open}
           onDismiss={() => setOpen(false)}
           style={{ backgroundColor: theme.colors.surface }}
         >
-          <Dialog.Title style={{ color: theme.colors.onSurface }}>
+          <Dialog.Title
+            style={{ color: theme.colors.onSurface }}
+          >
             Nouvelle transaction
           </Dialog.Title>
+
           <Dialog.Content>
             <TextInput
               label="Montant"
               keyboardType="numeric"
               value={amount}
               onChangeText={setAmount}
-              textColor={theme.colors.onSurface}
+              style={{ marginBottom: 10 }}
             />
 
             <View style={styles.row}>
@@ -249,6 +296,7 @@ export default function WholesalerTransactionsList({ route }) {
               >
                 Paiement
               </Button>
+
               <Button
                 mode={type === "DEBIT" ? "contained" : "outlined"}
                 onPress={() => setType("DEBIT")}
@@ -257,29 +305,36 @@ export default function WholesalerTransactionsList({ route }) {
               </Button>
             </View>
           </Dialog.Content>
+
           <Dialog.Actions>
-            <Button onPress={createTransaction}>Créer</Button>
+            <Button onPress={createTransaction}>
+              Créer
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
       {/* EDIT */}
+
       <Portal>
         <Dialog
           visible={editOpen}
           onDismiss={() => setEditOpen(false)}
           style={{ backgroundColor: theme.colors.surface }}
         >
-          <Dialog.Title style={{ color: theme.colors.onSurface }}>
+          <Dialog.Title
+            style={{ color: theme.colors.onSurface }}
+          >
             Modifier transaction
           </Dialog.Title>
+
           <Dialog.Content>
             <TextInput
               label="Montant"
               keyboardType="numeric"
               value={editAmount}
               onChangeText={setEditAmount}
-              textColor={theme.colors.onSurface}
+              style={{ marginBottom: 10 }}
             />
 
             <View style={styles.row}>
@@ -289,6 +344,7 @@ export default function WholesalerTransactionsList({ route }) {
               >
                 Paiement
               </Button>
+
               <Button
                 mode={editType === "DEBIT" ? "contained" : "outlined"}
                 onPress={() => setEditType("DEBIT")}
@@ -297,8 +353,11 @@ export default function WholesalerTransactionsList({ route }) {
               </Button>
             </View>
           </Dialog.Content>
+
           <Dialog.Actions>
-            <Button onPress={updateTransaction}>Enregistrer</Button>
+            <Button onPress={updateTransaction}>
+              Enregistrer
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -309,20 +368,27 @@ export default function WholesalerTransactionsList({ route }) {
 /* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  summary: { marginBottom: 12, borderRadius: 12 },
-  text: { color: "#E5E7EB" },
+  container: {
+    flex: 1,
+    padding: 16,
+  },
+
+  summary: {
+    marginBottom: 12,
+    borderRadius: 14,
+  },
+
   section: {
-    padding: 8,
+    padding: 10,
     marginTop: 12,
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  sectionTitle: {
-    color: "#F8FAFC",
-    fontWeight: "bold",
-    marginBottom: 4,
+
+  card: {
+    marginVertical: 4,
+    borderRadius: 12,
   },
-  card: { marginVertical: 4, borderRadius: 10 },
+
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
